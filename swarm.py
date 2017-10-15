@@ -153,7 +153,7 @@ def visualizeSprofile(ax, data, title="", log=False):
     if(log):
         ax.set_yscale('log')
 
-def visualizeTwoprofiles(ax, data1, data2, title1="", title2="",ome=False):
+def visualizeTwoprofiles(ax, data1, data2, title1="", title2="",ome=False, log=False):
     # latitudal profile
     ax.cla()
     ax.plot(latsDeg, data1, ',k', label=title1)
@@ -162,8 +162,9 @@ def visualizeTwoprofiles(ax, data1, data2, title1="", title2="",ome=False):
         ax.plot(latsDeg, omega*rsphere*np.cos(lats), color='b', linewidth=1)
 #    ax.legend()
     ax.set_xlabel('latitude, deg')
-#    ax.set_ylabel(r'$\Sigma$')
-    #    ax.set_yscale('log')
+    #    ax.set_ylabel(r'$\Sigma$')
+    if(log):
+        ax.set_yscale('log')
 
 def visualizeMap(ax, data, vmin=0.0, vmax=1.0, title=""):
 
@@ -211,20 +212,18 @@ def visualizeMapVecs(ax, xx, yy, title=""):
     M = np.hypot(xx, yy)
 
     print title, " min/max vec len: ", M.min(), M.max()
-
-    vv=np.sqrt(xx**2+yy**2)
     
     sk = 10
     ax.quiver(
         lonsDeg[::sk, ::sk],
         latsDeg[::sk, ::sk],
-        xx[::sk, ::sk]/vv.max()*10., yy[::sk, ::sk]/vv.max()*10.,
+        xx[::sk, ::sk], yy[::sk, ::sk],
 #        M[::sk, ::sk],
         pivot='mid',
         units='x',
         linewidth=1.0,
-        color='k'
-#        ,   scale=8.0,
+        color='k',
+        scale=8.0,
     )
 
     #ax.scatter(
@@ -332,13 +331,13 @@ for ncycle in range(itmax+1):
         visualizeMap(axs[2], divg,  -1.1*divm, 1.1*divm, title="Divergence")
         visualizeSprofile(axs[3], divg, title=r"$(\nabla \cdot v)$")
         visualizeMap(axs[4], np.log(sig),  np.log(sig0*0.9),  np.log(sig.max()*1.1),  title=r'$\Sigma$')
-        visualizeSprofile(axs[5], sig, title="$\Sigma$", log=True)
+        visualizeTwoprofiles(axs[5], sig, sigma_init, title1="$\Sigma$", title2="$\Sigma_0$")
         visualizeMap(axs[6], dissipation*sig,  0.,  (dissipation*sig).max()*1.5,  title=r'Dissipation')
         visualizeSprofile(axs[7], dissipation*sig,  title=r'Dissipation', log=True)
-        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
-        vabs=du**2+dv**2+cs**2 
-        dunorm=du/vabs  ; dvnorm=dv/vabs ; 
-        visualizeMapVecs(axs[8], ug, vg, title="Velocities")
+#        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
+#        vabs=du**2+dv**2+cs**2 
+#        dunorm=du/vabs  ; dvnorm=dv/vabs ; 
+        visualizeMapVecs(axs[8], ug*10., vg*10., title="Velocities")
         visualizeTwoprofiles(axs[9], ug, vg, title1=r"$v_\varphi$", title2=r"$v_\theta$", ome=True)
         axs[0].set_title('{:6.2f} ms'.format( t*tscale*1e3) )
         scycle = str(nout).rjust(6, '0')
