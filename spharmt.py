@@ -3,9 +3,6 @@ import shtns
 
 #Note: all the spherical harmonic computations are interfaced here
 
-
-
-
 class Spharmt(object):
 	"""
 	wrapper class for commonly used spectral transform operations in
