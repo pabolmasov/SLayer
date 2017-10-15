@@ -1,6 +1,11 @@
-# SWM - Shallow Water Model 
+# SWARM - Shallow-WAter-based spReading-layer Model
 
-Small shallow water hydrodynamic code using spherical harmonics to compute atmospheric circulations.
+Small shallow water hydrodynamic code using spherical harmonics to compute
+atmospheric circulations. Based on https://github.com/natj/swm, but the
+variables are normalized to the natural relativistic units GM=c=1, for a
+neutron star rotating at a millisecond period. Besides, the local equation of
+state was changed to Pi = cs^2 \Sigma (isothermal). Description to be updated,
+it still tracks the original SWM!
 
 In practice we solve:
 
