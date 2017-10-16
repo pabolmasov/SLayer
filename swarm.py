@@ -27,7 +27,7 @@ import os
 
 # source/sink term
 def sdotsource(lats, lons, latspread):
-    return 1.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
+    return 10.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
 
 def sdotsink(sigma, sigmax):
     return 0.1*sigma*np.exp(-sigmax/sigma)
@@ -82,10 +82,10 @@ en = np.exp(-4.0/(phi1-phi0)**2)
 alpha = 1./3.
 beta = 1./15.
 hamp=0.5
-sigmafloor = 0.1
+sigfloor = 0.1
 sig0 = 1.       # own neutron star atmosphere
 
-efold = 100.*dt    # efolding timescale at ntrunc for hyperdiffusion
+efold = 1e-3*dt    # efolding timescale at ntrunc for hyperdiffusion
 ndiss = 8           # order for hyperdiffusion
 
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -124,6 +124,7 @@ csq=cs**2
 
 # create hyperdiffusion factor
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
+diff_sigma=np.exp((-dt/efold)*x.lap**(ndiss/2))
 
 # solve nonlinear balance eqn to get initial zonal geopotential,
 # add localized bump (not balanced).
@@ -262,7 +263,8 @@ for ncycle in range(itmax+1):
     tmpg1 = ug*sig; tmpg2 = vg*sig
     tmpSpec, dsigdtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
     dsigdtSpec[:,nnew] *= -1
-    tmpSpec = x.grid2sph(csq*np.log(sig+sigfloor)+0.5*(ug**2+vg**2))
+    press=cs**2*np.log((sig+np.fabs(sig))/2.+sigfloor) # stabilizing equation of state
+    tmpSpec = x.grid2sph(press+0.5*(ug**2+vg**2))
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
     # update vort,div,phiv with third-order adams-bashforth.
     # forward euler, then 2nd-order adams-bashforth time steps to start
@@ -305,11 +307,11 @@ for ncycle in range(itmax+1):
     wnan=np.where(np.isnan(dissSpec))
     if(np.size(wnan)>0):
         dissSpec[wnan]=0.
-    dissipation=x.sph2grid(dissSpec)/2.
+    dissipation=x.sph2grid(dissSpec)/2./dt
     # implicit hyperdiffusion for vort and div
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
-    sigSpec *= hyperdiff_fact
+    sigSpec *= sigma_diff
 
     # switch indices, do next time step
     nsav1 = nnew; nsav2 = nnow
