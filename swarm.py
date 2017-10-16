@@ -82,9 +82,10 @@ en = np.exp(-4.0/(phi1-phi0)**2)
 alpha = 1./3.
 beta = 1./15.
 hamp=0.5
+sigmafloor = 0.1
 sig0 = 1.       # own neutron star atmosphere
 
-efold = 0.1    # efolding timescale at ntrunc for hyperdiffusion
+efold = 100.*dt    # efolding timescale at ntrunc for hyperdiffusion
 ndiss = 8           # order for hyperdiffusion
 
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -162,7 +163,7 @@ def visualizeTwoprofiles(ax, data1, data2, title1="", title2="",ome=False, log=F
         ax.plot(latsDeg, omega*rsphere*np.cos(lats), color='b', linewidth=1)
 #    ax.legend()
     ax.set_xlabel('latitude, deg')
-    ax.set_ylabel(title1+title2)
+    ax.set_ylabel(title1+', '+title2)
     if(log):
         ax.set_yscale('log')
 
@@ -261,7 +262,7 @@ for ncycle in range(itmax+1):
     tmpg1 = ug*sig; tmpg2 = vg*sig
     tmpSpec, dsigdtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
     dsigdtSpec[:,nnew] *= -1
-    tmpSpec = x.grid2sph(csq*np.log(sig)+0.5*(ug**2+vg**2))
+    tmpSpec = x.grid2sph(csq*np.log(sig+sigfloor)+0.5*(ug**2+vg**2))
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
     # update vort,div,phiv with third-order adams-bashforth.
     # forward euler, then 2nd-order adams-bashforth time steps to start
@@ -337,7 +338,7 @@ for ncycle in range(itmax+1):
 #        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
 #        vabs=du**2+dv**2+cs**2 
 #        dunorm=du/vabs  ; dvnorm=dv/vabs ; 
-        visualizeMapVecs(axs[8], ug*np.sqrt(rsphere)*50., vg*np.sqrt(rsphere)*50., title="Velocities")
+        visualizeMapVecs(axs[8], ug*np.sqrt(rsphere)*100., vg*np.sqrt(rsphere)*100., title="Velocities")
         visualizeTwoprofiles(axs[9], ug, vg, title1=r"$v_\varphi$", title2=r"$v_\theta$", ome=True)
         axs[0].set_title('{:6.2f} ms'.format( t*tscale*1e3) )
         scycle = str(nout).rjust(6, '0')
