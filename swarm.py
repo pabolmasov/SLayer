@@ -61,7 +61,7 @@ nlons = 256              # number of longitudes
 ntrunc = int(nlons/3)    # spectral truncation (to make it alias-free)
 nlats = int(nlons/2)     # for gaussian grid
 tscale=6.89631e-06 # time units are GM/c**3 \simeq 
-dt = 1.e-9                 # time step in seconds
+dt = 1.e-8                 # time step in seconds
 dt/=tscale
 print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
 # rr=raw_input("?")
@@ -74,18 +74,18 @@ omega = 2.*np.pi/pspin/1.45e5    # rotation rate
 overkepler=0.9
 grav = 1./rsphere**2     # gravity
 
-phi0 = np.pi/10.
+phi0 = np.pi/3.
 lon0=np.pi/3.
-phi1 = 0.5*np.pi - phi0
-phi2 = 0.05*np.pi
-en = np.exp(-4.0/(phi1-phi0)**2)
+# phi1 = 0.5*np.pi - phi0
+# phi2 = 0.05*np.pi
+# en = np.exp(-4.0/(phi1-phi0)**2)
 alpha = 1./3.
 beta = 1./15.
 hamp=0.5
 sigfloor = 0.1
-sig0 = 1.       # own neutron star atmosphere
+sig0 = 10.       # own neutron star atmosphere
 
-efold = 1000.*dt    # efolding timescale at ntrunc for hyperdiffusion
+efold = 10000.*dt    # efolding timescale at ntrunc for hyperdiffusion
 ndiss = 8           # order for hyperdiffusion
 
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -107,7 +107,7 @@ vg = np.zeros((nlats,nlons), np.float)
 ug = np.ones((nlats,nlons), np.float)*np.cos(lats)*omega*rsphere
 
 # height perturbation.
-hbump = hamp*np.cos(lats)*np.exp(-((lons-lon0)/alpha)**2)*np.exp(-(phi2-lats)**2/beta)
+hbump = hamp*np.cos(lats)*np.exp(-((lons-lon0)/alpha)**2)*np.exp(-(phi0-lats)**2/beta)
 
 # initial vorticity, divergence in spectral space
 vortSpec, divSpec =  x.getVortDivSpec(ug,vg)
@@ -119,7 +119,7 @@ sigmax=1.e8
 latspread=0.2 # spread in radians
 # 1e3*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)-exp(sig/sigmax)
 # 
-cs=0.1 # speed of sound
+cs=0.01 # speed of sound
 csq=cs**2
 
 # create hyperdiffusion factor
@@ -214,12 +214,15 @@ def visualizeMapVecs(ax, xx, yy, title=""):
     M = np.hypot(xx, yy)
 
     print title, " min/max vec len: ", M.min(), M.max()
+
+    vv=np.sqrt(xx**2+yy**2)
+    vvmax=vv.max() # normalization
     
     sk = 10
     ax.quiver(
         lonsDeg[::sk, ::sk],
         latsDeg[::sk, ::sk],
-        xx[::sk, ::sk], yy[::sk, ::sk],
+        xx[::sk, ::sk]*100./vvmax, yy[::sk, ::sk]*100./vvmax,
 #        M[::sk, ::sk],
         pivot='mid',
         units='x',
@@ -319,7 +322,7 @@ for ncycle in range(itmax+1):
     nsav1 = nnew; nsav2 = nnow
     nnew = nold; nnow = nsav1; nold = nsav2
 
-    if(ncycle % 10 ==0):
+    if(ncycle % 100 ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
     #plot & save
     if (ncycle % 10000 == 0):
@@ -331,18 +334,19 @@ for ncycle in range(itmax+1):
         print "polar V: "+str(vg.min())+" to "+str(vg.max())
         print "Sigma: "+str(sig.min())+" to "+str(sig.max())
         print "maximal dissipation "+str(dissipation.max())
-        visualizeMap(axs[0], vortg, -vorm*1.1, vorm*1.1, title="Vorticity")
+        dismax=(dissipation*sig).max()
+        visualizeMap(axs[0], vortg-2.*omega*np.sin(lats), -vorm*1.1, vorm*1.1, title="Vorticity")
         visualizeTwoprofiles(axs[1], vortg, 2.*omega*np.sin(lats), title1=r"$v_\varphi$", title2=r"$R\Omega$")
         visualizeMap(axs[2], divg,  -1.1*divm, 1.1*divm, title="Divergence")
         visualizeSprofile(axs[3], divg, title=r"$(\nabla \cdot v)$")
         visualizeMap(axs[4], np.log(sig),  np.log(sig0*0.9),  np.log(sig.max()*1.1),  title=r'$\Sigma$')
         visualizeTwoprofiles(axs[5], sig, sig_init, title1="$\Sigma$", title2="$\Sigma_0$",log=True)
-        visualizeMap(axs[6], np.log(dissipation*sig), np.log(dissipation*sig*1e-5).max(), np.log(dissipation*sig*2.).max(),  title=r'Dissipation')
+        visualizeMap(axs[6], np.log(dissipation*sig), np.log(dismax*1.e-5).max(), np.log(dismax*1.5).max(),  title=r'Dissipation')
         visualizeSprofile(axs[7], dissipation*sig,  title=r'Dissipation', log=True)
 #        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
 #        vabs=du**2+dv**2+cs**2 
 #        dunorm=du/vabs  ; dvnorm=dv/vabs ; 
-        visualizeMapVecs(axs[8], ug*np.sqrt(rsphere)*100., vg*np.sqrt(rsphere)*100., title="Velocities")
+        visualizeMapVecs(axs[8], ug*np.sqrt(rsphere), vg*np.sqrt(rsphere), title="Velocities")
         visualizeTwoprofiles(axs[9], ug, vg, title1=r"$v_\varphi$", title2=r"$v_\theta$", ome=True)
         axs[0].set_title('{:6.2f} ms'.format( t*tscale*1e3) )
         scycle = str(nout).rjust(6, '0')
