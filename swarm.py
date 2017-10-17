@@ -27,7 +27,7 @@ import os
 
 # source/sink term
 def sdotsource(lats, lons, latspread):
-    return 10.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
+    return 0.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
 
 def sdotsink(sigma, sigmax):
     return 0.1*sigma*np.exp(-sigmax/sigma)
@@ -85,7 +85,7 @@ hamp=0.5
 sigfloor = 0.1
 sig0 = 1.       # own neutron star atmosphere
 
-efold = 1e-3*dt    # efolding timescale at ntrunc for hyperdiffusion
+efold = 1000.*dt    # efolding timescale at ntrunc for hyperdiffusion
 ndiss = 8           # order for hyperdiffusion
 
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -119,12 +119,12 @@ sigmax=1.e8
 latspread=0.2 # spread in radians
 # 1e3*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)-exp(sig/sigmax)
 # 
-cs=0.01 # speed of sound
+cs=0.1 # speed of sound
 csq=cs**2
 
 # create hyperdiffusion factor
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
-diff_sigma=np.exp((-dt/efold)*x.lap**(ndiss/2))
+sigma_diff=np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 
 # solve nonlinear balance eqn to get initial zonal geopotential,
 # add localized bump (not balanced).
@@ -306,12 +306,14 @@ for ncycle in range(itmax+1):
     dissSpec=(vortSpec**2+divSpec**2)*(1.-hyperdiff_fact)/x.lap
     wnan=np.where(np.isnan(dissSpec))
     if(np.size(wnan)>0):
+#        print str(np.size(wnan))+" nan points"
+#        ii=raw_input()
         dissSpec[wnan]=0.
     dissipation=x.sph2grid(dissSpec)/2./dt
     # implicit hyperdiffusion for vort and div
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
-    sigSpec *= sigma_diff
+    #     sigSpec *= sigma_diff 
 
     # switch indices, do next time step
     nsav1 = nnew; nsav2 = nnow
@@ -335,7 +337,7 @@ for ncycle in range(itmax+1):
         visualizeSprofile(axs[3], divg, title=r"$(\nabla \cdot v)$")
         visualizeMap(axs[4], np.log(sig),  np.log(sig0*0.9),  np.log(sig.max()*1.1),  title=r'$\Sigma$')
         visualizeTwoprofiles(axs[5], sig, sig_init, title1="$\Sigma$", title2="$\Sigma_0$",log=True)
-        visualizeMap(axs[6], dissipation*sig,  0.,  (dissipation*sig).max()*1.5,  title=r'Dissipation')
+        visualizeMap(axs[6], np.log(dissipation*sig), np.log(dissipation*sig*1e-5).max(), np.log(dissipation*sig*2.).max(),  title=r'Dissipation')
         visualizeSprofile(axs[7], dissipation*sig,  title=r'Dissipation', log=True)
 #        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
 #        vabs=du**2+dv**2+cs**2 
