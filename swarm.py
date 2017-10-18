@@ -24,13 +24,8 @@ import matplotlib.pyplot as plt
 import time
 from spharmt import Spharmt 
 import os
+import h5py
 
-# source/sink term
-def sdotsource(lats, lons, latspread):
-    return 0.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
-
-def sdotsink(sigma, sigmax):
-    return 0.1*sigma*np.exp(-sigmax/sigma)
 
 ##################################################
 #prepare figure etc
@@ -54,6 +49,7 @@ axs.append( plt.subplot(gs[4, 6:10]) )
 directory = 'out/'
 if not os.path.exists(directory):
     os.makedirs(directory)
+
 
 ##################################################
 # grid, time step info
@@ -145,6 +141,27 @@ dsigdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
 nnew = 0
 nnow = 1
 nold = 2
+
+
+###################################################
+# Save simulation setup to file
+f5 = h5py.File("out/run.hdf5", "w")
+grp0 = f5.create_group("params")
+
+grp0.attrs['nlons']      = nlons
+grp0.attrs['ntrunc']     = ntrunc
+grp0.attrs['nlats']      = nlats
+grp0.attrs['tscale']     = tscale
+grp0.attrs['dt']         = dt
+grp0.attrs['itmax']      = itmax
+grp0.attrs['rsphere']    = rsphere
+grp0.attrs['pspin']      = pspin
+grp0.attrs['omega']      = omega
+grp0.attrs['overkepler'] = overkepler
+grp0.attrs['grav']       = grav
+grp0.attrs['cs']         = cs
+
+
 
 def visualizeSprofile(ax, data, title="", log=False):
     # latitudal profile
@@ -238,7 +255,19 @@ def visualizeMapVecs(ax, xx, yy, title=""):
     #        s=5,
     #          )
     
+
+
+
 ##################################################
+# source/sink term
+def sdotsource(lats, lons, latspread):
+    return 0.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
+
+def sdotsink(sigma, sigmax):
+    return 0.1*sigma*np.exp(-sigmax/sigma)
+
+
+
 # main loop
 time1 = time.clock() # time loop
 
