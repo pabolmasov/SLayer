@@ -122,12 +122,26 @@ Taking curl of Euler equation allows to directly derive the equation for
 vorticity
 \begin{equation}\label{E:Ecurl}
 \displaystyle   \pardir{t}{\left[\nabla \vector{v}\right]} +
-  (\vector{v}\nabla)\left[\nabla \vector{v}\right] =
+  (\vector{v}\nabla)\left[\nabla \vector{v}\right] = (\vector{\omega} \cdot
+\nabla) \vector{v} - \vector{\omega} (\nabla \cdot \vector{v}) +
   \frac{1}{\rho^2}\left[\nabla p \times \nabla \rho \right].
 \end{equation}
 The right-hand-side term is important if motion is baroclinic. Baroclinic term
 allows to generate vorticity from non-axisymmetric perturbations of density
-and temperature, hence it is important for any realistic calculations. 
+and temperature, hence it is important for any realistic calculations. We will
+neglect the radial velocities and consider only the radial component of
+$\vector{\omega}$ that means all the motions are restricted to the surface of
+the sphere and the vertical relaxation timescale is much smaller than the
+global dynamical scales. Setting $\vector{\omega} = \vector{e}_r \omega$ and
+substituting it to equation~(\ref{E:Ecurl}) gives
+\begin{equation}\label{E:Ecurl:r}
+\displaystyle  \pardir{t}{\omega} + \nabla \cdot (\omega \vector{v}) =
+\frac{1}{\rho^2}\left[\nabla p \times \nabla \rho \right].
+\end{equation}
+Additional kinetic terms disappear because of the two-dimensional nature of
+the flow, not due to incompressibility assumption that also zeros these
+terms. 
+
 
 
 \bibliographystyle{mnras}

@@ -266,8 +266,7 @@ def sdotsource(lats, lons, latspread):
     return 0.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
 
 def sdotsink(sigma, sigmax):
-    return 0.1*sigma*np.exp(-sigmax/sigma)
-
+    return 0.0*sigma*np.exp(-sigmax/sigma)
 
 
 # main loop
@@ -297,8 +296,9 @@ for ncycle in range(itmax+1):
     tmpg1 = ug*sig; tmpg2 = vg*sig
     tmpSpec, dsigdtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
     dsigdtSpec[:,nnew] *= -1
-    press=cs**2*np.log((sig+np.fabs(sig))/2.+sigfloor) # stabilizing equation of state
-    tmpSpec = x.grid2sph(press+0.5*(ug**2+vg**2))
+    press=cs**2*np.log((sig+np.fabs(sig))/2.+sigfloor) # stabilizing equation of state (in fact, it is enthalpy)
+    engy=press+0.5*(ug**2+vg**2) # energy per unit mass
+    tmpSpec = x.grid2sph(engy)
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
     # update vort,div,phiv with third-order adams-bashforth.
     # forward euler, then 2nd-order adams-bashforth time steps to start
@@ -366,6 +366,8 @@ for ncycle in range(itmax+1):
         print "polar V: "+str(vg.min())+" to "+str(vg.max())
         print "Sigma: "+str(sig.min())+" to "+str(sig.max())
         print "maximal dissipation "+str(dissipation.max())
+        print "total mass = "+str(sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2)
+        print "total energy = "+str((engy*sig).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2)
         dismax=(dissipation*sig).max()
         visualizeMap(axs[0], vortg-2.*omega*np.sin(lats), -vorm*1.1, vorm*1.1, title="Vorticity")
         visualizeTwoprofiles(axs[1], vortg, 2.*omega*np.sin(lats), title1=r"$v_\varphi$", title2=r"$R\Omega$")
