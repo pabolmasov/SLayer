@@ -353,6 +353,7 @@ for ncycle in range(itmax+1):
 
     if(ncycle % 100 ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
+
     #plot & save
     if (ncycle % 10000 == 0):
         vorm=np.fabs(vortg-2.*omega*np.sin(lats)).max()
@@ -381,6 +382,21 @@ for ncycle in range(itmax+1):
         scycle = str(nout).rjust(6, '0')
         plt.savefig(directory+'swater'+scycle+'.png' ) #, bbox_inches='tight') 
         nout+=1
+
+
+    #file I/O
+    if (ncycle % 1000 == 0):
+        scycle = str(ncycle).rjust(6, '0')
+        grp = f5.create_group("cycle_"+scycle)
+
+        grp.create_dataset("vortg", data=vortg)
+        grp.create_dataset("divg",  data=divg)
+        grp.create_dataset("ug",    data=ug)
+        grp.create_dataset("vg",    data=vg)
+        grp.create_dataset("sig",   data=sig)
+        grp.create_dataset("diss",  data=dissipation)
+
+
         
 #end of time cycle loop
 
