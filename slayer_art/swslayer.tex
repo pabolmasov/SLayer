@@ -1,0 +1,138 @@
+\documentclass[usenatbib,onecolumn]{mnras}
+\pdfoutput=1
+\pdfminorversion=5
+
+%\usepackage{amsmath}
+\usepackage{mathtext,amssymb,amsmath}
+\usepackage{epsfig}
+\usepackage{graphics}
+\usepackage{url}
+
+\usepackage{times}
+%\usepackage{helvet}
+\usepackage[T1]{fontenc} 
+\usepackage{aecompl}
+
+%%%%% AUTHORS - PLACE YOUR OWN MACROS HERE %%%%%
+
+\newcommand{\alert}[1]{\color{red} #1\color{black}}
+
+\renewcommand{\vector}[1]{\ensuremath{\mathbf{#1}}}
+\renewcommand{\div}{\ensuremath{-}}
+
+\newcommand{\bea}{\begin{eqnarray}}
+\newcommand{\eea}{\end{eqnarray}}
+  
+\newcommand{\Mach}{\ensuremath{\mathcal{M}}}
+\newcommand{\rot}{\ensuremath{\mathbf{curl\,}}}
+\newcommand{\mdot}{\ensuremath{\dot{m}}}
+\newcommand{\Msun}{\ensuremath{\,\rm M_\odot}}
+\newcommand{\Msunyr}{\ensuremath{\,\rm M_\odot\, \rm yr^{-1}}}
+\newcommand{\ergl}{\ensuremath{\,\rm erg\, s^{-1}}}
+\newcommand{\Gyr}{\ensuremath{\,\rm Gyr}}
+\newcommand{\yr}{\ensuremath{\,\rm yr}}
+\newcommand{\mum}{\ensuremath{\,\rm \mu m}}
+\newcommand{\pc}{\ensuremath{\,\rm pc}}
+\newcommand{\cmc}{\ensuremath{\,\rm cm^{-3}}}
+\newcommand{\cmsq}{\ensuremath{\,\rm cm^{-2}}}
+
+\newcommand{\Ry}{\ensuremath{\,{\rm Ry}}}
+\newcommand{\eV}{\ensuremath{\,{\rm eV}}}
+\newcommand{\keV}{\ensuremath{\,{\rm keV}}}
+\newcommand{\GeV}{\ensuremath{\,{\rm GeV}}}
+\newcommand{\TeV}{\ensuremath{\,{\rm TeV}}}
+\newcommand{\AAA}{\ensuremath{\,{\rm \AA}}}
+% \newcommand{\ion}[2]{ \ensuremath{ \rm #1\,\sc #2 }}
+
+\newcommand{\gfun}[1]{\ensuremath{{\rm G}\,(#1)}}
+\newcommand{\acos}{\ensuremath{\rm acos}\,}
+\newcommand{\litwo}{\ensuremath{\rm Li}_2\,}
+\newcommand{\lithree}{\ensuremath{\rm Li}_3\,}
+\newcommand{\li}[2]{{\rm Li}_{#1}\!\left(#2\right)}
+\newcommand{\gf}{\ensuremath{\frac{\sqrt{g_{\varphi\varphi}}}{\alpha}}}
+\newcommand{\pardir}[2]{\ensuremath{\frac{\partial #2}{\partial #1} }}
+\newcommand{\pardirsec}[2]{\ensuremath{\frac{\partial^2 #2}{\partial #1^2} }}
+\newcommand{\ppardir}[2]{\ensuremath{\frac{\partial }{\partial #1} \left( #2\right)}}
+\newcommand{\eps}{\epsilon}
+
+%\newcommand{\tcfour}{3C\,454.3}
+%\newcommand{\tctwo}{3C\,279}
+%\newcommand{\pkst}{PKS 1222$+$21}
+%\newcommand{\pksf}{PKS 1510$-$89}
+% \newcommand{\grs}{GRS~1915+105}
+
+\newcommand{\cloudy}{{\sc cloudy}}
+\newcommand{\xstar}{{\sc xstar}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\title[]{}
+\author[]{ }
+
+\date{Accepted ---. Received ---; in
+  original form --- }
+
+\label{firstpage}
+\pagerange{\pageref{firstpage}--\pageref{lastpage}} \pubyear{2016}
+\maketitle
+
+\begin{abstract}
+\end{abstract}
+
+\begin{keywords}
+\end{keywords}
+
+\section{Introduction}
+
+\section{The main system of equations}
+
+The crucial part of all the dynamic equations is the non-linear term
+$(\vector{v}\nabla) \vector{v}$, containing all the inertial terms. In
+spherical coordinates:
+\begin{equation}\label{E:vdv}
+  \begin{array}{l}
+\displaystyle  (\vector{v}\nabla) \vector{v} = \left( v_r \pardir{r}{v_r} +
+  \frac{v_\theta}{r} \pardir{\theta}{v_\theta} + \frac{v_\varphi}{r \sin
+    \theta} \pardir{\varphi}{v_r} - \frac{v_\theta^2+v_\varphi^2}{r}\right)
+  \vector{e}^r  \\
+\displaystyle   \qquad{}   + \left( v_r \pardir{r}{v_\theta} + \frac{\theta}{v_\theta} +
+  \frac{v_\varphi}{r\sin\theta} \pardir{\varphi}{v_\theta} + \frac{v_\theta
+    v_r}{r} - \frac{v_\varphi^2}{r}\cot^2\theta\right) \vector{e}^\theta
+   \\
+\displaystyle   \qquad{}   +
+   \left( v_r \pardir{r}{v_\varphi}  + 
+   \frac{v_\theta}{r}\pardir{\theta}{v_\varphi} +
+   \frac{v_\varphi}{r\sin\theta}\pardir{v_\varphi}{\varphi} + \frac{v_\varphi
+     v_r}{r}\right) \vector{e}^\varphi,\\
+   \end{array}
+\end{equation}
+where $\vector{e}$ are unit vectors along different coordinate directions, $r$
+is radius, $\theta$ is polar angle, $\varphi$ is azimuthal
+angle. Directly, this expression will be used for the vertical structure
+equations. On the sphere, the velocities may be converted to
+vorticity  and divergence:
+\begin{equation}\label{E:vort}
+  \displaystyle   \vector{\omega} = \left[ \nabla \times \vector{v}\right],
+\end{equation}
+\begin{equation}\label{E:div}
+\displaystyle   \delta = (\nabla \cdot \vector{v}) = \frac{1}{r^2}\ppardir{r}{r^2v_r} +
+  \frac{1}{r\sin \theta} \ppardir{\theta}{\sin \theta v_\theta} + \frac{1}{r\sin \theta}\pardir{\varphi}{v_\varphi} .
+\end{equation}
+Taking curl of Euler equation allows to directly derive the equation for
+vorticity
+\begin{equation}\label{E:Ecurl}
+\displaystyle   \pardir{t}{\left[\nabla \vector{v}\right]} +
+  (\vector{v}\nabla)\left[\nabla \vector{v}\right] =
+  \frac{1}{\rho^2}\left[\nabla p \times \nabla \rho \right].
+\end{equation}
+The right-hand-side term is important if motion is baroclinic. Baroclinic term
+allows to generate vorticity from non-axisymmetric perturbations of density
+and temperature, hence it is important for any realistic calculations. 
+
+
+\bibliographystyle{mnras}
+\bibliography{mybib}
+
+\label{lastpage}
+
+\end{document}
