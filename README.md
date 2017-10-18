@@ -26,6 +26,14 @@ make
 make install
 ```
 
+h5py package; see h5py [website](http://docs.h5py.org/en/latest/index.html)
+
+Usually it is enough to use pip with
+```
+pip2 install h5py
+```
+
+
 
 ## References
 

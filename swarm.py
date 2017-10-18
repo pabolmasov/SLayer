@@ -159,6 +159,7 @@ grp0.attrs['pspin']      = pspin
 grp0.attrs['omega']      = omega
 grp0.attrs['overkepler'] = overkepler
 grp0.attrs['grav']       = grav
+grp0.attrs['sig0']       = sig0
 grp0.attrs['cs']         = cs
 
 
