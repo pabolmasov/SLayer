@@ -130,6 +130,7 @@ tmpSpec1, tmpSpec2 = x.getVortDivSpec(tmpg1,tmpg2)
 tmpSpec2 = x.grid2sph(0.5*(ug**2+vg**2))
 sigSpec = x.invlap*tmpSpec1 - tmpSpec2
 sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
+sig_init_base = sig0*np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats)))
 sig_init = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
 sigSpec = x.grid2sph(sig)
 # sdotSpec = x.grid2sph(sdot)
@@ -370,14 +371,14 @@ for ncycle in range(itmax+1):
         visualizeTwoprofiles(axs[1], vortg, 2.*omega*np.sin(lats), title1=r"$v_\varphi$", title2=r"$R\Omega$")
         visualizeMap(axs[2], divg,  -1.1*divm, 1.1*divm, title="Divergence")
         visualizeSprofile(axs[3], divg, title=r"$(\nabla \cdot v)$")
-        visualizeMap(axs[4], np.log(sig),  np.log(sig0*0.9),  np.log(sig.max()*1.1),  title=r'$\Sigma$')
-        visualizeTwoprofiles(axs[5], sig, sig_init, title1="$\Sigma$", title2="$\Sigma_0$",log=True)
+        visualizeMap(axs[4], np.log(sig/sig_init_base),  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  title=r'$\Sigma$')
+        visualizeTwoprofiles(axs[5], sig/sig_init_base, sig_init/sig_init_base, title1="$\Sigma$", title2="$\Sigma_0$",log=True)
         visualizeMap(axs[6], np.log(dissipation*sig), np.log(dismax*1.e-5).max(), np.log(dismax*1.5).max(),  title=r'Dissipation')
         visualizeSprofile(axs[7], dissipation*sig,  title=r'Dissipation', log=True)
 #        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
 #        vabs=du**2+dv**2+cs**2 
 #        dunorm=du/vabs  ; dvnorm=dv/vabs ; 
-        visualizeMapVecs(axs[8], ug*np.sqrt(rsphere), vg*np.sqrt(rsphere), title="Velocities")
+        visualizeMapVecs(axs[8], ug-omega*rsphere*np.cos(lats), vg, title="Velocities")
         visualizeTwoprofiles(axs[9], ug, vg, title1=r"$v_\varphi$", title2=r"$v_\theta$", ome=True)
         axs[0].set_title('{:6.2f} ms'.format( t*tscale*1e3) )
         scycle = str(nout).rjust(6, '0')
