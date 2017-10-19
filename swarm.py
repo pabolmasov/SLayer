@@ -50,7 +50,6 @@ directory = 'out/'
 if not os.path.exists(directory):
     os.makedirs(directory)
 
-
 ##################################################
 # grid, time step info
 nlons = 256              # number of longitudes
@@ -67,8 +66,10 @@ itmax = 10000000 # number of iterations
 rsphere = 6.04606 # earth radius
 pspin = 1e-2 # spin period, in seconds
 omega = 2.*np.pi/pspin/1.45e5    # rotation rate
-overkepler=0.9
+overkepler=0.01 # source term rotation with respect to Keplerian
 grav = 1./rsphere**2     # gravity
+
+print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 
 phi0 = np.pi/3.
 lon0=np.pi/3.
@@ -117,6 +118,7 @@ latspread=0.2 # spread in radians
 # 
 cs=0.01 # speed of sound
 csq=cs**2
+print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
 
 # create hyperdiffusion factor
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
@@ -330,7 +332,7 @@ for ncycle in range(itmax+1):
     sdotminus=sdotsink(sig, sigmax)
     sdotSpec=x.grid2sph(sdotplus-sdotminus)
 
-    vortdot=sdotplus/sig*(2.*overkepler*np.sin(lats)-vortg)
+    vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*np.sin(lats)-vortg)
     vortdotSpec=x.grid2sph(vortdot)
     
     sigSpec += dt*sdotSpec # source term for density
@@ -399,8 +401,6 @@ for ncycle in range(itmax+1):
         grp.create_dataset("vg",    data=vg)
         grp.create_dataset("sig",   data=sig)
         grp.create_dataset("diss",  data=dissipation)
-
-
         
 #end of time cycle loop
 
