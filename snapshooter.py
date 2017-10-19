@@ -36,20 +36,22 @@ def plotnth(filename, nstep):
     xx=ug-omega*rsphere*np.cos(lats) ; yy=vg
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.max()
+    skx = 8 ; sky=16
+    xx = sp.ndimage.filters.gaussian_filter(xx, skx/2., mode='constant')*100./vvmax
+    yy = sp.ndimage.filters.gaussian_filter(yy, sky/2., mode='constant')*100./vvmax
 
     #    s0=sig.min() ; s1=sig.max()
     s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=20
     levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
     
-    skx = 8 ; sky=16
     plt.clf()
     fig=plt.figure()
     plt.contourf(lons, lats, sig,cmap='jet',levels=levs)
     plt.colorbar()
     plt.quiver(lons[::skx, ::sky],
         lats[::skx, ::sky],
-        xx[::skx, ::sky]*200./vvmax, yy[::skx, ::sky]*200./vvmax,
+        xx[::skx, ::sky], yy[::skx, ::sky],
         pivot='mid',
         units='x',
         linewidth=1.0,

@@ -19,6 +19,7 @@
 
 
 import numpy as np
+import scipy.ndimage as spin
 import shtns
 import matplotlib.pyplot as plt
 import time
@@ -145,7 +146,6 @@ nnew = 0
 nnow = 1
 nold = 2
 
-
 ###################################################
 # Save simulation setup to file
 f5 = h5py.File("out/run.hdf5", "w")
@@ -238,12 +238,16 @@ def visualizeMapVecs(ax, xx, yy, title=""):
 
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.max() # normalization
-    
+
     sk = 10
+    sigma = [sk/2., sk/2.]
+    xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*100./vvmax
+    yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*100./vvmax
+    
     ax.quiver(
         lonsDeg[::sk, ::sk],
         latsDeg[::sk, ::sk],
-        xx[::sk, ::sk]*100./vvmax, yy[::sk, ::sk]*100./vvmax,
+        xx[::sk, ::sk], yy[::sk, ::sk],
 #        M[::sk, ::sk],
         pivot='mid',
         units='x',
@@ -265,10 +269,14 @@ def visualizeMapVecs(ax, xx, yy, title=""):
 ##################################################
 # source/sink term
 def sdotsource(lats, lons, latspread):
-    return 0.*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
+    return 0.01*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
 
 def sdotsink(sigma, sigmax):
-    return 0.0*sigma*np.exp(-sigmax/sigma)
+    w=np.where(sigma>(sigmax/100.))
+    y=0.0*sigma
+    if(np.size(w)>0):
+        y[w]=1.0*sigma*np.exp(-sigmax/sigma)
+    return y
 
 
 # main loop
