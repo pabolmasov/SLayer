@@ -140,7 +140,39 @@ substituting it to equation~(\ref{E:Ecurl}) gives
 \end{equation}
 Additional kinetic terms disappear because of the two-dimensional nature of
 the flow, not due to incompressibility assumption that also zeros these
-terms. 
+terms. Current version of the code adopts a fixed equation of state hence
+$\nabla p \propto \nabla \rho $, and the right-hand side is zero. Note that
+integration in vertical coordinate is not required in this case. 
+
+Another equation comes from taking divergence of Euler equation. It is rather
+non-trivial to expand the advection term, $(\nabla \cdot
+((\vector{v}\nabla)\vector{v}))$, therefore first let us show that
+\begin{equation}\label{E:vomega}
+\left(\nabla \cdot \left[ \vector{v} \vector{\omega}\right] \right) = 
+ \nabla^2\frac{v^2}{2} - \nabla \cdot \left((\vector{v}\nabla)\vector{v}\right).
+\end{equation}
+The last term here is identical to the advective left-hand-side term in Euler
+equation derivative, hence
+\begin{equation}\label{E:delta}
+\pardir{t}{\delta} = \left(\nabla \cdot \left[ \vector{v}
+  \vector{\omega}\right] \right) -  \nabla^2 B,
+\end{equation}
+or, as there is only one non-zero vorticity component, and it is orthogonal to velocity,
+\begin{equation}\label{E:delta:oscalar}
+\pardir{t}{\delta} = \left(\nabla \cdot \left(\omega \vector{v}\right)
+   \right) -  \nabla^2 B,
+\end{equation}
+where
+\begin{equation}\label{E:Bernoulli}
+B = \frac{v^2}{2} + \Phi + h
+\end{equation}
+is Bernoulli integral, and $h = \int \frac{1}{\rho}dp$ is enthalpy. For the
+isothermal case we start with, $p =  \rho c_{\rm s}^2$, where the speed of
+sound $c_{\rm s}^2$ is constant, and $h= c_{\rm s}^2 \ln\rho$. Integration
+with height does not change the overall structure of the equation, as the
+vertical scalehight is always identical for density and pressure. 
+
+\section{Vertical balance}
 
 
 
