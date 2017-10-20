@@ -67,7 +67,7 @@ itmax = 10000000 # number of iterations
 rsphere = 6.04606 # earth radius
 pspin = 1e-2 # spin period, in seconds
 omega = 2.*np.pi/pspin/1.45e5    # rotation rate
-overkepler=0.01 # source term rotation with respect to Keplerian
+overkepler=0.9 # source term rotation with respect to Keplerian
 grav = 1./rsphere**2     # gravity
 
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
@@ -150,7 +150,7 @@ nold = 2
 # restart module:
 ifrestart=True
 restartfile='out/run.hdf5'
-nrest=430 # No of the restart output
+nrest=100 # No of the restart output
 if(ifrestart):
     f = h5py.File(restartfile,'r')
     params=f["params"]
@@ -162,7 +162,8 @@ if(ifrestart):
         exit(1)
     else:
         keys=f.keys()
-        data=f[keys[nrest]]
+        ksize=np.size(keys)
+        data=f["cycle_"+str(nrest).rjust(6, '0')]
         vortg=data["vortg"][:] ; divg=data["divg"][:] ;    sig=data["sig"][:]
         sigSpec = x.grid2sph(sig)
         divSpec = x.grid2sph(divg)
@@ -290,7 +291,7 @@ def visualizeMapVecs(ax, xx, yy, title=""):
 ##################################################
 # source/sink term
 def sdotsource(lats, lons, latspread):
-    return 0.01*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
+    return 0.1*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
 
 def sdotsink(sigma, sigmax):
     w=np.where(sigma>(sigmax/100.))
@@ -365,7 +366,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     vortdotSpec=x.grid2sph(vortdot)
     
     sigSpec += dt*sdotSpec # source term for density
-    vortSpec += dt*vortdotSpec # source term for entropy
+    vortSpec += dt*vortdotSpec # source term for vorticity
 
     # total kinetic energy loss
     dissSpec=(vortSpec**2+divSpec**2)*(1.-hyperdiff_fact)/x.lap
@@ -397,10 +398,10 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         print "polar V: "+str(vg.min())+" to "+str(vg.max())
         print "Sigma: "+str(sig.min())+" to "+str(sig.max())
         print "maximal dissipation "+str(dissipation.max())
-        mass=sig.sum()*4.*np.pi*np.double(nlons*nlats)*rsphere**2
-        engy=sig.sum()*4.*np.pi*np.double(nlons*nlats)*rsphere**2
+        mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+        energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         print "total mass = "+str(mass)
-        print "total energy = "+str(engy)
+        print "total energy = "+str(energy)
         dismax=(dissipation*sig).max()
         visualizeMap(axs[0], vortg-2.*omega*np.sin(lats), -vorm*1.1, vorm*1.1, title="Vorticity")
         visualizeTwoprofiles(axs[1], vortg, 2.*omega*np.sin(lats), title1=r"$v_\varphi$", title2=r"$R\Omega$")
@@ -420,9 +421,9 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         plt.savefig(directory+'swater'+scycle+'.png' ) #, bbox_inches='tight') 
         nout+=1
 
-    #file I/O
-    if (ncycle % outskip == 0):
-        scycle = str(ncycle).rjust(6, '0')
+        #file I/O
+        #     if (ncycle % outskip == 0):
+        scycle = str(nout).rjust(6, '0')
         grp = f5.create_group("cycle_"+scycle)
         grp.attrs['t']         = t # time
         grp.attrs['mass']         = mass # total mass
