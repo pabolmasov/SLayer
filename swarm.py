@@ -83,7 +83,7 @@ hamp=0.05
 sigfloor = 0.1
 sig0 = 10.       # own neutron star atmosphere
 
-efold = 10000.*dt    # efolding timescale at ntrunc for hyperdiffusion
+efold = 1000.*dt    # efolding timescale at ntrunc for hyperdiffusion
 ndiss = 8           # order for hyperdiffusion
 
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -150,7 +150,7 @@ nold = 2
 # restart module:
 ifrestart=True
 restartfile='out/run.hdf5'
-nrest=100 # No of the restart output
+nrest=1400 # No of the restart output
 if(ifrestart):
     f = h5py.File(restartfile,'r')
     params=f["params"]
@@ -398,10 +398,12 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         print "polar V: "+str(vg.min())+" to "+str(vg.max())
         print "Sigma: "+str(sig.min())+" to "+str(sig.max())
         print "maximal dissipation "+str(dissipation.max())
+        print "minimal dissipation "+str(dissipation.min())
         mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         print "total mass = "+str(mass)
         print "total energy = "+str(energy)
+        print "net energy = "+str(energy/mass)
         dismax=(dissipation*sig).max()
         visualizeMap(axs[0], vortg-2.*omega*np.sin(lats), -vorm*1.1, vorm*1.1, title="Vorticity")
         visualizeTwoprofiles(axs[1], vortg, 2.*omega*np.sin(lats), title1=r"$v_\varphi$", title2=r"$R\Omega$")
@@ -409,7 +411,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         visualizeSprofile(axs[3], divg, title=r"$(\nabla \cdot v)$")
         visualizeMap(axs[4], np.log(sig/sig_init_base),  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  title=r'$\Sigma$')
         visualizeTwoprofiles(axs[5], sig/sig_init_base, sig_init/sig_init_base, title1="$\Sigma$", title2="$\Sigma_0$",log=True)
-        visualizeMap(axs[6], np.log(dissipation*sig), np.log(dismax*1.e-5).max(), np.log(dismax*1.5).max(),  title=r'Dissipation')
+        visualizeMap(axs[6], np.log(np.fabs(dissipation*sig)), np.log(dismax*1.e-5).max(), np.log(dismax*1.5).max(),  title=r'Dissipation')
         visualizeSprofile(axs[7], dissipation*sig,  title=r'Dissipation', log=True)
 #        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
 #        vabs=du**2+dv**2+cs**2 
@@ -427,7 +429,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         grp = f5.create_group("cycle_"+scycle)
         grp.attrs['t']         = t # time
         grp.attrs['mass']         = mass # total mass
-        grp.attrs['energy']         = engy # total mechanical energy
+        grp.attrs['energy']         = energy # total mechanical energy
 
         grp.create_dataset("vortg", data=vortg)
         grp.create_dataset("divg",  data=divg)

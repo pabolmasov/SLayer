@@ -72,7 +72,7 @@ def multireader(nmax):
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
     
     for k in np.arange(nmax):
-        plotnth('out/run.hdf5', k)
+        plotnth('out/run.hdf5.backup', k)
         os.system('cp out/snapshot.png out/shot'+str(k).rjust(ndigits, '0')+'.png')
         print 'shot'+str(k).rjust(ndigits, '0')+'.png'
         
