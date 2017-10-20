@@ -79,7 +79,7 @@ lon0=np.pi/3.
 # en = np.exp(-4.0/(phi1-phi0)**2)
 alpha = 1./3.
 beta = 1./15.
-hamp=0.5
+hamp=0.05
 sigfloor = 0.1
 sig0 = 10.       # own neutron star atmosphere
 
@@ -146,6 +146,33 @@ nnew = 0
 nnow = 1
 nold = 2
 
+###########################################################
+# restart module:
+ifrestart=True
+restartfile='out/run.hdf5'
+nrest=430 # No of the restart output
+if(ifrestart):
+    f = h5py.File(restartfile,'r')
+    params=f["params"]
+    nlons1=params.attrs["nlons"] ; nlats1=params.attrs["nlats"]
+    rsphere=params.attrs["rsphere"]
+    
+    if ((nlons1 !=nlons) | (nlats1 !=nlats)): # interpolate!
+        print "restart: dimensions unequal, not supported yet"
+        exit(1)
+    else:
+        keys=f.keys()
+        data=f[keys[nrest]]
+        vortg=data["vortg"][:] ; divg=data["divg"][:] ;    sig=data["sig"][:]
+        sigSpec = x.grid2sph(sig)
+        divSpec = x.grid2sph(divg)
+        vortSpec = x.grid2sph(vortg)
+    f.close()
+    # if successfull, we need to take the file off the way
+    os.system("mv "+restartfile+" "+restartfile+".backup")
+else:
+    nrest=0
+        
 ###################################################
 # Save simulation setup to file
 f5 = h5py.File("out/run.hdf5", "w")
@@ -164,8 +191,6 @@ grp0.attrs['overkepler'] = overkepler
 grp0.attrs['grav']       = grav
 grp0.attrs['sig0']       = sig0
 grp0.attrs['cs']         = cs
-
-
 
 def visualizeSprofile(ax, data, title="", log=False):
     # latitudal profile
@@ -197,7 +222,6 @@ def visualizeMap(ax, data, vmin=0.0, vmax=1.0, title=""):
     ax.cla()
 
     print title, " min/max:", data.min(), data.max()
-
 
     #make fancy 
     ax.minorticks_on()
@@ -263,9 +287,6 @@ def visualizeMapVecs(ax, xx, yy, title=""):
     #        s=5,
     #          )
     
-
-
-
 ##################################################
 # source/sink term
 def sdotsource(lats, lons, latspread):
@@ -281,9 +302,10 @@ def sdotsink(sigma, sigmax):
 # main loop
 time1 = time.clock() # time loop
 
-nout=0
+nout=nrest
+outskip=1000 # how often do we output the snapshots
 
-for ncycle in range(itmax+1):
+for ncycle in np.arange(itmax+1)+nrest*outskip:
     #for ncycle in range(2): #debug option
     t = ncycle*dt
 
@@ -366,7 +388,7 @@ for ncycle in range(itmax+1):
         print('t=%10.5f ms' % (t*1e3*tscale))
 
     #plot & save
-    if (ncycle % 10000 == 0):
+    if (ncycle % outskip == 0):
         vorm=np.fabs(vortg-2.*omega*np.sin(lats)).max()
         divm=np.fabs(divg).max()
         print "vorticity: "+str(vortg.min())+" to "+str(vortg.max())
@@ -398,11 +420,11 @@ for ncycle in range(itmax+1):
         plt.savefig(directory+'swater'+scycle+'.png' ) #, bbox_inches='tight') 
         nout+=1
 
-
     #file I/O
-    if (ncycle % 1000 == 0):
+    if (ncycle % outskip == 0):
         scycle = str(ncycle).rjust(6, '0')
         grp = f5.create_group("cycle_"+scycle)
+        grp.attrs['t']         = t # time
         grp.attrs['mass']         = mass # total mass
         grp.attrs['energy']         = engy # total mechanical energy
 

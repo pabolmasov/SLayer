@@ -3,6 +3,7 @@ import numpy as np
 import shtns
 import matplotlib.pyplot as plt
 from matplotlib import rc
+import scipy.ndimage as spin
 import time
 from spharmt import Spharmt 
 import os
@@ -31,17 +32,18 @@ def plotnth(filename, nstep):
     data=f[keys[nstep]]
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:]
     sig=data["sig"][:] ; diss=data["diss"][:]
-
+    f.close()
+    
     # velocity
     xx=ug-omega*rsphere*np.cos(lats) ; yy=vg
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.max()
     skx = 8 ; sky=16
-    xx = sp.ndimage.filters.gaussian_filter(xx, skx/2., mode='constant')*100./vvmax
-    yy = sp.ndimage.filters.gaussian_filter(yy, sky/2., mode='constant')*100./vvmax
+    xx = spin.filters.gaussian_filter(xx, skx/2., mode='constant')*200./vvmax
+    yy = spin.filters.gaussian_filter(yy, sky/2., mode='constant')*200./vvmax
 
-    #    s0=sig.min() ; s1=sig.max()
-    s0=0.1 ; s1=10. # how to make a smooth estimate?
+    s0=sig.min() ; s1=sig.max()
+    #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=20
     levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
     
