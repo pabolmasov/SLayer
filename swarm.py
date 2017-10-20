@@ -278,7 +278,6 @@ def sdotsink(sigma, sigmax):
         y[w]=1.0*sigma*np.exp(-sigmax/sigma)
     return y
 
-
 # main loop
 time1 = time.clock() # time loop
 
@@ -376,8 +375,10 @@ for ncycle in range(itmax+1):
         print "polar V: "+str(vg.min())+" to "+str(vg.max())
         print "Sigma: "+str(sig.min())+" to "+str(sig.max())
         print "maximal dissipation "+str(dissipation.max())
-        print "total mass = "+str(sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2)
-        print "total energy = "+str((engy*sig).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2)
+        mass=sig.sum()*4.*np.pi*np.double(nlons*nlats)*rsphere**2
+        engy=sig.sum()*4.*np.pi*np.double(nlons*nlats)*rsphere**2
+        print "total mass = "+str(mass)
+        print "total energy = "+str(engy)
         dismax=(dissipation*sig).max()
         visualizeMap(axs[0], vortg-2.*omega*np.sin(lats), -vorm*1.1, vorm*1.1, title="Vorticity")
         visualizeTwoprofiles(axs[1], vortg, 2.*omega*np.sin(lats), title1=r"$v_\varphi$", title2=r"$R\Omega$")
@@ -402,6 +403,8 @@ for ncycle in range(itmax+1):
     if (ncycle % 1000 == 0):
         scycle = str(ncycle).rjust(6, '0')
         grp = f5.create_group("cycle_"+scycle)
+        grp.attrs['mass']         = mass # total mass
+        grp.attrs['energy']         = engy # total mechanical energy
 
         grp.create_dataset("vortg", data=vortg)
         grp.create_dataset("divg",  data=divg)
