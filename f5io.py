@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import os
 
 
 outdir = "out" #default output directory
@@ -24,5 +25,37 @@ def saveParams(f5, conf):
     grp0.attrs['sig0']       = conf.sig0
     grp0.attrs['cs']         = conf.cs
 
+    f5.flush()
 
+
+
+# restart from file
+def restart(restartfile, nrest, conf):
+
+    f5 = h5py.File(restartfile,'r')
+
+    params=f5['params/']
+    nlons1 =params.attrs["nlons"]
+    nlats1 =params.attrs["nlats"]
+    rsphere=params.attrs["rsphere"]
+    
+    if ((nlons1 != conf.nlons) | (nlats1 != conf.nlats)): # interpolate!
+        print "restart: dimensions unequal, not supported yet"
+        exit(1)
+    else:
+        keys  = f5.keys()
+        ksize = np.size(keys)
+
+        data  = f5["cycle_"+str(nrest).rjust(6, '0')]
+
+        vortg = data["vortg"][:]
+        divg  = data["divg"][:]
+        sig   = data["sig"][:]
+
+    f5.close()
+
+    # if successful, we need to take the file off the way
+    os.system("mv "+restartfile+" "+restartfile+".backup")
+
+    return vortg, divg, sig
 

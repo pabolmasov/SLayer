@@ -64,9 +64,7 @@ for row in [0,1,2,3,4]:
     axs.append( plt.subplot(gs[row, 6:10]) )
 
 
-
 ##################################################
-
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
@@ -129,29 +127,19 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=False
-restartfile='out/run.hdf5'
-nrest=1400 # No of the restart output
+ifrestart=True
+
 if(ifrestart):
-    f = h5py.File(restartfile,'r')
-    params=f["params"]
-    nlons1=params.attrs["nlons"] ; nlats1=params.attrs["nlats"]
-    rsphere=params.attrs["rsphere"]
-    
-    if ((nlons1 !=nlons) | (nlats1 !=nlats)): # interpolate!
-        print "restart: dimensions unequal, not supported yet"
-        exit(1)
-    else:
-        keys=f.keys()
-        ksize=np.size(keys)
-        data=f["cycle_"+str(nrest).rjust(6, '0')]
-        vortg=data["vortg"][:] ; divg=data["divg"][:] ;    sig=data["sig"][:]
-        sigSpec = x.grid2sph(sig)
-        divSpec = x.grid2sph(divg)
-        vortSpec = x.grid2sph(vortg)
-    f.close()
-    # if successfull, we need to take the file off the way
-    os.system("mv "+restartfile+" "+restartfile+".backup")
+    restartfile='out/runOLD.hdf5'
+
+    #nrest=1400 # No of the restart output
+    nrest=1 # No of the restart output
+    vortg, digg, sig = f5io.restart(restartfile, nrest, conf)
+
+    sigSpec  = x.grid2sph(sig)
+    divSpec  = x.grid2sph(divg)
+    vortSpec = x.grid2sph(vortg)
+
 else:
     nrest=0
         
