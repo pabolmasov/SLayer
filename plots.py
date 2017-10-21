@@ -39,7 +39,7 @@ def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="
     if(log):
         ax.set_yscale('log')
 
-def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
+def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title="", addcontour=None):
 
     """ 
     make a contour map plot of the incoming data array (in grid)
@@ -66,7 +66,24 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
             vmax=vmax,
             cmap='plasma',
             )
-
+    if(addcontour is not None):
+        ax.contour(
+            lonsDeg,
+            latsDeg,
+            addcontour,
+            levels=[0.5],
+            color='k',
+            linewidths=2,
+            )
+        ax.contour(
+            lonsDeg,
+            latsDeg,
+            addcontour,
+            levels=[0.25,0.75],
+            color='k',
+            linewidths=1,
+            )
+   
     #ax.axis('equal')
 
 
@@ -115,7 +132,7 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
 def visualize(t, nout,
               lats, lons, 
-              vortg, divg, ug, vg, sig, dissipation,
+              vortg, divg, ug, vg, sig, signative, dissipation,
               mass, energy,
               engy,
               hbump,
@@ -124,7 +141,9 @@ def visualize(t, nout,
     lonsDeg = (180./np.pi)*lons-180.
     latsDeg = (180./np.pi)*lats
 
-
+    accflag=(sig-signative)/sig # fraction of accreted matter (should be between 0 and 1)
+    print "visualize: accreted fraction from "+str(accflag.min())+" to "+str(accflag.max())
+    
     vorm=np.fabs(vortg-2.*cf.omega*np.sin(lats)).max()
 
     print "vorticity: "+str(vortg.min())+" to "+str(vortg.max())
@@ -180,12 +199,12 @@ def visualize(t, nout,
                  lonsDeg, latsDeg, 
                  np.log(sig/sig_init_base),  
                  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  
-                 title=r'$\Sigma$')
+                 title=r'$\Sigma$', addcontour=accflag)
 
     visualizeTwoprofiles(axs[5], 
                          lonsDeg, latsDeg, 
                          sig/sig_init_base, 
-                         sig_init/sig_init_base, 
+                         signative/sig_init_base, 
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
                          log=True)
