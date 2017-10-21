@@ -84,32 +84,20 @@ divg  = x.sph2grid(divSpec)
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 sigma_diff=np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 
-
-
-# solve nonlinear balance eqn to get initial zonal geopotential,
-# add localized bump (not balanced).
-vortg = x.sph2grid(vortSpec)
-tmpg1 = ug*vortg; tmpg2 = vg*vortg
-tmpSpec1, tmpSpec2 = x.getVortDivSpec(tmpg1,tmpg2)
-tmpSpec2 = x.grid2sph(0.5*(ug**2+vg**2))
-sigSpec = x.invlap*tmpSpec1 - tmpSpec2
+# sigma is an exact isothermal solution + an unbalanced bump
 sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
-#sig_init_base = sig0*np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats)))
-#sig_init = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
-sigSpec = x.grid2sph(sig)
-# sdotSpec = x.grid2sph(sdot)
+signative = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # this density component will ignore the source contribution
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
 dvortdtSpec = np.zeros(vortSpec.shape+(3,), np.complex)
 dsigdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
+# dsignativedtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
 
 # Cycling integers for integrator
 nnew = 0
 nnow = 1
 nold = 2
-
-
 
 ###########################################################
 # restart module:
@@ -117,18 +105,18 @@ ifrestart=False
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-
-    #nrest=1400 # No of the restart output
-    nrest=1 # No of the restart output
-    vortg, digg, sig = f5io.restart(restartfile, nrest, conf)
-
-    sigSpec  = x.grid2sph(sig)
-    divSpec  = x.grid2sph(divg)
-    vortSpec = x.grid2sph(vortg)
+    nrest=1400 # No of the restart output
+    #    nrest=5300 # No of the restart output
+    vortg, digg, sig, signative = f5io.restart(restartfile, nrest, conf)
 
 else:
     nrest=0
         
+sigSpec  = x.grid2sph(sig)
+signativeSpec  = x.grid2sph(signative)
+divSpec  = x.grid2sph(divg)
+vortSpec = x.grid2sph(vortg)
+
 
 ###################################################
 # Save simulation setup to file
@@ -161,6 +149,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     # get vort,u,v,sigma on grid
     vortg = x.sph2grid(vortSpec)
     sig  = x.sph2grid(sigSpec)
+    signative  = x.sph2grid(signativeSpec)
     divg  = x.sph2grid(divSpec)
 
     ug,vg = x.getuv(vortSpec,divSpec)
@@ -206,6 +195,10 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     (23./12.)*dsigdtSpec[:,nnew] - (16./12.)*dsigdtSpec[:,nnow]+ \
     (5./12.)*dsigdtSpec[:,nold] )
 
+    signativeSpec += dt*( \
+    (23./12.)*dsigdtSpec[:,nnew] - (16./12.)*dsigdtSpec[:,nnow]+ \
+    (5./12.)*dsigdtSpec[:,nold] )
+
     sdotplus=sdotsource(lats, lons, latspread)
     sdotminus=sdotsink(sig, sigmax)
     sdotSpec=x.grid2sph(sdotplus-sdotminus)
@@ -213,6 +206,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*np.sin(lats)-vortg)
     vortdotSpec=x.grid2sph(vortdot)
     
+    sigSpec += dt*sdotSpec # source term for density
     sigSpec += dt*sdotSpec # source term for density
     vortSpec += dt*vortdotSpec # source term for vorticity
 
@@ -242,10 +236,10 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
 
         mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-
+        
         visualize(t, nout,
                   lats, lons, 
-                  vortg, divg, ug, vg, sig, dissipation,
+                  vortg, divg, ug, vg, sig, signative, dissipation,
                   mass, energy,
                   engy,
                   hbump,
@@ -254,7 +248,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         #file I/O
         f5io.saveSim(f5, nout, t,
                      energy, mass, 
-                     vortg, divg, ug, vg, sig, dissipation
+                     vortg, divg, ug, vg, sig, signative, dissipation
                      )
         nout += 1
 
