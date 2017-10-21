@@ -30,7 +30,7 @@ import h5py
 from spharmt import Spharmt 
 import f5io as f5io #module for file I/O
 import conf as conf #importing simulation setup module
-
+from plots import visualize
 
 ##################################################
 # setup code environment
@@ -40,6 +40,7 @@ if not os.path.exists(f5io.outdir):
 
 f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 
+#import simulation parameters to global scope
 from conf import nlons, nlats
 from conf import dt, omega, rsphere, sig0, overkepler, tscale
 from conf import hamp, phi0, lon0, alpha, beta  #initial height perturbation parameters
@@ -51,18 +52,6 @@ from conf import sigmax, latspread #source term
 
 
 
-##################################################
-#prepare figure etc
-fig = plt.figure(figsize=(10,10))
-gs = plt.GridSpec(5, 10)
-gs.update(hspace = 0.2)
-gs.update(wspace = 0.6)
-
-axs = []
-for row in [0,1,2,3,4]:
-    axs.append( plt.subplot(gs[row, 0:5]) )
-    axs.append( plt.subplot(gs[row, 6:10]) )
-
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -73,9 +62,6 @@ lons,lats = np.meshgrid(x.lons, x.lats)
 # guide grids for plotting
 lons1d = (180./np.pi)*x.lons-180.
 lats1d = (180./np.pi)*x.lats
-
-lonsDeg = (180./np.pi)*lons-180.
-latsDeg = (180./np.pi)*lats
 
 
 # zonal jet
@@ -108,8 +94,8 @@ tmpSpec1, tmpSpec2 = x.getVortDivSpec(tmpg1,tmpg2)
 tmpSpec2 = x.grid2sph(0.5*(ug**2+vg**2))
 sigSpec = x.invlap*tmpSpec1 - tmpSpec2
 sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
-sig_init_base = sig0*np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats)))
-sig_init = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
+#sig_init_base = sig0*np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats)))
+#sig_init = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
 sigSpec = x.grid2sph(sig)
 # sdotSpec = x.grid2sph(sdot)
 
@@ -127,7 +113,7 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=True
+ifrestart=False
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
@@ -149,101 +135,6 @@ else:
 f5io.saveParams(f5, conf)
 
 
-
-def visualizeSprofile(ax, data, title="", log=False):
-    # latitudal profile
-    ax.cla()
-    ax.plot(latsDeg, data, ',k')
-    ax.set_xlabel('latitude, deg')
-    ax.set_ylabel(title)
-    if(log):
-        ax.set_yscale('log')
-
-def visualizeTwoprofiles(ax, data1, data2, title1="", title2="",ome=False, log=False):
-    # latitudal profile
-    ax.cla()
-    ax.plot(latsDeg, data1, ',k', label=title1)
-    ax.plot(latsDeg, data2, ',r', label=title2)
-    if(ome):
-        ax.plot(latsDeg, omega*rsphere*np.cos(lats), color='b', linewidth=1)
-#    ax.legend()
-    ax.set_xlabel('latitude, deg')
-    ax.set_ylabel(title1+', '+title2)
-    if(log):
-        ax.set_yscale('log')
-
-def visualizeMap(ax, data, vmin=0.0, vmax=1.0, title=""):
-
-    """ 
-    make a contour map plot of the incoming data array (in grid)
-    """
-    ax.cla()
-
-    print title, " min/max:", data.min(), data.max()
-
-    #make fancy 
-    ax.minorticks_on()
-    ax.set_ylabel(title)
-
-    #ax.set_xlabel('longitude')
-    #ax.set_ylabel('latitude')
-
-    ax.set_xticks(np.arange(-180,181,60))
-    ax.set_yticks(np.linspace(-90,90,10))
-
-    ax.pcolormesh(
-            lonsDeg,
-            latsDeg,
-            data,
-            vmin=vmin,
-            vmax=vmax,
-            cmap='plasma',
-            )
-
-    #ax.axis('equal')
-
-
-def visualizeMapVecs(ax, xx, yy, title=""):
-
-    """ 
-    make a quiver map plot of the incoming vector field (in grid)
-    """
-    ax.cla()
-    ax.minorticks_on()
-    ax.set_ylabel(title)
-    ax.set_xticks(np.arange(-180,181,60))
-    ax.set_yticks(np.linspace(-90,90,10))
-
-    M = np.hypot(xx, yy)
-
-    print title, " min/max vec len: ", M.min(), M.max()
-
-    vv=np.sqrt(xx**2+yy**2)
-    vvmax=vv.max() # normalization
-
-    sk = 10
-    sigma = [sk/2., sk/2.]
-    xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*100./vvmax
-    yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*100./vvmax
-    
-    ax.quiver(
-        lonsDeg[::sk, ::sk],
-        latsDeg[::sk, ::sk],
-        xx[::sk, ::sk], yy[::sk, ::sk],
-#        M[::sk, ::sk],
-        pivot='mid',
-        units='x',
-        linewidth=1.0,
-        color='k',
-        scale=8.0,
-    )
-
-    #ax.scatter(
-    #        lonsDeg[::sk, ::sk],
-    #        latsDeg[::sk, ::sk],
-    #        color='k',
-    #        s=5,
-    #          )
     
 ##################################################
 # source/sink term
@@ -347,46 +238,27 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
 
     #plot & save
     if (ncycle % outskip == 0):
-        vorm=np.fabs(vortg-2.*omega*np.sin(lats)).max()
-        divm=np.fabs(divg).max()
-        print "vorticity: "+str(vortg.min())+" to "+str(vortg.max())
-        print "divergence: "+str(divg.min())+" to "+str(divg.max())
-        print "azimuthal U: "+str(ug.min())+" to "+str(ug.max())
-        print "polar V: "+str(vg.min())+" to "+str(vg.max())
-        print "Sigma: "+str(sig.min())+" to "+str(sig.max())
-        print "maximal dissipation "+str(dissipation.max())
-        print "minimal dissipation "+str(dissipation.min())
+
         mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-        print "total mass = "+str(mass)
-        print "total energy = "+str(energy)
-        print "net energy = "+str(energy/mass)
-        dismax=(dissipation*sig).max()
-        visualizeMap(axs[0], vortg-2.*omega*np.sin(lats), -vorm*1.1, vorm*1.1, title="Vorticity")
-        visualizeTwoprofiles(axs[1], vortg, 2.*omega*np.sin(lats), title1=r"$v_\varphi$", title2=r"$R\Omega$")
-        visualizeMap(axs[2], divg,  -1.1*divm, 1.1*divm, title="Divergence")
-        visualizeSprofile(axs[3], divg, title=r"$(\nabla \cdot v)$")
-        visualizeMap(axs[4], np.log(sig/sig_init_base),  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  title=r'$\Sigma$')
-        visualizeTwoprofiles(axs[5], sig/sig_init_base, sig_init/sig_init_base, title1="$\Sigma$", title2="$\Sigma_0$",log=True)
-        visualizeMap(axs[6], np.log(np.fabs(dissipation*sig)), np.log(dismax*1.e-5).max(), np.log(dismax*1.5).max(),  title=r'Dissipation')
-        visualizeSprofile(axs[7], dissipation*sig,  title=r'Dissipation', log=True)
-#        du=ug-omega*rsphere*np.cos(lats) ; dv=vg
-#        vabs=du**2+dv**2+cs**2 
-#        dunorm=du/vabs  ; dvnorm=dv/vabs ; 
-        visualizeMapVecs(axs[8], ug-omega*rsphere*np.cos(lats), vg, title="Velocities")
-        visualizeTwoprofiles(axs[9], ug, vg, title1=r"$v_\varphi$", title2=r"$v_\theta$", ome=True)
-        axs[0].set_title('{:6.2f} ms'.format( t*tscale*1e3) )
-        scycle = str(nout).rjust(6, '0')
-        plt.savefig(f5io.outdir+'/swater'+scycle+'.png' ) #, bbox_inches='tight') 
-        nout+=1
+
+        visualize(t, nout,
+                  lats, lons, 
+                  vortg, divg, ug, vg, sig, dissipation,
+                  mass, energy,
+                  engy,
+                  hbump,
+                  conf)
+        nout += 1
+
 
         #file I/O
         #     if (ncycle % outskip == 0):
         scycle = str(nout).rjust(6, '0')
         grp = f5.create_group("cycle_"+scycle)
-        grp.attrs['t']         = t # time
-        grp.attrs['mass']         = mass # total mass
-        grp.attrs['energy']         = energy # total mechanical energy
+        grp.attrs['t']      = t      # time
+        grp.attrs['mass']   = mass   # total mass
+        grp.attrs['energy'] = energy # total mechanical energy
 
         grp.create_dataset("vortg", data=vortg)
         grp.create_dataset("divg",  data=divg)

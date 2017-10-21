@@ -1,7 +1,7 @@
 """ 
     File containing all the simulation setup parameters
 
-    NOTE: Can be imported as module that contains everything here.
+    NOTE: Can be imported as module that contains everything defined here.
 """
 import numpy as np
 
