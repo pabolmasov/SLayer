@@ -17,15 +17,38 @@
 #  "Spectral Transform Solutions to the Shallow Water Test Set"
 #
 
-
 import numpy as np
 import scipy.ndimage as spin
 import shtns
 import matplotlib.pyplot as plt
 import time
-from spharmt import Spharmt 
 import os
 import h5py
+
+
+#Code modules:
+from spharmt import Spharmt 
+import f5io as f5io #module for file I/O
+import conf as conf #importing simulation setup module
+
+
+##################################################
+# setup code environment
+f5io.outdir = 'out'
+if not os.path.exists(f5io.outdir):
+    os.makedirs(f5io.outdir)
+
+f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
+
+from conf import nlons, nlats
+from conf import dt, omega, rsphere, sig0, overkepler, tscale
+from conf import hamp, phi0, lon0, alpha, beta  #initial height perturbation parameters
+from conf import efold, ndiss
+from conf import cs
+from conf import itmax
+from conf import sigfloor
+from conf import sigmax, latspread #source term
+
 
 
 ##################################################
@@ -36,94 +59,48 @@ gs.update(hspace = 0.2)
 gs.update(wspace = 0.6)
 
 axs = []
-axs.append( plt.subplot(gs[0, 0:5]) )
-axs.append( plt.subplot(gs[0, 6:10]) )
-axs.append( plt.subplot(gs[1, 0:5]) )
-axs.append( plt.subplot(gs[1, 6:10]) )
-axs.append( plt.subplot(gs[2, 0:5]) )
-axs.append( plt.subplot(gs[2, 6:10]) )
-axs.append( plt.subplot(gs[3, 0:5]) )
-axs.append( plt.subplot(gs[3, 6:10]) )
-axs.append( plt.subplot(gs[4, 0:5]) )
-axs.append( plt.subplot(gs[4, 6:10]) )
+for row in [0,1,2,3,4]:
+    axs.append( plt.subplot(gs[row, 0:5]) )
+    axs.append( plt.subplot(gs[row, 6:10]) )
 
-directory = 'out/'
-if not os.path.exists(directory):
-    os.makedirs(directory)
+
 
 ##################################################
-# grid, time step info
-nlons = 256              # number of longitudes
-ntrunc = int(nlons/3)    # spectral truncation (to make it alias-free)
-nlats = int(nlons/2)     # for gaussian grid
-tscale=6.89631e-06 # time units are GM/c**3 \simeq 
-dt = 1.e-8                 # time step in seconds
-dt/=tscale
-print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
-# rr=raw_input("?")
-itmax = 10000000 # number of iterations
-
-# parameters for test
-rsphere = 6.04606 # earth radius
-pspin = 1e-2 # spin period, in seconds
-omega = 2.*np.pi/pspin/1.45e5    # rotation rate
-overkepler=0.9 # source term rotation with respect to Keplerian
-grav = 1./rsphere**2     # gravity
-
-print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
-
-phi0 = np.pi/3.
-lon0=np.pi/3.
-# phi1 = 0.5*np.pi - phi0
-# phi2 = 0.05*np.pi
-# en = np.exp(-4.0/(phi1-phi0)**2)
-alpha = 1./3.
-beta = 1./15.
-hamp=0.05
-sigfloor = 0.1
-sig0 = 10.       # own neutron star atmosphere
-
-efold = 1000.*dt    # efolding timescale at ntrunc for hyperdiffusion
-ndiss = 8           # order for hyperdiffusion
 
 # setup up spherical harmonic instance, set lats/lons of grid
-x = Spharmt(nlons,nlats,ntrunc,rsphere,gridtype='gaussian')
+x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
-# f = 2.*omega*np.sin(lats) # Coriolis # no additional Coriolis term needed
+
 
 # guide grids for plotting
 lons1d = (180./np.pi)*x.lons-180.
 lats1d = (180./np.pi)*x.lats
 
-#lonsDeg = (180./np.pi)*x.lons-180.
-#latsDeg = (180./np.pi)*x.lats
 lonsDeg = (180./np.pi)*lons-180.
 latsDeg = (180./np.pi)*lats
 
+
 # zonal jet
-vg = np.zeros((nlats,nlons), np.float)
-ug = np.ones((nlats,nlons), np.float)*np.cos(lats)*omega*rsphere
+vg = np.zeros((nlats, nlons))
+ug = np.ones((nlats, nlons))*np.cos(lats)*omega*rsphere
+
 
 # height perturbation.
 hbump = hamp*np.cos(lats)*np.exp(-((lons-lon0)/alpha)**2)*np.exp(-(phi0-lats)**2/beta)
+
 
 # initial vorticity, divergence in spectral space
 vortSpec, divSpec =  x.getVortDivSpec(ug,vg)
 vortg = x.sph2grid(vortSpec)
 divg  = x.sph2grid(divSpec)
 
-# source term:
-sigmax=1.e8
-latspread=0.2 # spread in radians
-# 1e3*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)-exp(sig/sigmax)
-# 
-cs=0.01 # speed of sound
-csq=cs**2
-print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
+
 
 # create hyperdiffusion factor
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 sigma_diff=np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
+
+
 
 # solve nonlinear balance eqn to get initial zonal geopotential,
 # add localized bump (not balanced).
@@ -142,13 +119,17 @@ sigSpec = x.grid2sph(sig)
 ddivdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
 dvortdtSpec = np.zeros(vortSpec.shape+(3,), np.complex)
 dsigdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
+
+# Cycling integers for integrator
 nnew = 0
 nnow = 1
 nold = 2
 
+
+
 ###########################################################
 # restart module:
-ifrestart=True
+ifrestart=False
 restartfile='out/run.hdf5'
 nrest=1400 # No of the restart output
 if(ifrestart):
@@ -174,24 +155,12 @@ if(ifrestart):
 else:
     nrest=0
         
+
 ###################################################
 # Save simulation setup to file
-f5 = h5py.File("out/run.hdf5", "w")
-grp0 = f5.create_group("params")
+f5io.saveParams(f5, conf)
 
-grp0.attrs['nlons']      = nlons
-grp0.attrs['ntrunc']     = ntrunc
-grp0.attrs['nlats']      = nlats
-grp0.attrs['tscale']     = tscale
-grp0.attrs['dt']         = dt
-grp0.attrs['itmax']      = itmax
-grp0.attrs['rsphere']    = rsphere
-grp0.attrs['pspin']      = pspin
-grp0.attrs['omega']      = omega
-grp0.attrs['overkepler'] = overkepler
-grp0.attrs['grav']       = grav
-grp0.attrs['sig0']       = sig0
-grp0.attrs['cs']         = cs
+
 
 def visualizeSprofile(ax, data, title="", log=False):
     # latitudal profile
@@ -420,7 +389,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         visualizeTwoprofiles(axs[9], ug, vg, title1=r"$v_\varphi$", title2=r"$v_\theta$", ome=True)
         axs[0].set_title('{:6.2f} ms'.format( t*tscale*1e3) )
         scycle = str(nout).rjust(6, '0')
-        plt.savefig(directory+'swater'+scycle+'.png' ) #, bbox_inches='tight') 
+        plt.savefig(f5io.outdir+'/swater'+scycle+'.png' ) #, bbox_inches='tight') 
         nout+=1
 
         #file I/O
