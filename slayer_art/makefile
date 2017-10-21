@@ -5,5 +5,5 @@ all:
 	pdflatex swslayer
 	#dvips swslayer
 	#ps2pdf swslayer
-	rm *.{aux,bbl,blg,d,dvi,log}
+	rm *.{out,aux,bbl,blg,d,dvi,log}
 	rm *-eps-converted-to.pdf
