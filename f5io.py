@@ -28,6 +28,25 @@ def saveParams(f5, conf):
     f5.flush()
 
 
+#Save simulation snapshot
+def saveSim(f5, nout, t,
+            mass, energy,
+            vortg, divg, ug, vg, sig, dissipation
+            ):
+
+    scycle = str(nout).rjust(6, '0')
+    grp = f5.create_group("cycle_"+scycle)
+    grp.attrs['t']      = t      # time
+    grp.attrs['mass']   = mass   # total mass
+    grp.attrs['energy'] = energy # total mechanical energy
+
+    grp.create_dataset("vortg", data=vortg)
+    grp.create_dataset("divg",  data=divg)
+    grp.create_dataset("ug",    data=ug)
+    grp.create_dataset("vg",    data=vg)
+    grp.create_dataset("sig",   data=sig)
+    grp.create_dataset("diss",  data=dissipation)
+
 
 # restart from file
 def restart(restartfile, nrest, conf):
@@ -58,4 +77,5 @@ def restart(restartfile, nrest, conf):
     os.system("mv "+restartfile+" "+restartfile+".backup")
 
     return vortg, divg, sig
+
 

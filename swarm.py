@@ -233,6 +233,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     nsav1 = nnew; nsav2 = nnow
     nnew = nold; nnow = nsav1; nold = nsav2
 
+
     if(ncycle % 100 ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
 
@@ -249,23 +250,14 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
                   engy,
                   hbump,
                   conf)
-        nout += 1
-
 
         #file I/O
-        #     if (ncycle % outskip == 0):
-        scycle = str(nout).rjust(6, '0')
-        grp = f5.create_group("cycle_"+scycle)
-        grp.attrs['t']      = t      # time
-        grp.attrs['mass']   = mass   # total mass
-        grp.attrs['energy'] = energy # total mechanical energy
+        f5io.saveSim(f5, nout, t,
+                     energy, mass, 
+                     vortg, divg, ug, vg, sig, dissipation
+                     )
+        nout += 1
 
-        grp.create_dataset("vortg", data=vortg)
-        grp.create_dataset("divg",  data=divg)
-        grp.create_dataset("ug",    data=ug)
-        grp.create_dataset("vg",    data=vg)
-        grp.create_dataset("sig",   data=sig)
-        grp.create_dataset("diss",  data=dissipation)
         
 #end of time cycle loop
 
