@@ -87,6 +87,7 @@ sigma_diff=np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 # sigma is an exact isothermal solution + an unbalanced bump
 sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
 signative = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # this density component will ignore the source contribution
+vortg *= (1.-hbump) # some initial condition for vorticity (cyclone?)
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)

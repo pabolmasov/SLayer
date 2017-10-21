@@ -31,9 +31,12 @@ def visualizeSprofile(ax, latsDeg, data, title="", log=False):
 def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="", log=False):
     # latitudal profile
     ax.cla()
-    ax.plot(latsDeg, data1, ',k', label=title1)
-    ax.plot(latsDeg, data2, ',r', label=title2)
+    ax.plot(latsDeg, data1, ',k')
+    ax.plot(latsDeg, data2, ',r')
+    if(title1 == "$\Sigma$"):
+        ax.plot(latsDeg, data1-data2, ',b')
 
+    ax.set_ylim(data1.min(), data1.max())
     ax.set_xlabel('latitude, deg')
     ax.set_ylabel(title1+', '+title2)
     if(log):
@@ -73,14 +76,15 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title="", addco
             addcontour,
             levels=[0.5],
             color='k',
-            linewidths=2,
+            linewidths=1,
             )
         ax.contour(
             lonsDeg,
             latsDeg,
             addcontour,
             levels=[0.25,0.75],
-            color='k',
+            linestyles='dotted',
+            colors='k',
             linewidths=1,
             )
    
@@ -151,6 +155,7 @@ def visualize(t, nout,
     print "azimuthal U: "+str(ug.min())+" to "+str(ug.max())
     print "polar V: "+str(vg.min())+" to "+str(vg.max())
     print "Sigma: "+str(sig.min())+" to "+str(sig.max())
+    print "Sigma native: "+str(signative.min())+" to "+str(signative.max())
     print "maximal dissipation "+str(dissipation.max())
     print "minimal dissipation "+str(dissipation.min())
     print "total mass = "+str(mass)
