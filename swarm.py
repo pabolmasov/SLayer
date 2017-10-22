@@ -51,8 +51,6 @@ from conf import sigfloor
 from conf import sigplus, sigmax, latspread #source and sink terms
 
 
-
-
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
@@ -85,9 +83,11 @@ sigma_diff=np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 
 # sigma is an exact isothermal solution + an unbalanced bump
 sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
-vortg *= (1.-hbump) # some initial condition for vorticity (cyclone?)
-accflag=np.zeros(hbump.shape, np.double)
-
+vortg *= (1.-hbump*2.) # some initial condition for vorticity (cyclone?)
+accflag=hbump*0.
+#print accflag.max(axis=1)
+#print accflag.max(axis=0)
+#ii=raw_input("f")
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
 dvortdtSpec = np.zeros(vortSpec.shape+(3,), np.complex)
@@ -101,7 +101,7 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=True
+ifrestart=False
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
@@ -127,7 +127,7 @@ f5io.saveParams(f5, conf)
 # source/sink term
 def sdotsource(lats, lons, latspread):
     y=np.zeros((nlats,nlons), np.float)
-    w=np.where(np.fabs(np.sin(lats))>(latspread*5.))
+    w=np.where(np.fabs(np.sin(lats))<(latspread*5.))
     if(np.size(w)>0):
         y[w]=sigplus*np.exp(-(np.sin(lats[w])/latspread)**2/.2)
     return y
@@ -184,9 +184,21 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     dvortdtSpec[:,nnew] += vortdotSpec
 
     # passive scalar evolution:
-    agradu, agradv = x.getGrad(accflag)
-    daccflagdt = - ug * agradu - vg * agradv + sdotplus/sig * (1.-accflag)
-    daccflagdtSpec[:,nnew] = x.grid2sph(daccflagdt)
+    '''
+    wacc0=np.where(accflag<0.)
+    if(np.size(wacc0)>0):
+        accflag[wacc0]=0.
+    wacc1=np.where(accflag>1.)
+    if(np.size(wacc1)>0):
+        accflag[wacc1]=1.
+    '''
+    #    agradu, agradv = x.getGrad(accflagSpec) # unstable?
+    #    daccflagdt = - ug * agradu - vg * agradv
+    tmpg1 = ug*accflag; tmpg2 = vg*accflag
+    tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
+    daccflagdtSpec[:,nnew] = -dacctmp # a*div(v) - div(a*v)
+    daccflagdt =  (1.-accflag) * (sdotplus/sig) 
+    daccflagdtSpec[:,nnew] += x.grid2sph(daccflagdt)
     
     # update vort,div,phiv with third-order adams-bashforth.
     # forward euler, then 2nd-order adams-bashforth time steps to start
@@ -232,12 +244,12 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     # implicit hyperdiffusion for vort and div
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
-    #     sigSpec *= sigma_diff 
+    sigSpec *= sigma_diff 
+#    accflagSpec *= sigma_diff 
 
     # switch indices, do next time step
     nsav1 = nnew; nsav2 = nnow
     nnew = nold; nnow = nsav1; nold = nsav2
-
 
     if(ncycle % 100 ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
@@ -245,17 +257,18 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     #plot & save
     if (ncycle % outskip == 0):
 
-#        mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+        mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
 #        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
 #        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-#        energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+        energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         
         visualize(t, nout,
                   lats, lons, 
                   vortg, divg, ug, vg, sig, accflag, dissipation,
-                  mass, energy,
+#                  mass, energy,
                   engy,
                   hbump,
+                  rsphere,
                   conf)
 
         #file I/O

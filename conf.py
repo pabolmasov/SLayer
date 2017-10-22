@@ -27,7 +27,7 @@ pspin      = 1e-2                  # spin period, in seconds
 omega      = 2.*np.pi/pspin/1.45e5 # rotation rate
 overkepler = 0.9                   # source term rotation with respect to Keplerian
 grav       = 1./rsphere**2         # gravity
-sig0       = 10.                   # own neutron star atmosphere
+sig0       = 100.                   # own neutron star atmosphere
 
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 
@@ -55,7 +55,7 @@ beta  = 1./15.
 
 ##################################################
 # source term
-sigplus = 100.
+sigplus = 1.
 sigmax    = 1.e8
 latspread = 0.2   # spread in radians
   
