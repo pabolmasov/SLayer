@@ -79,21 +79,20 @@ vortg = x.sph2grid(vortSpec)
 divg  = x.sph2grid(divSpec)
 
 
-
 # create hyperdiffusion factor
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 sigma_diff=np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
 
 # sigma is an exact isothermal solution + an unbalanced bump
 sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
-signative = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # this density component will ignore the source contribution
 vortg *= (1.-hbump) # some initial condition for vorticity (cyclone?)
+accflag=np.zeros(hbump.shape, np.double)
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
 dvortdtSpec = np.zeros(vortSpec.shape+(3,), np.complex)
 dsigdtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
-# dsignativedtSpec  = np.zeros(vortSpec.shape+(3,), np.complex)
+daccflagdtSpec = np.zeros(vortSpec.shape+(3,), np.complex)
 
 # Cycling integers for integrator
 nnew = 0
@@ -108,16 +107,15 @@ if(ifrestart):
     restartfile='out/runOLD.hdf5'
     nrest=3190 # No of the restart output
     #    nrest=5300 # No of the restart output
-    vortg, digg, sig, signative = f5io.restart(restartfile, nrest, conf)
+    vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 
 else:
     nrest=0
         
 sigSpec  = x.grid2sph(sig)
-signativeSpec  = x.grid2sph(signative)
+accflagSpec  = x.grid2sph(accflag)
 divSpec  = x.grid2sph(divg)
 vortSpec = x.grid2sph(vortg)
-
 
 ###################################################
 # Save simulation setup to file
@@ -154,7 +152,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     # get vort,u,v,sigma on grid
     vortg = x.sph2grid(vortSpec)
     sig  = x.sph2grid(sigSpec)
-    signative  = x.sph2grid(signativeSpec)
+    accflag = x.sph2grid(accflagSpec)
     divg  = x.sph2grid(divSpec)
 
     ug,vg = x.getuv(vortSpec,divSpec)
@@ -174,6 +172,22 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     engy=press+0.5*(ug**2+vg**2) # energy per unit mass
     tmpSpec = x.grid2sph(engy)
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
+
+    # source terms:
+    sdotplus=sdotsource(lats, lons, latspread)
+    sdotminus=sdotsink(sig, sigmax)
+    sdotSpec=x.grid2sph(sdotplus-sdotminus)
+    dsigdtSpec[:,nnew] += sdotSpec
+
+    vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*np.sin(lats)-vortg)
+    vortdotSpec=x.grid2sph(vortdot)
+    dvortdtSpec[:,nnew] += vortdotSpec
+
+    # passive scalar evolution:
+    agradu, agradv = x.getGrad(accflag)
+    daccflagdt = - ug * agradu - vg * agradv + sdotplus/sig * (1.-accflag)
+    daccflagdtSpec[:,nnew] = x.grid2sph(daccflagdt)
+    
     # update vort,div,phiv with third-order adams-bashforth.
     # forward euler, then 2nd-order adams-bashforth time steps to start
     if ncycle == 0:
@@ -183,10 +197,13 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         ddivdtSpec[:,nold] = ddivdtSpec[:,nnew]
         dsigdtSpec[:,nnow] = dsigdtSpec[:,nnew]
         dsigdtSpec[:,nold] = dsigdtSpec[:,nnew]
+        daccflagdtSpec[:,nnow] = daccflagdtSpec[:,nnew]
+        daccflagdtSpec[:,nold] = daccflagdtSpec[:,nnew]
     elif ncycle == 1:
         dvortdtSpec[:,nold] = dvortdtSpec[:,nnew]
         ddivdtSpec[:,nold] = ddivdtSpec[:,nnew]
         dsigdtSpec[:,nold] = dsigdtSpec[:,nnew]
+        daccflagdtSpec[:,nold] = daccflagdtSpec[:,nnew]
 
     vortSpec += dt*( \
     (23./12.)*dvortdtSpec[:,nnew] - (16./12.)*dvortdtSpec[:,nnow]+ \
@@ -200,20 +217,9 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     (23./12.)*dsigdtSpec[:,nnew] - (16./12.)*dsigdtSpec[:,nnow]+ \
     (5./12.)*dsigdtSpec[:,nold] )
 
-    signativeSpec += dt*( \
-    (23./12.)*dsigdtSpec[:,nnew] - (16./12.)*dsigdtSpec[:,nnow]+ \
-    (5./12.)*dsigdtSpec[:,nold] )
-
-    sdotplus=sdotsource(lats, lons, latspread)
-    sdotminus=sdotsink(sig, sigmax)
-    sdotSpec=x.grid2sph(sdotplus-sdotminus)
-
-    vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*np.sin(lats)-vortg)
-    vortdotSpec=x.grid2sph(vortdot)
-    
-    sigSpec += dt*sdotSpec # source term for density
-    sigSpec += dt*sdotSpec # source term for density
-    vortSpec += dt*vortdotSpec # source term for vorticity
+    accflagSpec += dt*( \
+    (23./12.)*daccflagdtSpec[:,nnew] - (16./12.)*daccflagdtSpec[:,nnow]+ \
+    (5./12.)*daccflagdtSpec[:,nold] )
 
     # total kinetic energy loss
     dissSpec=(vortSpec**2+divSpec**2)*(1.-hyperdiff_fact)/x.lap
@@ -239,12 +245,14 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     #plot & save
     if (ncycle % outskip == 0):
 
-        mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-        energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+#        mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+#        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+#        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+#        energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         
         visualize(t, nout,
                   lats, lons, 
-                  vortg, divg, ug, vg, sig, signative, dissipation,
+                  vortg, divg, ug, vg, sig, accflag, dissipation,
                   mass, energy,
                   engy,
                   hbump,
@@ -253,7 +261,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
         #file I/O
         f5io.saveSim(f5, nout, t,
                      energy, mass, 
-                     vortg, divg, ug, vg, sig, signative, dissipation
+                     vortg, divg, ug, vg, sig, accflag, dissipation
                      )
         nout += 1
 
