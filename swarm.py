@@ -48,7 +48,7 @@ from conf import efold, ndiss
 from conf import cs
 from conf import itmax
 from conf import sigfloor
-from conf import sigmax, latspread #source term
+from conf import sigplus, sigmax, latspread #source and sink terms
 
 
 
@@ -102,11 +102,11 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=False
+ifrestart=True
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=1400 # No of the restart output
+    nrest=3190 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, digg, sig, signative = f5io.restart(restartfile, nrest, conf)
 
@@ -128,7 +128,11 @@ f5io.saveParams(f5, conf)
 ##################################################
 # source/sink term
 def sdotsource(lats, lons, latspread):
-    return 0.1*np.ones((nlats,nlons), np.float)*np.exp(-(np.sin(lats)/latspread)**2/.2)
+    y=np.zeros((nlats,nlons), np.float)
+    w=np.where(np.fabs(np.sin(lats))>(latspread*5.))
+    if(np.size(w)>0):
+        y[w]=sigplus*np.exp(-(np.sin(lats[w])/latspread)**2/.2)
+    return y
 
 def sdotsink(sigma, sigmax):
     w=np.where(sigma>(sigmax/100.))

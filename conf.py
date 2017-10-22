@@ -32,6 +32,7 @@ sig0       = 10.                   # own neutron star atmosphere
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 
 cs=0.01 # speed of sound
+sigfloor = 0.1   # auxiliary patameter for EOS; H = cs^2 * log(|sigma| + sigfloor) 
 print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
 
 
@@ -51,11 +52,10 @@ lon0  = np.pi/3. # perturbation longitude
 alpha = 1./3.
 beta  = 1./15.
 
-sigfloor = 0.1   # ???
-
 
 ##################################################
 # source term
+sigplus = 100.
 sigmax    = 1.e8
 latspread = 0.2   # spread in radians
   

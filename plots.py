@@ -36,7 +36,7 @@ def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="
     if(title1 == "$\Sigma$"):
         ax.plot(latsDeg, data1-data2, ',b')
 
-    ax.set_ylim(data1.min(), data1.max())
+    ax.set_ylim(data2.min(), data1.max())
     ax.set_xlabel('latitude, deg')
     ax.set_ylabel(title1+', '+title2)
     if(log):
@@ -82,7 +82,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title="", addco
             lonsDeg,
             latsDeg,
             addcontour,
-            levels=[0.25,0.75],
+            levels=[0.01,0.99],
             linestyles='dotted',
             colors='k',
             linewidths=1,
