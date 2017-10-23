@@ -4,7 +4,6 @@ import numpy as np
 import scipy.ndimage as spin
 import matplotlib.pyplot as plt
 
-
 ##################################################
 #prepare figure etc
 fig = plt.figure(figsize=(10,10))
@@ -17,12 +16,10 @@ for row in [0,1,2,3,4]:
     axs.append( plt.subplot(gs[row, 0:5]) )
     axs.append( plt.subplot(gs[row, 6:10]) )
 
-
-
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
     ax.cla()
-    ax.plot(latsDeg, data, ',k')
+    ax.plot(latsDeg, data, '.k',markersize=2)
     ax.set_xlabel('latitude, deg')
     ax.set_ylabel(title)
     if(log):
@@ -31,18 +28,19 @@ def visualizeSprofile(ax, latsDeg, data, title="", log=False):
 def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="", log=False):
     # latitudal profile
     ax.cla()
-    ax.plot(latsDeg, data1, ',k')
-    ax.plot(latsDeg, data2, ',r')
+    ax.plot(latsDeg, data2, '.r',markersize=2)
+    ax.plot(latsDeg, data1, '.k',markersize=2)
     if(title1 == "$\Sigma$"):
-        ax.plot(latsDeg, data1-data2, ',b')
+        ax.plot(latsDeg, data1-data2, '.b',markersize=2)
 
     ax.set_ylim(data2.min(), data1.max())
     ax.set_xlabel('latitude, deg')
     ax.set_ylabel(title1+', '+title2)
     if(log):
+        ax.set_ylim(data1.min(), data1.max())
         ax.set_yscale('log')
 
-def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title="", addcontour=None):
+def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
 
     """ 
     make a contour map plot of the incoming data array (in grid)
@@ -69,25 +67,6 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title="", addco
             vmax=vmax,
             cmap='plasma',
             )
-    if(addcontour is not None):
-        ax.contour(
-            lonsDeg,
-            latsDeg,
-            addcontour,
-            levels=[0.5],
-            color='k',
-            linewidths=1,
-            )
-        ax.contour(
-            lonsDeg,
-            latsDeg,
-            addcontour,
-            levels=[0.01,0.99],
-            linestyles='dotted',
-            colors='k',
-            linewidths=1,
-            )
-   
     #ax.axis('equal')
 
 
@@ -136,29 +115,37 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
 def visualize(t, nout,
               lats, lons, 
-              vortg, divg, ug, vg, sig, signative, dissipation,
-              mass, energy,
+              vortg, divg, ug, vg, sig, accflag, dissipation,
+#              mass, energy,
               engy,
               hbump,
+              rsphere,
               cf):
 
     lonsDeg = (180./np.pi)*lons-180.
     latsDeg = (180./np.pi)*lats
 
-    accflag=(sig-signative)/sig # fraction of accreted matter (should be between 0 and 1)
+    nlons=np.size(lons) ; nlats=np.size(lats)
+    
     print "visualize: accreted fraction from "+str(accflag.min())+" to "+str(accflag.max())
     
     vorm=np.fabs(vortg-2.*cf.omega*np.sin(lats)).max()
 
+    mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     print "vorticity: "+str(vortg.min())+" to "+str(vortg.max())
     print "divergence: "+str(divg.min())+" to "+str(divg.max())
     print "azimuthal U: "+str(ug.min())+" to "+str(ug.max())
     print "polar V: "+str(vg.min())+" to "+str(vg.max())
     print "Sigma: "+str(sig.min())+" to "+str(sig.max())
-    print "Sigma native: "+str(signative.min())+" to "+str(signative.max())
+    print "accretion flag: "+str(accflag.min())+" to "+str(accflag.max())
     print "maximal dissipation "+str(dissipation.max())
     print "minimal dissipation "+str(dissipation.min())
     print "total mass = "+str(mass)
+    print "accreted mass = "+str(mass_acc)
+    print "native mass = "+str(mass_native)
     print "total energy = "+str(energy)
     print "net energy = "+str(energy/mass)
 
@@ -204,29 +191,37 @@ def visualize(t, nout,
                  lonsDeg, latsDeg, 
                  np.log(sig/sig_init_base),  
                  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  
-                 title=r'$\Sigma$', addcontour=accflag)
+                 title=r'$\Sigma$')
+    axs[4].contour(
+        lonsDeg,
+        latsDeg,
+        accflag,
+        levels=[0.5],
+        color='k',
+        linewidths=1,
+    )
 
     visualizeTwoprofiles(axs[5], 
                          lonsDeg, latsDeg, 
                          sig/sig_init_base, 
-                         signative/sig_init_base, 
+                         sig/sig_init_base*accflag, 
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
-                         log=True)
+                         log=False)
 
-    #dissipation
+    #passive scalar
     visualizeMap(axs[6], 
                  lonsDeg, latsDeg, 
-                 np.log(np.fabs(dissipation*sig)), 
-                 np.log(dismax*1.e-5).max(), np.log(dismax*1.5).max(),  
-                 title=r'Dissipation')
+                 accflag, 
+                 -0.1, 1.1,  
+                 title=r'Passive scalar')
 
-
+# passive scalar
     visualizeSprofile(axs[7], 
                       latsDeg,
-                      dissipation*sig,  
-                      title=r'Dissipation', 
-                      log=True)
+                      accflag,  
+                      title=r'Passive scalar', 
+                      log=False)
 
 
     #velocities

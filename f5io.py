@@ -31,7 +31,7 @@ def saveParams(f5, conf):
 #Save simulation snapshot
 def saveSim(f5, nout, t,
             mass, energy,
-            vortg, divg, ug, vg, sig, signative, dissipation
+            vortg, divg, ug, vg, sig, accflag, dissipation
             ):
 
     scycle = str(nout).rjust(6, '0')
@@ -45,7 +45,7 @@ def saveSim(f5, nout, t,
     grp.create_dataset("ug",    data=ug)
     grp.create_dataset("vg",    data=vg)
     grp.create_dataset("sig",   data=sig)
-    grp.create_dataset("signative",   data=signative)
+    grp.create_dataset("accflag",   data=accflag)
     grp.create_dataset("diss",  data=dissipation)
 
     f5.flush()
@@ -72,13 +72,13 @@ def restart(restartfile, nrest, conf):
         vortg = data["vortg"][:]
         divg  = data["divg"][:]
         sig   = data["sig"][:]
-        signative   = data["signative"][:]
+        accflag   = data["accflag"][:]
 
     f5.close()
 
     # if successful, we need to take the file off the way
     #    os.system("mv "+restartfile+" "+restartfile+".backup")
 
-    return vortg, divg, sig, signative
+    return vortg, divg, sig, accflag
 
 
