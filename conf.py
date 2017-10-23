@@ -55,7 +55,7 @@ beta  = 1./15.
 
 ##################################################
 # source term
-sigplus = 1.
+sigplus = 10.
 sigmax    = 1.e8
 latspread = 0.2   # spread in radians
   

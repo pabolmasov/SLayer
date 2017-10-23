@@ -197,7 +197,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
     daccflagdtSpec[:,nnew] = -dacctmp # a*div(v) - div(a*v)
-    daccflagdt =  (1.-accflag) * (sdotplus/sig) 
+    daccflagdt =  (1.-accflag) * (sdotplus/sig) + accflag * divg 
     daccflagdtSpec[:,nnew] += x.grid2sph(daccflagdt)
     
     # update vort,div,phiv with third-order adams-bashforth.
