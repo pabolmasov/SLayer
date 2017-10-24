@@ -31,7 +31,7 @@ sig0       = 100.                   # own neutron star atmosphere
 
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 
-cs=0.01 # speed of sound
+cs=1. # speed of sound
 sigfloor = 0.1   # auxiliary patameter for EOS; H = cs^2 * log(|sigma| + sigfloor) 
 print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
 
