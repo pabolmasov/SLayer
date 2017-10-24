@@ -101,11 +101,11 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=False
+ifrestart=True
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=3190 # No of the restart output
+    nrest=2180 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 

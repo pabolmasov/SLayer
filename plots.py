@@ -191,7 +191,7 @@ def visualize(t, nout,
                  lonsDeg, latsDeg, 
                  np.log(sig/sig_init_base),  
                  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  
-                 title=r'$\Sigma$')
+                 title=r'$\Sigma$',log=True)
     axs[4].contour(
         lonsDeg,
         latsDeg,
@@ -245,6 +245,7 @@ def visualize(t, nout,
                          title1=r"$v_\varphi$", 
                          title2=r"$v_\theta$" )
     axs[9].plot(latsDeg, cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
+    axs[9].plot(latsDeg, cf.overkepler*cf.rsphere**(-0.5)*np.cos(lats), color='g', linewidth=1)
 
 
 
