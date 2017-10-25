@@ -105,7 +105,7 @@ ifrestart=True
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=2180 # No of the restart output
+    nrest=5000 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 

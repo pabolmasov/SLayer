@@ -8,7 +8,7 @@ import numpy as np
 
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 384          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid
 
