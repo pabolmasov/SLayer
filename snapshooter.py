@@ -3,7 +3,7 @@ import numpy as np
 import shtns
 import matplotlib.pyplot as plt
 from matplotlib import rc
-import scipy.ndimage as spin
+import scipy.ndimage as nd
 import time
 from spharmt import Spharmt 
 import os
@@ -45,10 +45,11 @@ def plotnth(filename, nstep):
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.max()
     skx = 8 ; sky=16
-    xx = spin.filters.gaussian_filter(xx, skx/2., mode='constant')*500./vvmax
-    yy = spin.filters.gaussian_filter(yy, sky/2., mode='constant')*500./vvmax
+    xx = nd.filters.gaussian_filter(xx, skx/2., mode='constant')*500./vvmax
+    yy = nd.filters.gaussian_filter(yy, sky/2., mode='constant')*500./vvmax
 
-    s0=sig.min() ; s1=sig.max()
+    wpoles=np.where(np.fabs(lats)>30.)
+    s0=sig[wpoles].min() ; s1=sig[wpoles].max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=20
     levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
@@ -84,7 +85,9 @@ def plotnth(filename, nstep):
     ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([20., 40.])
     ax.set_rmax(60.)
-    plt.title('North pole, t='+str(nstep).rjust(6, '0'))
+    plt.title('N') #, t='+str(nstep))
+    plt.tight_layout()
+    fig.set_size_inches(4, 4)
     plt.savefig('out/northpole.eps')
     plt.savefig('out/northpole.png')
     plt.close()
@@ -94,9 +97,11 @@ def plotnth(filename, nstep):
     tinyover=1./np.double(nlons)
     ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, sig,cmap='jet',levels=levs)
     ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
-    ax.set_rticks([30., 60.])
-    ax.set_rmax(90.)
-    plt.title('South pole, t='+str(nstep))
+    ax.set_rticks([20., 40.])
+    ax.set_rmax(60.)
+    plt.tight_layout(pad=2)
+    fig.set_size_inches(4, 4)
+    plt.title('S') #, t='+str(nstep))
     plt.savefig('out/southpole.eps')
     plt.savefig('out/southpole.png')
     plt.close()
@@ -106,9 +111,12 @@ def multireader(nmin, nmax):
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
     
     for k in np.arange(nmax-nmin)+nmin:
-        plotnth('out/run.hdf5', k)
+        plotnth('out/runOLD.hdf5', k)
         os.system('cp out/snapshot.png out/shot'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp out/northpole.png out/north'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp out/southpole.png out/south'+str(k).rjust(ndigits, '0')+'.png')
+        os.system('cp out/snapshot.eps out/shot'+str(k).rjust(ndigits, '0')+'.eps')
+        os.system('cp out/northpole.eps out/north'+str(k).rjust(ndigits, '0')+'.eps')
+        os.system('cp out/southpole.eps out/south'+str(k).rjust(ndigits, '0')+'.eps')
         print 'shot'+str(k).rjust(ndigits, '0')+'.png'
         

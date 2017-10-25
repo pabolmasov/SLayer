@@ -191,7 +191,7 @@ def visualize(t, nout,
                  lonsDeg, latsDeg, 
                  np.log(sig/sig_init_base),  
                  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  
-                 title=r'$\Sigma$',log=True)
+                 title=r'$\Sigma$')
     axs[4].contour(
         lonsDeg,
         latsDeg,
