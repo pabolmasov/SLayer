@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import numpy as np
@@ -28,34 +29,39 @@ def fluxest(filename, lat0, lon0):
     cosa=(cosa+np.fabs(cosa))/2. # only positive viewing angle
 
     keys=f.keys()
-    nsize=size(keys)
+    nsize=np.size(keys)-1 # last key contains parameters
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize)
     flc=open('out/lcurve.dat', 'w')
     for k in np.arange(nsize):
-        data=f["cycle_"+str(nsteps[k]).rjust(6, '0')]
-        sig=data["sig"][:] ; sig=data["diss"][:]
+        data=f[keys[k]]
+        sig=data["sig"][:] ; diss=data["diss"][:]
         tar[k]=data.attrs["t"]
-        fluxtmp=(diss*cosa).sum()*dlons*dlats
+        flux[k]=(diss*cosa).sum()*dlons*dlats
         mass[k]=(sig*cosa).sum()*dlons*dlats
-        flux[k]=fluxtmp/mass[k]
         flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n")
         print str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n"
     f.close() ; flc.close() 
-
     tar*=tscale
 
+    # linear trend:
+    m,b =  np.polyfit(tar, mass, 1) # for "visible mass"
+    md,bd =  np.polyfit(tar, flux, 1) # for dissipation
+    
     plt.clf()
     plt.plot(tar, flux, color='k')
     plt.plot(tar, mass, color='r')
+    plt.plot(tar, tar*m+b, color='g')
+    plt.plot(tar, tar*md+bd, color='b')
     plt.xlabel('$t$')
     plt.ylabel('flux, relative units')
-    plt.savefig('lcurve.eps')
+    plt.savefig('out/lcurve.eps')
 
+    flux-=md*tar+bd ; mass-=m*tar+b # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
 
-    fsp=np.fft.fft(flux/flux.mean()-1.)
-    fsp=np.fft.fftshift(fsp)
-    pds=np.abs(fsp)**2
+    fsp=np.fft.fft(flux/flux.std()) ;   fspm=np.fft.fft(mass/mass.std())
+    fsp=np.fft.fftshift(fsp) ;    fspm=np.fft.fftshift(fspm)
+    pds=np.abs(fsp)**2  ;   pdsm=np.abs(fspm)**2
     freq = np.fft.fftfreq(nsize, tspan/np.double(nsize)) # frequency grid
     #  a good idea is also to make a binning
 
@@ -63,16 +69,17 @@ def fluxest(filename, lat0, lon0):
     
     plt.clf()
     plt.plot(np.fabs(freq), pds, ',k')
-    plt.plot([omega/2./pi,omega/2./pi], [pds.min(), pds.max()], ',r')
-    plt.plot([omegadisk/2./pi,omegadisk/2./pi], [pds.min(), pds.max()], ',g')
+    plt.plot(np.fabs(freq), pdsm, ',b')
+    plt.plot([omega/2./np.pi,omega/2./np.pi], [pds.min(), pds.max()], ',r')
+    plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pds.min(), pds.max()], ',g')
     plt.xscale('log')
     plt.yscale('log')
-    plt.xlim(1./tspan, np.double(tspan)/tspan)
+    plt.xlim(1./tspan, np.double(nsize)/tspan)
     plt.xlabel('$|f|$, s$^{-1}$')
     plt.ylabel('PDS, relative units')
-    plt.savefig('PDS.eps')
+    plt.savefig('out/PDS.eps')
     
-    fpds=open('pds.dat', 'w')
+    fpds=open('out/pds.dat', 'w')
     for k in np.arange(nsize):
         fpds.write(str(freq[k])+' '+str(pds[k])+"\n")
     fpds.close()
