@@ -92,10 +92,10 @@ spherical coordinates:
 \begin{equation}\label{E:vdv}
   \begin{array}{l}
 \displaystyle  (\vector{v}\nabla) \vector{v} = \left( v_r \pardir{r}{v_r} +
-  \frac{v_\theta}{r} \pardir{\theta}{v_\theta} + \frac{v_\varphi}{r \sin
+  \frac{v_\theta}{r} \pardir{\theta}{v_r} + \frac{v_\varphi}{r \sin
     \theta} \pardir{\varphi}{v_r} - \frac{v_\theta^2+v_\varphi^2}{r}\right)
   \vector{e}^r  \\
-\displaystyle   \qquad{}   + \left( v_r \pardir{r}{v_\theta} + \frac{\theta}{v_\theta} +
+\displaystyle   \qquad{}   + \left( v_r \pardir{r}{v_\theta} + \frac{v_\theta}{r}\pardir{\theta}{v_\theta} +
   \frac{v_\varphi}{r\sin\theta} \pardir{\varphi}{v_\theta} + \frac{v_\theta
     v_r}{r} - \frac{v_\varphi^2}{r}\cot^2\theta\right) \vector{e}^\theta
    \\
@@ -155,12 +155,7 @@ The last term here is identical to the advective left-hand-side term in Euler
 equation derivative, hence
 \begin{equation}\label{E:delta}
 \pardir{t}{\delta} = \left(\nabla \cdot \left[ \vector{v}
-  \vector{\omega}\right] \right) -  \nabla^2 B,
-\end{equation}
-or, as there is only one non-zero vorticity component, and it is orthogonal to velocity,
-\begin{equation}\label{E:delta:oscalar}
-\pardir{t}{\delta} = \left(\nabla \cdot \left(\omega \vector{v}\right)
-   \right) -  \nabla^2 B,
+  \vector{\omega}\right] \right) -  \nabla^2 B.
 \end{equation}
 where
 \begin{equation}\label{E:Bernoulli}

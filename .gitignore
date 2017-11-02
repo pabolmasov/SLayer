@@ -3,3 +3,5 @@
 *.pyc
 out*/
 swm.py
+*.fig
+*.eps
