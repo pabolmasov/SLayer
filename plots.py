@@ -86,12 +86,12 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
     print title, " min/max vec len: ", M.min(), M.max()
 
     vv=np.sqrt(xx**2+yy**2)
-    vvmax=vv.max() # normalization
+    vvmax=vv.std() # normalization
 
     sk = 10
     sigma = [sk/2., sk/2.]
-    xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*100./vvmax
-    yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*100./vvmax
+    xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*40./vvmax
+    yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*40./vvmax
     
     ax.quiver(
         lonsDeg[::sk, ::sk],
@@ -158,15 +158,13 @@ def visualize(t, nout,
                  -vorm*1.1, vorm*1.1, 
                  title="Vorticity")
 
-
     #
-    visualizeTwoprofiles(axs[1], 
-                        lonsDeg, latsDeg, 
-                        vortg, 
-                        2.*cf.omega*np.sin(lats), 
-                        title1=r"$v_\varphi$", 
-                        title2=r"$R\Omega$")
-
+    visualizeSprofile(axs[1], 
+                      latsDeg, 
+                      vortg,
+                      title=r"$v_\varphi$")
+    axs[1].plot(latsDeg, 2.*cf.omega*np.sin(lats), color='r', linewidth=1)
+    axs[1].plot(latsDeg, 2.*cf.overkepler*cf.rsphere**(-1.5)*np.sin(lats), color='g', linewidth=1)
 
     #divergence
     divm=np.fabs(divg).max()
