@@ -8,7 +8,7 @@ import numpy as np
 
 ##################################################
 # grid, time step info
-nlons  = 384          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid
 
@@ -22,16 +22,18 @@ print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
 
 
 # parameters for test
-rsphere    = 6.04606               # earth radius
+rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 1e-2                  # spin period, in seconds
-omega      = 2.*np.pi/pspin/1.45e5 # rotation rate
+omega      = 2.*np.pi/pspin*tscale # rotation rate
+incle       = np.pi*0. # inclination of initial rotation, radians
 overkepler = 0.9                   # source term rotation with respect to Keplerian
 grav       = 1./rsphere**2         # gravity
-sig0       = 100.                   # own neutron star atmosphere
+sig0       = 1e5                   # own neutron star atmosphere
+
 
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 
-cs=1. # speed of sound
+cs=0.01 # speed of sound
 sigfloor = 0.1   # auxiliary patameter for EOS; H = cs^2 * log(|sigma| + sigfloor) 
 print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
 
@@ -46,16 +48,16 @@ ndiss = 8        # order for hyperdiffusion
 
 ##################################################
 #perturbation parameters
-hamp  = 0.05     # height perturbation amplitude
+hamp  = 0.5     # height perturbation amplitude
 phi0  = np.pi/3. # perturbation latitude
 lon0  = np.pi/3. # perturbation longitude
-alpha = 1./3.
-beta  = 1./15.
+alpha = 1./10. # size of the perturbed region
+beta  = 1./25.# size of the perturbed region
 
 
 ##################################################
 # source term
-sigplus = 10.
+sigplus = 1e3
 sigmax    = 1.e8
 latspread = 0.2   # spread in radians
   

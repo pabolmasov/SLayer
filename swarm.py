@@ -49,7 +49,7 @@ from conf import cs
 from conf import itmax
 from conf import sigfloor
 from conf import sigplus, sigmax, latspread #source and sink terms
-
+from conf import incle
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -62,10 +62,9 @@ lons1d = (180./np.pi)*x.lons-180.
 lats1d = (180./np.pi)*x.lats
 
 
-# zonal jet
-vg = np.zeros((nlats, nlons))
-ug = np.ones((nlats, nlons))*np.cos(lats)*omega*rsphere
-
+# initial velocity field 
+ug = omega*rsphere*(np.cos(lats)*np.cos(incle)-np.sin(incle)*np.sin(lats)*np.sin(lons))
+vg = omega*rsphere*np.sin(incle)*np.cos(lons)
 
 # height perturbation.
 hbump = hamp*np.cos(lats)*np.exp(-((lons-lon0)/alpha)**2)*np.exp(-(phi0-lats)**2/beta)
@@ -101,11 +100,11 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=True
+ifrestart=False
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=5000 # No of the restart output
+    nrest=9526 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 
@@ -136,7 +135,7 @@ def sdotsink(sigma, sigmax):
     w=np.where(sigma>(sigmax/100.))
     y=0.0*sigma
     if(np.size(w)>0):
-        y[w]=1.0*sigma*np.exp(-sigmax/sigma)
+        y[w]=1.0*sigma[w]*np.exp(-sigmax/sigma[w])
     return y
 
 # main loop
@@ -251,7 +250,7 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     nsav1 = nnew; nsav2 = nnow
     nnew = nold; nnow = nsav1; nold = nsav2
 
-    if(ncycle % 100 ==0):
+    if(ncycle % 10 ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
 
     #plot & save
