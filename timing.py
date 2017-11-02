@@ -48,10 +48,10 @@ def fluxest(filename, lat0, lon0):
     md,bd =  np.polyfit(tar, flux, 1) # for dissipation
     
     plt.clf()
-    plt.plot(tar, flux, color='k')
-    plt.plot(tar, mass, color='r')
-    plt.plot(tar, tar*m+b, color='g')
-    plt.plot(tar, tar*md+bd, color='b')
+    plt.plot(tar, (flux-flux.min())/(flux.max()-flux.min()), color='k')
+    plt.plot(tar, (mass-mass.min())/(mass.max()-mass.min()), color='r')
+    plt.plot(tar, (tar*m+b-mass.min())/(mass.max()-mass.min()), color='g')
+    plt.plot(tar, (tar*md+bd-flux.min())/(flux.max()-flux.min()), color='b')
     plt.xlabel('$t$')
     plt.ylabel('flux, relative units')
     plt.savefig('out/lcurve.eps')
@@ -59,19 +59,20 @@ def fluxest(filename, lat0, lon0):
     flux-=md*tar+bd ; mass-=m*tar+b # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
 
-    fsp=np.fft.fft(flux/flux.std()) ;   fspm=np.fft.fft(mass/mass.std())
-    fsp=np.fft.fftshift(fsp) ;    fspm=np.fft.fftshift(fspm)
+    fsp=np.fft.rfft(flux/flux.std()) ;   fspm=np.fft.rfft(mass/mass.std())
+ #   fsp=np.fft.fftshift(fsp) ;    fspm=np.fft.fftshift(fspm)
     pds=np.abs(fsp)**2  ;   pdsm=np.abs(fspm)**2
-    freq = np.fft.fftfreq(nsize, tspan/np.double(nsize)) # frequency grid
+    freq = np.fft.rfftfreq(nsize, tspan/np.double(nsize)) # frequency grid
     #  a good idea is also to make a binning
-
-    omegadisk=2.*np.pi/rsphere**1.5*0.9
-    
+    omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
+    omega/=tscale
+    wpos=np.where((pds*pdsm)>0.)
+    print omega, omegadisk
     plt.clf()
-    plt.plot(np.fabs(freq), pds, ',k')
-    plt.plot(np.fabs(freq), pdsm, ',b')
-    plt.plot([omega/2./np.pi,omega/2./np.pi], [pds.min(), pds.max()], ',r')
-    plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pds.min(), pds.max()], ',g')
+    plt.plot(freq[wpos], pds[wpos], 'k')
+    plt.plot(freq[wpos], pdsm[wpos], 'b')
+    plt.plot([omega/2./np.pi,omega/2./np.pi], [pds[wpos].min(),pds[wpos].max()], 'r')
+    plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pds[wpos].min(),pds[wpos].max()], 'g')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(1./tspan, np.double(nsize)/tspan)
@@ -80,7 +81,7 @@ def fluxest(filename, lat0, lon0):
     plt.savefig('out/PDS.eps')
     
     fpds=open('out/pds.dat', 'w')
-    for k in np.arange(nsize):
+    for k in np.arange(np.size(freq)):
         fpds.write(str(freq[k])+' '+str(pds[k])+"\n")
     fpds.close()
     
