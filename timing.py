@@ -36,7 +36,7 @@ def fluxest(filename, lat0, lon0):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:]
         tar[k]=data.attrs["t"]
-        flux[k]=(diss*cosa).sum()*dlons*dlats
+        flux[k]=(diss*sig*cosa).sum()*dlons*dlats
         mass[k]=(sig*cosa).sum()*dlons*dlats
         flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n")
         print str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n"
@@ -72,6 +72,7 @@ def fluxest(filename, lat0, lon0):
     plt.plot(freq[wpos], pds[wpos], 'k')
     plt.plot(freq[wpos], pdsm[wpos], 'b')
     plt.plot([omega/2./np.pi,omega/2./np.pi], [pds[wpos].min(),pds[wpos].max()], 'r')
+    plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pds[wpos].min(),pds[wpos].max()], 'r', linestyle='dotted')
     plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pds[wpos].min(),pds[wpos].max()], 'g')
     plt.xscale('log')
     plt.yscale('log')

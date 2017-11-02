@@ -100,11 +100,11 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=False
+ifrestart=True
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=9526 # No of the restart output
+    nrest=10000 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 
@@ -233,13 +233,13 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     (5./12.)*daccflagdtSpec[:,nold] )
 
     # total kinetic energy loss
-    dissSpec=(vortSpec**2+divSpec**2)*(1.-hyperdiff_fact)/x.lap
-    wnan=np.where(np.isnan(dissSpec))
+    #    dissSpec=(vortSpec**2+divSpec**2)*(1.-hyperdiff_fact)/x.lap
+    dissvortSpec=vortSpec*(1.-hyperdiff_fact)/x.lap
+    dissdivSpec=divSpec*(1.-hyperdiff_fact)/x.lap
+    wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
     if(np.size(wnan)>0):
-#        print str(np.size(wnan))+" nan points"
-#        ii=raw_input()
-        dissSpec[wnan]=0.
-    dissipation=x.sph2grid(dissSpec)/2./dt
+        dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
+    dissipation=(x.sph2grid(dissvortSpec)*vortg+x.sph2grid(dissdivSpec)*divg)/dt
     # implicit hyperdiffusion for vort and div
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact

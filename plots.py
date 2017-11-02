@@ -213,14 +213,20 @@ def visualize(t, nout,
                  accflag, 
                  -0.1, 1.1,  
                  title=r'Passive scalar')
-
-# passive scalar
+    #dissipation
+    visualizeMap(axs[7], 
+                 lonsDeg, latsDeg, 
+                 dissipation*sig, 
+                 (dissipation*sig).min(), (dissipation*sig).max(),  
+                 title=r'Dissipation')
+    '''
+    # passive scalar
     visualizeSprofile(axs[7], 
                       latsDeg,
                       accflag,  
                       title=r'Passive scalar', 
                       log=False)
-
+    '''
 
     #velocities
     du=ug-cf.omega*cf.rsphere*np.cos(lats)
