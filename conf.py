@@ -25,7 +25,8 @@ print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 1e-2                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
-incle       = np.pi*0. # inclination of initial rotation, radians
+incle      = np.pi*0.1 # inclination of initial rotation, radians
+lon0       = 0. # longitudinal shift of the source, radians
 overkepler = 0.9                   # source term rotation with respect to Keplerian
 grav       = 1./rsphere**2         # gravity
 sig0       = 1e5                   # own neutron star atmosphere
