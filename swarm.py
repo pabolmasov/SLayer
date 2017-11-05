@@ -103,7 +103,7 @@ ifrestart=True
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=18860 # No of the restart output
+    nrest=19000 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 
@@ -262,10 +262,9 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
 #        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
 #        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-        
         visualize(t, nout,
                   lats, lons, 
-                  vortg, divg, ug, vg, sig, accflag, dissipation,
+                  vortg, divg, ug, vg, sig, accflag, dissipation, 
 #                  mass, energy,
                   engy,
                   hbump,
