@@ -16,6 +16,26 @@ for row in [0,1,2,3,4]:
     axs.append( plt.subplot(gs[row, 0:5]) )
     axs.append( plt.subplot(gs[row, 6:10]) )
 
+# converts two components to an angle
+def tanrat(x,y):
+    z=0.
+    if((x*y)>0.):
+        z=np.arctan(y/x)
+        if(x<0.):
+            z+=np.pi
+    elif((x*y)<0.):
+        z=np.arctan(y/x)+np.pi
+        if(y<0.):
+            z+=np.pi
+    else:
+        if(x==0.):
+            if(y<0.):
+                return 1.5*np.pi
+        else:
+            if(x<0.):
+                return np.pi
+    return z
+    
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
     ax.cla()
@@ -135,6 +155,12 @@ def visualize(t, nout,
     mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    angmoz=(sig*ug*np.cos(lats)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
+    angmox=(sig*ug*np.sin(lats)*np.cos(lons)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
+    angmoy=(sig*ug*np.sin(lats)*np.sin(lons)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
+    vangmo=np.sqrt(angmox**2+angmoy**2+angmoz**2) # total angular momentum 
+
+    print "angular momentum "+str(vangmo)+", inclined wrt z by "+str(np.arccos(angmoz/vangmo)*180./np.pi)+"deg"
     print "vorticity: "+str(vortg.min())+" to "+str(vortg.max())
     print "divergence: "+str(divg.min())+" to "+str(divg.max())
     print "azimuthal U: "+str(ug.min())+" to "+str(ug.max())
@@ -157,6 +183,7 @@ def visualize(t, nout,
                  vortg-2.*cf.omega*np.sin(lats), 
                  -vorm*1.1, vorm*1.1, 
                  title="Vorticity")
+    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
     #
     visualizeSprofile(axs[1], 
@@ -173,6 +200,7 @@ def visualize(t, nout,
                  divg,  
                  -1.1*divm, 1.1*divm, 
                  title="Divergence")
+    axs[2].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
 
     visualizeSprofile(axs[3], 
@@ -190,6 +218,7 @@ def visualize(t, nout,
                  np.log(sig/sig_init_base),  
                  np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  
                  title=r'$\Sigma$')
+    axs[4].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
     axs[4].contour(
         lonsDeg,
         latsDeg,
@@ -213,12 +242,14 @@ def visualize(t, nout,
                  accflag, 
                  -0.1, 1.1,  
                  title=r'Passive scalar')
+    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')
     #dissipation
     visualizeMap(axs[7], 
                  lonsDeg, latsDeg, 
                  dissipation*sig, 
                  (dissipation*sig).min(), (dissipation*sig).max(),  
                  title=r'Dissipation')
+    axs[7].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
     '''
     # passive scalar
     visualizeSprofile(axs[7], 
@@ -240,6 +271,7 @@ def visualize(t, nout,
                      ug-cf.omega*cf.rsphere*np.cos(lats), 
                      vg, 
                      title="Velocities")
+    axs[7].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
 
     #velocity distributions

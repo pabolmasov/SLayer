@@ -49,7 +49,7 @@ from conf import cs
 from conf import itmax
 from conf import sigfloor
 from conf import sigplus, sigmax, latspread #source and sink terms
-from conf import incle
+from conf import incle, lon0
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -63,12 +63,11 @@ lats1d = (180./np.pi)*x.lats
 
 
 # initial velocity field 
-ug = omega*rsphere*(np.cos(lats)*np.cos(incle)-np.sin(incle)*np.sin(lats)*np.sin(lons))
-vg = omega*rsphere*np.sin(incle)*np.cos(lons)
+ug = omega*rsphere*np.cos(lats)
+vg = ug*0.
 
 # height perturbation.
 hbump = hamp*np.cos(lats)*np.exp(-((lons-lon0)/alpha)**2)*np.exp(-(phi0-lats)**2/beta)
-
 
 # initial vorticity, divergence in spectral space
 vortSpec, divSpec =  x.getVortDivSpec(ug,vg)
@@ -104,7 +103,7 @@ ifrestart=True
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=13296 # No of the restart output
+    nrest=19000 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 
@@ -126,9 +125,10 @@ f5io.saveParams(f5, conf)
 # source/sink term
 def sdotsource(lats, lons, latspread):
     y=np.zeros((nlats,nlons), np.float)
-    w=np.where(np.fabs(np.sin(lats))<(latspread*5.))
+    devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-lon0)
+    w=np.where(np.fabs(devcos)<(latspread*5.))
     if(np.size(w)>0):
-        y[w]=sigplus*np.exp(-(np.sin(lats[w])/latspread)**2/.2)
+        y[w]=sigplus*np.exp(-(devcos[w]/latspread)**2/.2)
     return y
 
 def sdotsink(sigma, sigmax):
@@ -262,10 +262,9 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
 #        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
 #        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-        
         visualize(t, nout,
                   lats, lons, 
-                  vortg, divg, ug, vg, sig, accflag, dissipation,
+                  vortg, divg, ug, vg, sig, accflag, dissipation, 
 #                  mass, energy,
                   engy,
                   hbump,
