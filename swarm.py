@@ -49,7 +49,7 @@ from conf import cs
 from conf import itmax
 from conf import sigfloor
 from conf import sigplus, sigmax, latspread #source and sink terms
-from conf import incle, lon0
+from conf import incle, slon0
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -123,7 +123,7 @@ f5io.saveParams(f5, conf)
 # source/sink term
 def sdotsource(lats, lons, latspread):
     y=np.zeros((nlats,nlons), np.float)
-    devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-lon0)
+    devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
     
     w=np.where(np.fabs(devcos)<(latspread*5.))
     if(np.size(w)>0):

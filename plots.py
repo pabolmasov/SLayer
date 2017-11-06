@@ -251,7 +251,7 @@ def visualize(t, nout,
                  (dissipation*sig).min(), (dissipation*sig).max(),  
                  title=r'Dissipation')
     axs[7].plot([tanrat(angmox, angmoy)%np.pi*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
-    axs[7].plot([(np.pi-tanrat(angmox, angmoy))%np.pi*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
+    axs[7].plot([-(tanrat(angmox, angmoy)%np.pi)*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
     '''
     # passive scalar
     visualizeSprofile(axs[7], 
@@ -274,7 +274,7 @@ def visualize(t, nout,
                      vg, 
                      title="Velocities")
     axs[8].plot([tanrat(angmox, angmoy)%np.pi*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
-    axs[8].plot([((np.pi-tanrat(angmox, angmoy))%np.pi)*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
+    axs[8].plot([-(tanrat(angmox, angmoy)%np.pi)*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
 
     #velocity distributions
     visualizeTwoprofiles(axs[9], 
