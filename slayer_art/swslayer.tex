@@ -102,7 +102,7 @@ spherical coordinates:
 \displaystyle   \qquad{}   +
    \left( v_r \pardir{r}{v_\varphi}  + 
    \frac{v_\theta}{r}\pardir{\theta}{v_\varphi} +
-   \frac{v_\varphi}{r\sin\theta}\pardir{v_\varphi}{\varphi} + \frac{v_\varphi
+   \frac{v_\varphi}{r\sin\theta}\pardir{\varphi}{v_\varphi} + \frac{v_\varphi
      v_r}{r}\right) \vector{e}^\varphi,\\
    \end{array}
 \end{equation}
@@ -167,8 +167,25 @@ sound $c_{\rm s}^2$ is constant, and $h= c_{\rm s}^2 \ln\rho$. Integration
 with height does not change the overall structure of the equation, as the
 vertical scalehight is always identical for density and pressure. 
 
-\section{Vertical balance}
+\subsection{Vertical balance}
 
+\section{Spectral code}
+
+\section{Dissipation}
+
+To stabilize the algorithm, we use a hyperdiffusion method selective for the
+highest harmonics. Dissipation operator for both quantities, vorticity and
+divergence, equals
+\begin{equation}
+\displaystyle  D = \frac{1}{t_{D}}\left(\nabla^4 - \frac{4}{R^4}\right),
+\end{equation}
+where the second, correction, term serves to ensure conservation of the total
+angular momentum and mass (see \citet{swater}). In the spectral domain, this
+corresponds to
+\begin{equation}
+\displaystyle   \tilde{D} = \frac{1}{t_{D}}\left( ik^4 -
+\frac{4}{R^4}\right)\simeq e^{}
+\end{equation}
 
 
 \bibliographystyle{mnras}
