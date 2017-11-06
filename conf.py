@@ -44,7 +44,7 @@ print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
 # Hyperdiffusion
 ##################################################
 efold = 1000.*dt # efolding timescale at ntrunc for hyperdiffusion
-ndiss = 8        # order for hyperdiffusion
+ndiss = 4        # order for hyperdiffusion
 
 
 ##################################################

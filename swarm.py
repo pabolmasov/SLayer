@@ -99,7 +99,7 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=True
+ifrestart=False
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
@@ -118,18 +118,17 @@ vortSpec = x.grid2sph(vortg)
 ###################################################
 # Save simulation setup to file
 f5io.saveParams(f5, conf)
-
-
     
 ##################################################
 # source/sink term
 def sdotsource(lats, lons, latspread):
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-lon0)
+    
     w=np.where(np.fabs(devcos)<(latspread*5.))
     if(np.size(w)>0):
         y[w]=sigplus*np.exp(-(devcos[w]/latspread)**2/.2)
-    return y
+    return y, devcos
 
 def sdotsink(sigma, sigmax):
     w=np.where(sigma>(sigmax/100.))
@@ -173,26 +172,16 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
 
     # source terms:
-    sdotplus=sdotsource(lats, lons, latspread)
+    sdotplus, sina=sdotsource(lats, lons, latspread)
     sdotminus=sdotsink(sig, sigmax)
     sdotSpec=x.grid2sph(sdotplus-sdotminus)
     dsigdtSpec[:,nnew] += sdotSpec
 
-    vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*np.sin(lats)-vortg)
+    vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*sina-vortg)
     vortdotSpec=x.grid2sph(vortdot)
     dvortdtSpec[:,nnew] += vortdotSpec
 
     # passive scalar evolution:
-    '''
-    wacc0=np.where(accflag<0.)
-    if(np.size(wacc0)>0):
-        accflag[wacc0]=0.
-    wacc1=np.where(accflag>1.)
-    if(np.size(wacc1)>0):
-        accflag[wacc1]=1.
-    '''
-    #    agradu, agradv = x.getGrad(accflagSpec) # unstable?
-    #    daccflagdt = - ug * agradu - vg * agradv
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
     daccflagdtSpec[:,nnew] = -dacctmp # a*div(v) - div(a*v)
