@@ -26,7 +26,7 @@ rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 1e-2                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 incle      = np.pi*0.1 # inclination of initial rotation, radians
-lon0       = 0. # longitudinal shift of the source, radians
+slon0       = 0. # longitudinal shift of the source, radians
 overkepler = 0.9                   # source term rotation with respect to Keplerian
 grav       = 1./rsphere**2         # gravity
 sig0       = 1e5                   # own neutron star atmosphere
@@ -44,7 +44,7 @@ print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
 # Hyperdiffusion
 ##################################################
 efold = 1000.*dt # efolding timescale at ntrunc for hyperdiffusion
-ndiss = 8        # order for hyperdiffusion
+ndiss = 4        # order for hyperdiffusion
 
 
 ##################################################
