@@ -54,7 +54,8 @@
 \newcommand{\pardirsec}[2]{\ensuremath{\frac{\partial^2 #2}{\partial #1^2} }}
 \newcommand{\ppardir}[2]{\ensuremath{\frac{\partial }{\partial #1} \left( #2\right)}}
 \newcommand{\eps}{\epsilon}
-
+\newcommand{\cs}{\ensuremath{c_{\rm s}}}
+\renewcommand{\i}{\ensuremath{{\rm i}}}
 %\newcommand{\tcfour}{3C\,454.3}
 %\newcommand{\tctwo}{3C\,279}
 %\newcommand{\pkst}{PKS 1222$+$21}
@@ -188,6 +189,81 @@ corresponds to
 \frac{4}{R^4}\right)\simeq e^{}
 \end{equation}
 
+\section{Inertial modes and sonic horizons}
+
+\subsection{Derivation of the dispersion equation}
+
+Using WKB method \citep{WKB}, one can linearize the set of dynamic equations
+and come up with a dispersion relation for short-wavelength waves on a sphere
+in presence of differential rotation. Density variations $\rho = \rho_0
++\delta \rho(\theta,\varphi, t)$, azimuthal velocity $v_\varphi = \Omega(\theta) \sin\theta +
+\delta v_\varphi(\theta,\varphi, t)$, and latitudinal velocity $v_\theta = \delta
+v_\theta(\theta,\varphi, t)$. Latitudinal velocity has the same (first) order
+as the azimuthal velocity perturbation. All the perturbations will be
+expressed in exponential form $\propto \exp(\i(\omega t - k_\theta \theta
+- k_\varphi \varphi))$. \alert{Will spherical harmonics be better?}
+Wavenumbers would be expressed in the units of inverse sphere radius. 
+
+Continuity equation perturbation, written in WKB assumptions, becomes
+\begin{equation}\label{E:WKB:continuity}
+\displaystyle \left(\omega-k_\varphi \Omega\right) \frac{\delta \rho}{\rho} = k_\theta v_\theta +
+\frac{1}{\sin \theta} k_\varphi \delta v_\varphi.
+\end{equation}
+The two tangential Euler equations may be in general form written, ignoring
+second-order terms, as
+\begin{equation}\label{E:WKB:Eulertheta}
+\displaystyle \pardir{t}{v_\theta} + \frac{v_\varphi}{\sin \theta}
+\pardir{\varphi}{v_\theta} - v_\varphi^2 \cot \theta = -\cs^2
+\pardir{\theta}{\ln \rho}
+\end{equation}
+and
+\begin{equation}\label{E:WKB:Eulerphi}
+\displaystyle  \pardir{t}{v_\phi} + v_\theta \pardir{\theta}{v_\varphi}
+  +\frac{v_\varphi}{\sin\theta}\pardir{\varphi}{v_\varphi}+ v_\varphi v_\theta
+  \cot \theta = -\frac{\cs^2 }{\sin \theta} \pardir{\varphi}{\ln \rho}.
+\end{equation}
+In WKB approach, and after substitution the expression for the variations
+of $\rho$ from (\ref{E:WKB:continuity}), the equations become, respectively,
+\begin{equation}\label{E:WKB:theta}
+\displaystyle \left(\tilde{\omega}^2 - \cs^2 k_\theta^2\right) v_\theta=
+\left( \cs^2 \frac{k_\theta k_\varphi}{\sin\theta} - 2 \i \Omega
+\tilde{\omega} \cos\theta\right) \delta v_\varphi,
+\end{equation}
+and
+\begin{equation}\label{E:WKB:phi}
+\displaystyle
+\left(\tilde{\omega}\left(\tilde{\omega}-k_\varphi\Omega\right)-\frac{\cs^2
+  k_\varphi^2}{\sin^2\theta}\right)\delta v_\varphi = \left( \cs^2 k_\theta
+k_\varphi  + \i \tilde{\omega} \pardir{\theta}{\Omega \sin^2\theta}\right)
+\frac{v_\theta}{\sin \theta},
+\end{equation}
+where $\tilde{\omega} = \omega - k_\varphi \Omega$. 
+Excluding the velocity components yields a dispersion equation
+\begin{equation}\label{E:WKB:deq}
+\displaystyle \left( \tilde{\omega}^2 - \cs^2 k_\theta^2\right)\left(
+\tilde{\omega}-k_\varphi \Omega\right) - \frac{\cs^2
+  k_\varphi^2}{\sin^2\theta}\tilde{\omega} = \i \cs^2 k_\varphi k_\theta
+\sin\theta \pardir{\theta}{\Omega} + 2\Omega \tilde{\omega} \cot\theta
+\ppardir{\theta}{\Omega \sin^2\theta}.
+\end{equation}
+Two important specific cases may be reproduced when $\Omega \to 0$ (sonic
+waves) and $\cs \to 0$ (inertial waves):
+\begin{equation}\label{E:WKB:sonic}
+ \displaystyle  \omega_{\rm sonic} = \cs^2 \left( k_\theta^2 + \frac{k_\varphi^2}{\sin^2\theta}\right),
+\end{equation}
+\begin{equation}\label{E:WKB:inertial}
+\displaystyle   \omega_{\rm inertial} = \frac{3}{2}k_\varphi \Omega \pm
+  \frac{1}{2}\sqrt{(k_\varphi \Omega)^2 + 4\varkappa^2},
+\end{equation}
+where
+\begin{equation}\label{E:WKB:varkappa}
+  \varkappa^2 = 2\Omega \cot\theta \ppardir{\theta}{\Omega \sin^2\theta}
+\end{equation}
+is the latitudinal epicyclic frequency. In the case of
+$k_\theta$ and $\Omega=const$, $\omega = \varkappa = 2\Omega \cos\theta$
+reproduces the Coriolis oscillation regime. Isomomentum rotation, on the other
+hand, reproduces $\varkappa = 0$ and does not have oscillating purely latitudinal
+modes.
 
 \bibliographystyle{mnras}
 \bibliography{mybib}
