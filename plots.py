@@ -35,6 +35,15 @@ def tanrat(x,y):
             if(x<0.):
                 return np.pi
     return z
+
+def visualizePoles(ax, angmo):
+    # axes and angular momentum components (3-tuple)
+    x,y,z=angmo
+    polelon = tanrat(x, y)
+    polelat = np.arcsin(angmoz/sqrt(x**2+y**2+z**2))
+    polelonDeg=(polelon/np.pi-1.)*180. ;   polelatDeg=(polelon/np.pi)*180.
+    ax.plot([polelonDeg], [polelatDeg], '.r')
+    ax.plot([-polelonDeg], [-polelatDeg], '.r')
     
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
@@ -250,8 +259,9 @@ def visualize(t, nout,
                  dissipation*sig, 
                  (dissipation*sig).min(), (dissipation*sig).max(),  
                  title=r'Dissipation')
-    axs[7].plot([tanrat(angmox, angmoy)%np.pi*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
-    axs[7].plot([-(tanrat(angmox, angmoy)%np.pi)*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
+    visualizePoles(axs[7], (angmox, angmoy, angmoz))
+#    axs[7].plot([tanrat(angmox, angmoy)%np.pi*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
+#    axs[7].plot([-(tanrat(angmox, angmoy)%np.pi)*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
     '''
     # passive scalar
     visualizeSprofile(axs[7], 
@@ -273,8 +283,7 @@ def visualize(t, nout,
                      ug, 
                      vg, 
                      title="Velocities")
-    axs[8].plot([tanrat(angmox, angmoy)%np.pi*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
-    axs[8].plot([-(tanrat(angmox, angmoy)%np.pi)*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
+    visualizePoles(axs[8], (angmox, angmoy, angmoz))
 
     #velocity distributions
     visualizeTwoprofiles(axs[9], 
@@ -284,8 +293,6 @@ def visualize(t, nout,
                          title2=r"$v_\theta$" )
     axs[9].plot(latsDeg, cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
     axs[9].plot(latsDeg, cf.overkepler*cf.rsphere**(-0.5)*np.cos(lats), color='g', linewidth=1)
-
-
 
     axs[0].set_title('{:6.2f} ms'.format( t*cf.tscale*1e3) )
     scycle = str(nout).rjust(6, '0')
