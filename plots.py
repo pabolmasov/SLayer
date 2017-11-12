@@ -40,10 +40,10 @@ def visualizePoles(ax, angmo):
     # axes and angular momentum components (3-tuple)
     x,y,z=angmo
     polelon = tanrat(x, y)
-    polelat = np.arcsin(angmoz/sqrt(x**2+y**2+z**2))
-    polelonDeg=(polelon/np.pi-1.)*180. ;   polelatDeg=(polelon/np.pi)*180.
+    polelat = np.arcsin(z/np.sqrt(x**2+y**2+z**2))
+    polelonDeg=(polelon/np.pi)*180. ;   polelatDeg=(polelat/np.pi)*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
-    ax.plot([-polelonDeg], [-polelatDeg], '.r')
+    ax.plot([180.-polelonDeg], [-polelatDeg], '.r')
     
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
@@ -234,7 +234,7 @@ def visualize(t, nout,
         latsDeg,
         accflag,
         levels=[0.5],
-        color='k',
+        colors='w',
         linewidths=1,
     )
 
@@ -272,7 +272,7 @@ def visualize(t, nout,
     '''
 
     #velocities
-    du=ug-cf.omega*cf.rsphere*np.cos(lats)
+    du=ug # -cf.omega*cf.rsphere*np.cos(lats)
     dv=vg
     vabs=du**2+dv**2+cf.cs**2 
     dunorm=du/vabs

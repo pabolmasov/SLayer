@@ -16,6 +16,7 @@ nlats  = int(nlons/2) # for gaussian grid
 tscale = 6.89631e-06 # time units are GM/c**3 \simeq
 dt     = 1.e-8       # time step in seconds
 itmax  = 10000000    # number of iterations
+outskip=10000 # how often do we output the snapshots
 
 dt/=tscale
 print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
@@ -43,13 +44,13 @@ print "speed of sound / Keplerian = "+str(cs / omega / rsphere)
 
 # Hyperdiffusion
 ##################################################
-efold = 1000.*dt # efolding timescale at ntrunc for hyperdiffusion
+efold = 2000.*dt # efolding timescale at ntrunc for hyperdiffusion
 ndiss = 4        # order for hyperdiffusion
 
 
 ##################################################
 #perturbation parameters
-hamp  = 0.5     # height perturbation amplitude
+hamp  = 0.25     # height perturbation amplitude
 phi0  = np.pi/3. # perturbation latitude
 lon0  = np.pi/3. # perturbation longitude
 alpha = 1./10. # size of the perturbed region
@@ -59,8 +60,8 @@ beta  = 1./25.# size of the perturbed region
 ##################################################
 # source term
 sigplus = 1e3
-sigmax    = 1.e8
-latspread = 0.2   # spread in radians
+sigmax    = 1.e4
+latspread = 0.05   # spread in radians
   
 
 

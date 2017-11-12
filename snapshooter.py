@@ -3,6 +3,9 @@ import numpy as np
 import shtns
 import matplotlib.pyplot as plt
 from matplotlib import rc
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator
+from mpl_toolkits.mplot3d import Axes3D
 import scipy.ndimage as nd
 import time
 from spharmt import Spharmt 
@@ -22,9 +25,9 @@ def plotnth(filename, nstep):
     f = h5py.File(filename,'r')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] 
-    lons1d = (2.*np.pi/nlons)*np.arange(nlons)
+    lons1d = (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = 2.*np.arange(nlats)/np.double(nlats)-1.
-    lons,lats = np.meshgrid(lons1d, np.arcsin(clats1d))
+    lons,lats = np.meshgrid(lons1d-1., np.arcsin(clats1d))
     lons*=180./np.pi ; lats*=180./np.pi
     rsphere=params.attrs["rsphere"]
     
@@ -34,14 +37,14 @@ def plotnth(filename, nstep):
     f.close()
     
     # velocity
-    xx=ug-omega*rsphere*np.cos(lats) ; yy=vg
+    xx=ug-0.*omega*rsphere*np.cos(lats) ; yy=-vg
     xxmean=xx.mean(axis=1) ;    yymean=yy.mean(axis=1)
     sigmean=sig.mean(axis=1)
     sig1=np.zeros(sig.shape, dtype=np.double)
     for k in np.arange(nlons):
-        sig1[:,k]=sig[:,k]-sigmean[:]
-        xx[:,k]-=xxmean[:]
-        yy[:,k]-=yymean[:]
+        sig1[:,k]=sig[:,k] # -sigmean[:]
+#        xx[:,k]-=xxmean[:]
+#        yy[:,k]-=yymean[:]
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.max()
     skx = 8 ; sky=16
@@ -51,13 +54,14 @@ def plotnth(filename, nstep):
     wpoles=np.where(np.fabs(lats)>30.)
     s0=sig[wpoles].min() ; s1=sig[wpoles].max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
-    nlev=20
+    nlev=10
     levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
     
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, sig1,cmap='jet') #,levels=levs)
+    plt.contourf(lons, lats, np.log(sig1),cmap='jet') #,levels=levs)
     plt.colorbar()
+    plt.contour(lons, lats, accflag, levels=[0.5], colors='w') #,levels=levs)
     plt.quiver(lons[::skx, ::sky],
         lats[::skx, ::sky],
         xx[::skx, ::sky], yy[::skx, ::sky],
@@ -65,8 +69,9 @@ def plotnth(filename, nstep):
         units='x',
         linewidth=1.0,
         color='k',
-        scale=8.0,
+        scale=20.0,
     )
+#    plt.ylim(-85.,85.)
     plt.xlabel('longitude')
     plt.ylabel('latitude')
     fig.set_size_inches(8, 5)
@@ -74,7 +79,23 @@ def plotnth(filename, nstep):
     plt.savefig('out/snapshot.eps')
     plt.close()
 
-    # now let us make a polar plot:
+    # a sphere example:
+    if(0):
+        x=np.cos(lats)*np.cos(lons)
+        y=np.cos(lats)*np.sin(lons)
+        z=np.sin(lats)
+        cmap = matplotlib.cm.get_cmap('afmhot')
+        normsig=sig/sig.max()   
+        plt.clf()
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        surf = ax.plot_surface(x, y, z, facecolors=cmap(normsig), linewidth=0)
+        ax.set_zlim(-1, 1)
+        #    ax.w_zaxis.set_major_locator(LinearLocator(6))
+        plt.show()
+        plt.savefig('out/sphere.png', dpi=100)
+        plt.close()
+        # now let us make a polar plot:
     tinyover=1./np.double(nlons)
     theta=90.*(1.+tinyover)-lats
     plt.clf()
@@ -111,7 +132,7 @@ def multireader(nmin, nmax):
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
     
     for k in np.arange(nmax-nmin)+nmin:
-        plotnth('out/runOLD.hdf5', k)
+        plotnth('firstrun/run.hdf5', k)
         os.system('cp out/snapshot.png out/shot'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp out/northpole.png out/north'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp out/southpole.png out/south'+str(k).rjust(ndigits, '0')+'.png')

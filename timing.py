@@ -27,8 +27,10 @@ def fluxest(filename, lat0, lon0):
     dlons=2.*np.pi/np.size(lons1d) ; dlats=2./np.double(nlats)
     cosa=np.cos(lats)*np.cos(lat0)+np.sin(lats)*np.sin(lat0)*np.cos(lons-lon0)
     cosa=(cosa+np.fabs(cosa))/2. # only positive viewing angle
-
+#    cosa=np.double(cosa>0.8)
+    
     keys=f.keys()
+#    keys=keys[4000:]
     nsize=np.size(keys)-1 # last key contains parameters
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
     flc=open('out/lcurve.dat', 'w')
@@ -71,7 +73,7 @@ def fluxest(filename, lat0, lon0):
     #  a good idea is also to make a binning
     omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
     omega/=tscale
-    wpos=np.where((pds*pdsm)>0.)
+    wpos=np.where((pds*pdsm*pdsn)>0.)
     print omega, omegadisk
     plt.clf()
     plt.plot(freq[wpos], pds[wpos], 'k')
