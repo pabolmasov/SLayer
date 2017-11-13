@@ -41,7 +41,7 @@ def visualizePoles(ax, angmo):
     x,y,z=angmo
     polelon = tanrat(x, y)
     polelat = np.arcsin(z/np.sqrt(x**2+y**2+z**2))
-    polelonDeg=(polelon/np.pi)*180. ;   polelatDeg=(polelat/np.pi)*180.
+    polelonDeg=((polelon/np.pi+1.)%2.)*180.-180. ;   polelatDeg=(polelat/np.pi)*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
     ax.plot([180.-polelonDeg], [-polelatDeg], '.r')
     

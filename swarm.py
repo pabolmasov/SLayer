@@ -129,7 +129,7 @@ def sdotsource(lats, lons, latspread):
     w=np.where(np.fabs(devcos)<(latspread*5.))
     if(np.size(w)>0):
         y[w]=sigplus*np.exp(-(devcos[w]/latspread)**2/.2)
-        y/=np.sqrt(2.*np.pi)
+        y/=np.sqrt(2.*np.pi)*latspread
     return y, devcos
 
 def sdotsink(sigma, sigmax):
@@ -252,14 +252,15 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
 #        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
 #        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
         energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-        visualize(t, nout,
-                  lats, lons, 
-                  vortg, divg, ug, vg, sig, accflag, dissipation, 
-#                  mass, energy,
-                  engy,
-                  hbump,
-                  rsphere,
-                  conf)
+        if(ifplot):
+            visualize(t, nout,
+                      lats, lons, 
+                      vortg, divg, ug, vg, sig, accflag, dissipation, 
+                      #                  mass, energy,
+                      engy,
+                      hbump,
+                      rsphere,
+                      conf)
 
         #file I/O
         f5io.saveSim(f5, nout, t,
