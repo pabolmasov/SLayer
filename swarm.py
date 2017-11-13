@@ -46,7 +46,7 @@ from conf import dt, omega, rsphere, sig0, overkepler, tscale
 from conf import hamp, phi0, lon0, alpha, beta  #initial height perturbation parameters
 from conf import efold, ndiss
 from conf import cs
-from conf import itmax
+from conf import itmax, outskip
 from conf import sigfloor
 from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
@@ -75,9 +75,10 @@ vortg = x.sph2grid(vortSpec)
 divg  = x.sph2grid(divSpec)
 
 
-# create hyperdiffusion factor
-hyperdiff_fact = np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
-sigma_diff=np.exp((-dt/efold)*(x.lap/x.lap[-1])**(ndiss/2))
+# create (hyper)diffusion factor; normal diffusion corresponds to ndiss=4
+# let us try to add a correction term to ensure mass and angular momentum conservation
+hyperdiff_fact = np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
+sigma_diff=np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 
 # sigma is an exact isothermal solution + an unbalanced bump
 sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
@@ -128,6 +129,7 @@ def sdotsource(lats, lons, latspread):
     w=np.where(np.fabs(devcos)<(latspread*5.))
     if(np.size(w)>0):
         y[w]=sigplus*np.exp(-(devcos[w]/latspread)**2/.2)
+        y/=np.sqrt(2.*np.pi)
     return y, devcos
 
 def sdotsink(sigma, sigmax):
@@ -141,7 +143,6 @@ def sdotsink(sigma, sigmax):
 time1 = time.clock() # time loop
 
 nout=nrest
-outskip=1000 # how often do we output the snapshots
 
 for ncycle in np.arange(itmax+1)+nrest*outskip:
     #for ncycle in range(2): #debug option
