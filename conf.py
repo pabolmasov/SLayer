@@ -5,6 +5,9 @@
 """
 import numpy as np
 
+#################################
+# a switch fro plotting
+ifplot=True
 
 ##################################################
 # grid, time step info
@@ -61,7 +64,7 @@ beta  = 1./25.# size of the perturbed region
 # source term
 sigplus = 1e3
 sigmax    = 1.e4
-latspread = 0.05   # spread in radians
+latspread = 0.1   # spread in radians
   
 
 
