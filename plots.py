@@ -4,6 +4,9 @@ import numpy as np
 import scipy.ndimage as spin
 import matplotlib.pyplot as plt
 
+#####################################
+from conf import sigmax
+
 ##################################################
 #prepare figure etc
 fig = plt.figure(figsize=(10,10))
@@ -41,9 +44,9 @@ def visualizePoles(ax, angmo):
     x,y,z=angmo
     polelon = tanrat(x, y)
     polelat = np.arcsin(z/np.sqrt(x**2+y**2+z**2))
-    polelonDeg=((polelon/np.pi+1.)%2.)*180.-180. ;   polelatDeg=(polelat/np.pi)*180.
+    polelonDeg=((polelon/np.pi+1.)%2.)*180.-180. ;polelatDeg=(polelat/np.pi)*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
-    ax.plot([180.-polelonDeg], [-polelatDeg], '.r')
+    ax.plot([(polelonDeg+360.) % 360.-180.], [-polelatDeg], '.r')
     
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
@@ -245,7 +248,7 @@ def visualize(t, nout,
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
                          log=False)
-
+    axs[5].plot(sigmax/sig_init_base, color='g')
     #passive scalar
     visualizeMap(axs[6], 
                  lonsDeg, latsDeg, 
