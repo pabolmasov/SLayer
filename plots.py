@@ -243,12 +243,12 @@ def visualize(t, nout,
 
     visualizeTwoprofiles(axs[5], 
                          lonsDeg, latsDeg, 
-                         sig/sig_init_base, 
-                         sig/sig_init_base*accflag, 
+                         sig, 
+                         sig*accflag, 
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
-                         log=False)
-    axs[5].plot(sigmax/sig_init_base, color='g')
+                         log=True)
+    axs[5].plot(sigmax, color='g', linestyle='dotted')
     #passive scalar
     visualizeMap(axs[6], 
                  lonsDeg, latsDeg, 

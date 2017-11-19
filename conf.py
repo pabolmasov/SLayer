@@ -67,8 +67,3 @@ slon0       = 0.1 # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 
 
-
-
-
-
-
