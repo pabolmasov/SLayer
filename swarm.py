@@ -47,6 +47,7 @@ from conf import hamp, phi0, lon0, alpha, beta  #initial height perturbation par
 from conf import efold, ndiss
 from conf import cs
 from conf import itmax, outskip
+from conf import ifplot
 from conf import sigfloor
 from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
@@ -100,14 +101,13 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=False
+ifrestart=True
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=19000 # No of the restart output
+    nrest=10500 # No of the restart output
     #    nrest=5300 # No of the restart output
-    vortg, digg, sig, accflag = f5io.restart(restartfile, nrest, conf)
-
+    vortg, divg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 else:
     nrest=0
         
@@ -144,9 +144,9 @@ time1 = time.clock() # time loop
 
 nout=nrest
 
-for ncycle in np.arange(itmax+1)+nrest*outskip:
+for ncycle in np.arange(itmax+1):
     #for ncycle in range(2): #debug option
-    t = ncycle*dt
+    t = (ncycle+nrest*outskip)*dt
 
     # get vort,u,v,sigma on grid
     vortg = x.sph2grid(vortSpec)
@@ -235,14 +235,14 @@ for ncycle in np.arange(itmax+1)+nrest*outskip:
     # implicit hyperdiffusion for vort and div
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
-    sigSpec *= sigma_diff 
+#    sigSpec *= sigma_diff 
 #    accflagSpec *= sigma_diff 
 
     # switch indices, do next time step
     nsav1 = nnew; nsav2 = nnow
     nnew = nold; nnow = nsav1; nold = nsav2
 
-    if(ncycle % 10 ==0):
+    if(ncycle % 100 ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
 
     #plot & save

@@ -6,7 +6,7 @@
 import numpy as np
 
 #################################
-# a switch fro plotting
+# a switch for plotting
 ifplot=True
 
 ##################################################
@@ -17,9 +17,9 @@ nlats  = int(nlons/2) # for gaussian grid
 
 
 tscale = 6.89631e-06 # time units are GM/c**3 \simeq
-dt     = 1.e-8       # time step in seconds
+dt     = 5.e-9       # time step in seconds
 itmax  = 10000000    # number of iterations
-outskip=10000 # how often do we output the snapshots
+outskip= 20000 # how often do we output the snapshots
 
 dt/=tscale
 print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
@@ -29,9 +29,6 @@ print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 1e-2                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
-incle      = np.pi*0.1 # inclination of initial rotation, radians
-slon0       = 0. # longitudinal shift of the source, radians
-overkepler = 0.9                   # source term rotation with respect to Keplerian
 grav       = 1./rsphere**2         # gravity
 sig0       = 1e5                   # own neutron star atmosphere
 
@@ -63,13 +60,10 @@ beta  = 1./25.# size of the perturbed region
 ##################################################
 # source term
 sigplus = 1e3
-sigmax    = 1.e4
+sigmax    = 1.e8
 latspread = 0.1   # spread in radians
-  
-
-
-
-
-
+incle      = np.pi*0.1 # inclination of initial rotation, radians
+slon0       = 0.1 # longitudinal shift of the source, radians
+overkepler = 0.9     # source term rotation with respect to Kepler
 
 

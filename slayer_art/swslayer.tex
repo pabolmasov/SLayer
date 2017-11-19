@@ -189,6 +189,28 @@ corresponds to
 \frac{4}{R^4}\right)\simeq e^{}
 \end{equation}
 
+\section{Realistic vertical structure}
+
+We assume the atmosphere thin, that justifies the usage of plane-parallel
+approximation and constant effective gravity $g=const$. Vertical component of
+momentum equation, reduced to hydrostatics due to zero vertical velocities
+\alert{should be always set $v_r=0$}
+\begin{equation}\label{E:vert:p}
+\frac{1}{\rho}\pardir{r}{p}
+=g_{\rm eff} = -\frac{GM}{r^2} + \frac{v_\theta^2+v_\varphi^2}{r}.
+\end{equation}
+To restore the vertical density profile, let us assume, following \citet{IS99}
+and \citet{VP06}, that most of the heat is released at the bottom of the
+atmosphere, and hence radiation flux $F$ is constant with height
+\begin{equation}\label{E:vert:pr}
+F = - \frac{c}{3\varkappa \rho} \frac{p_r}{dr},
+\end{equation}
+where $p_r$ is radiation pressure.
+Together, equations (\ref{E:vert:p}) and (\ref{E:vert:pr}) imply constant
+ratio pressure ratio $p_r / p$ as long as opacity is constant with height. 
+
+
+
 \section{Inertial modes and sonic horizons}
 
 \subsection{Derivation of the dispersion equation}
@@ -264,6 +286,12 @@ $k_\theta$ and $\Omega=const$, $\omega = \varkappa = 2\Omega \cos\theta$
 reproduces the Coriolis oscillation regime. Isomomentum rotation, on the other
 hand, reproduces $\varkappa = 0$ and does not have oscillating purely latitudinal
 modes.
+
+\alert{Seems that the real variability patterns are due to rotation, and
+  $2\Omega$ comes rather from a two-armed structure. But I have never seen
+  this derivation of the oscillation  modes on a sphere, so let us keep it. }
+
+\subsection{Sonic horizon}
 
 \bibliographystyle{mnras}
 \bibliography{mybib}
