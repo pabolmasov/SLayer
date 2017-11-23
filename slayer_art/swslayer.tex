@@ -194,7 +194,7 @@ corresponds to
 We assume the atmosphere thin, that justifies the usage of plane-parallel
 approximation and constant effective gravity $g=const$. Vertical component of
 momentum equation, reduced to hydrostatics due to zero vertical velocities
-\alert{should be always set $v_r=0$}
+\alert{should be always set $v_r=0$?}
 \begin{equation}\label{E:vert:p}
 \frac{1}{\rho}\pardir{r}{p}
 =g_{\rm eff} = -\frac{GM}{r^2} + \frac{v_\theta^2+v_\varphi^2}{r}.
@@ -203,11 +203,51 @@ To restore the vertical density profile, let us assume, following \citet{IS99}
 and \citet{VP06}, that most of the heat is released at the bottom of the
 atmosphere, and hence radiation flux $F$ is constant with height
 \begin{equation}\label{E:vert:pr}
-F = - \frac{c}{3\varkappa \rho} \frac{p_r}{dr},
+F = - \frac{c}{3\varkappa \rho} \frac{dp_r}{dr},
 \end{equation}
 where $p_r$ is radiation pressure.
 Together, equations (\ref{E:vert:p}) and (\ref{E:vert:pr}) imply constant
 ratio pressure ratio $p_r / p$ as long as opacity is constant with height. 
+Hence, gas, and total pressure scale with each other, and the gas-to-total
+pressure ratio equals
+\begin{equation}\label{E:vert:beta}
+\beta = 1- \frac{\varkappa F }{cg_{\rm eff}}.
+\end{equation}
+Proportionality of pressures also implies $p \propto \rho T \propto T^4$, that
+leads to $p\propto \rho^{4/3}$, an effectively polytropic law. Integration of
+equation~(\ref{E:vert:p}) yields
+\begin{equation}\label{E:vert:prho}
+\frac{p}{\rho} = \frac{3}{4} g_{\rm eff} \left( r_{\rm surface} - r \right).
+\end{equation}
+Vertical density profile is $\rho \propto (r_{\rm surface} - r)^{3}$. This
+allows to connect the vertically integrated quantities,
+\begin{equation}\label{E:vert:pisigma}
+\Pi = \frac{4}{7} \frac{p_0}{\rho_0} \Sigma,
+\end{equation}
+where
+\begin{equation}\label{E:vert:p0rho0}
+\frac{p_0}{\rho_0} = \frac{1}{\beta} \frac{k}{m} \left(\frac{3}{4}\varkappa
+\Sigma \frac{F}{\sigma_{\rm SB}} \right)^{1/4},
+\end{equation}
+where $F$ is the local energy flux assumed to be released somewhere on the
+bottom of the atmosphere. \alert{What shall we do if $\beta < 0$? Is it
+  physical to expel some of the matter with a wind?} The flux may be
+calculated as
+\begin{equation}\label{E:vert:flux}
+F = \frac{1}{2}\Sigma \pardir{t}{v^2} .
+\end{equation}
+In dimensionless units, expression (\ref{E:vert:pisigma}) may be interpreted
+as
+\begin{equation}\label{E:vert:flux}
+\frac{\cs^2}{c^2} = \frac{\Pi}{\Sigma} = \frac{4}{7}\frac{k}{mc^2} \left( \frac{3}{4}
+\frac{c^5}{GM\varkappa \sigma_{\rm SB}} \right)^{1/4} \sqrt{\tau} \left(
+\pardir{t^*}{\left(v/c\right)^2}\right)^{1/4} \simeq 1.9\times 10^{-6}
+\mu^{-1} \varkappa_0^{-1/4} \sqrt{\tau} \left(
+\pardir{t^*}{\left(v/c\right)^2}\right)^{1/4},
+\end{equation}
+where $\varkappa_0 = \varkappa / 1{\rm cm^2\, g^{-1}}$.
+
+\subsection{Complete set of equations}
 
 
 
@@ -289,7 +329,8 @@ modes.
 
 \alert{Seems that the real variability patterns are due to rotation, and
   $2\Omega$ comes rather from a two-armed structure. But I have never seen
-  this derivation of the oscillation  modes on a sphere, so let us keep it. }
+  this derivation of the oscillation  modes on a sphere, so let us keep
+  it. And, by the way, why a two-armed structure always emerges?}
 
 \subsection{Sonic horizon}
 

@@ -42,13 +42,13 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 
 #import simulation parameters to global scope
 from conf import nlons, nlats
+from conf import grav, rsphere
 from conf import dt, omega, rsphere, sig0, overkepler, tscale
 from conf import hamp, phi0, lon0, alpha, beta  #initial height perturbation parameters
 from conf import efold, ndiss
-from conf import cs
+from conf import ifiso, csqmin, cssqscale, kappa, mu, betamin, sigfloor # EOS parameters
 from conf import itmax, outskip
 from conf import ifplot
-from conf import sigfloor
 from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
 
@@ -57,11 +57,9 @@ from conf import incle, slon0
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
 
-
 # guide grids for plotting
 lons1d = (180./np.pi)*x.lons-180.
 lats1d = (180./np.pi)*x.lats
-
 
 # initial velocity field 
 ug = omega*rsphere*np.cos(lats)
@@ -82,7 +80,7 @@ hyperdiff_fact = np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 sigma_diff=np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 
 # sigma is an exact isothermal solution + an unbalanced bump
-sig = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
+sig = sig0*(np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
 vortg *= (1.-hbump*2.) # some initial condition for vorticity (cyclone?)
 accflag=hbump*0.
 #print accflag.max(axis=1)
@@ -101,11 +99,11 @@ nold = 2
 
 ###########################################################
 # restart module:
-ifrestart=True
+ifrestart=False
 
 if(ifrestart):
     restartfile='out/runOLD.hdf5'
-    nrest=10500 # No of the restart output
+    nrest=11000 # No of the restart output
     #    nrest=5300 # No of the restart output
     vortg, divg, sig, accflag = f5io.restart(restartfile, nrest, conf)
 else:
@@ -139,6 +137,24 @@ def sdotsink(sigma, sigmax):
         y[w]=1.0*sigma[w]*np.exp(-sigmax/sigma[w])
     return y
 
+# vertically integrated enthalpy int dPi/Sigma
+def enthalpy(sigma, dissipation, geff):
+    sigplus=(sigma+np.fabs(sigma))/2.+sigfloor
+    if(ifiso):
+        return np.log(sigplus)*csqmin
+    else:
+        posdiss=(dissipation+np.fabs(dissipation))/2.
+        beta = 1.-kappa*posdiss/geff
+        wlevitating=np.where(beta<=betamin) # levitating case, when beta\lesssim 0
+        if(np.size(wlevitating)>0):
+            print str(np.size(wlevitating))+" levitating points"
+            beta[wlevitating]=betamin
+        csq=cssqscale*np.sqrt(kappa*sigplus)*(posdiss)**0.25/beta
+        wcold=np.where(csq<csqmin)
+        if(np.size(wcold)>0):
+            print str(np.size(wcold))+" cold points"
+            csq[wcold]=csqmin
+        return 2.*csq
 # main loop
 time1 = time.clock() # time loop
 
@@ -167,8 +183,27 @@ for ncycle in np.arange(itmax+1):
     tmpg1 = ug*sig; tmpg2 = vg*sig
     tmpSpec, dsigdtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
     dsigdtSpec[:,nnew] *= -1
-    press=cs**2*np.log((sig+np.fabs(sig))/2.+sigfloor) # stabilizing equation of state (in fact, it is enthalpy)
-    engy=press+0.5*(ug**2+vg**2) # energy per unit mass
+    # dissipation estimates:
+    dissvortSpec=vortSpec*(1.-hyperdiff_fact)
+    dissdivSpec=divSpec*(1.-hyperdiff_fact)
+    wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
+    if(np.size(wnan)>0):
+        dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
+    dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
+    dissipation=(ug*dissug+vg*dissvg)/dt
+    geff=-grav+(ug**2+vg**2)/rsphere
+    wunbound=np.where(geff>=0.)
+    if(np.size(wunbound)>0):
+        geff[wunbound]=0.
+        print "ug from "+str(ug.min())+" to "+str(ug.max())
+        print "vg from "+str(vg.min())+" to "+str(vg.max())
+        rr=raw_input(".")
+#    print "geff between "+str(geff.min())+" and "+str(geff.max())
+#    rr=raw_input(".")
+    enth=enthalpy(sig, dissipation, geff)
+#    print "enthalpy between "+str(enth.min())+" and "+str(enth.max())
+    # csmin**2*np.log((sig+np.fabs(sig))/2.+sigfloor) # stabilizing equation of state (in fact, it is enthalpy)
+    engy=enth+0.5*(ug**2+vg**2) # energy per unit mass
     tmpSpec = x.grid2sph(engy)
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
 
@@ -224,18 +259,10 @@ for ncycle in np.arange(itmax+1):
 
     # total kinetic energy loss
     #    dissSpec=(vortSpec**2+divSpec**2)*(1.-hyperdiff_fact)/x.lap
-    dissvortSpec=vortSpec*(1.-hyperdiff_fact)
-    dissdivSpec=divSpec*(1.-hyperdiff_fact)
-    wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
-    if(np.size(wnan)>0):
-        dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
-    #    dissipation=(x.sph2grid(dissvortSpec)*vortg+x.sph2grid(dissdivSpec)*divg)/dt
-    dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
-    dissipation=(ug*dissug+vg*dissvg)/dt
     # implicit hyperdiffusion for vort and div
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
-#    sigSpec *= sigma_diff 
+    sigSpec *= sigma_diff 
 #    accflagSpec *= sigma_diff 
 
     # switch indices, do next time step
@@ -275,4 +302,4 @@ for ncycle in np.arange(itmax+1):
 time2 = time.clock()
 print('CPU time = ',time2-time1)
 
-
+# ffmpeg -f image2 -r 15 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4

@@ -223,8 +223,8 @@ def visualize(t, nout,
 
 
     # sigma
-    sig_init_base = cf.sig0*np.exp(-(cf.omega*cf.rsphere/cf.cs)**2/2.*(1.-np.cos(lats)))
-    sig_init = cf.sig0*(np.exp(-(cf.omega*cf.rsphere/cf.cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
+    sig_init_base = cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
+    sig_init = cf.sig0*(np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
 
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
@@ -277,7 +277,7 @@ def visualize(t, nout,
     #velocities
     du=ug # -cf.omega*cf.rsphere*np.cos(lats)
     dv=vg
-    vabs=du**2+dv**2+cf.cs**2 
+    vabs=du**2+dv**2
     dunorm=du/vabs
     dvnorm=dv/vabs
 

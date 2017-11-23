@@ -25,7 +25,7 @@ def saveParams(f5, conf):
     grp0.attrs['overkepler'] = conf.overkepler
     grp0.attrs['grav']       = conf.grav
     grp0.attrs['sig0']       = conf.sig0
-    grp0.attrs['cs']         = conf.cs
+    grp0.attrs['cs']         = conf.csqmin
 
     f5.flush()
 
