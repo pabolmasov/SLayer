@@ -269,7 +269,7 @@ for ncycle in np.arange(itmax+1):
     nsav1 = nnew; nsav2 = nnow
     nnew = nold; nnow = nsav1; nold = nsav2
 
-    if(ncycle % 100 ==0):
+    if(ncycle % floor(outskip/10) ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
 
     #plot & save

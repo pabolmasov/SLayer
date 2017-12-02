@@ -116,12 +116,6 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
             pdsbin[kt,kb]=pds[freqrange].mean()   ;     pdsbinm[kt,kb]=pdsm[freqrange].mean()   ;   pdsbinn[kt,kb]=pdsn[freqrange].mean()
             dpdsbin[kt,kb]=pds[freqrange].std()   ;     dpdsbinm[kt,kb]=pdsm[freqrange].std()   ;   dpdsbinn[kt,kb]=pdsn[freqrange].std()
     
-    omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
-    omega/=tscale
-    wfin=np.where(np.isfinite(pdsbin))
-    print omega, omegadisk
-    print "pdsbin from "+str(pdsbin[wfin].min())+" tot "+str(pdsbin[wfin].max())
-    pmin=pdsbin[wfin].min() ; pmax=pdsbin[wfin].max()
     
     # let us also make a Fourier of the whole series:
     pdsbin_total=np.zeros([nbins]) ; pdsbinm_total=np.zeros([nbins]) ; pdsbinn_total=np.zeros([nbins])
@@ -137,6 +131,12 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
         dpdsbinn_total[kb]=pdsn[freqrange].std()
 
     if(ifplot):
+        omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
+        omega/=tscale
+        wfin=np.where(np.isfinite(pdsbin_total))
+        print omega, omegadisk
+        print "pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max())
+        pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
         # colour plot:
         plt.clf()
         plt.pcolormesh(t2, binfreq2, np.log(pdsbin), cmap='jet',vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
@@ -150,15 +150,17 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
 
         # integral power density spectra
         plt.clf()
+        plt.plot([omega/2./np.pi,omega/2./np.pi], [pdsbin_total.min(),pdsbin_total.max()], 'b')
+        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
+        plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
+        plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pmin,pmax], 'm')
         plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs, color='k', fmt='.')
         plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs, color='r', fmt='.')
         plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs, color='g', fmt='.')
-        plt.plot([omega/2./np.pi,omega/2./np.pi], [pdsbin[wfin].min(),pdsbin[wfin].max()], 'r')
-        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pdsbin[wfin].min(),pdsbin[wfin].max()], 'r', linestyle='dotted')
-        plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pdsbin[wfin].min(),pdsbin[wfin].max()], 'g')
         plt.xscale('log')
         plt.yscale('log')
         plt.xlim(1./tspan, np.double(nsize)/tspan)
+        plt.ylim(pmin*0.5, pmax*2.)
         plt.xlabel('$|f|$, s$^{-1}$')
         plt.ylabel('PDS, relative units')
         plt.savefig('out/PDS.eps')
