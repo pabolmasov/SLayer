@@ -19,7 +19,7 @@ for row in [0,1,2,3,4]:
     axs.append( plt.subplot(gs[row, 0:5]) )
     axs.append( plt.subplot(gs[row, 6:10]) )
 
-# converts two components to an angle
+# converts two components to an angle (change to some implemented function!)
 def tanrat(x,y):
     z=0.
     if((x*y)>0.):
@@ -147,7 +147,7 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
 def visualize(t, nout,
               lats, lons, 
-              vortg, divg, ug, vg, sig, accflag, dissipation,
+              vortg, divg, ug, vg, sig, press, accflag, dissipation,
 #              mass, energy,
               engy,
               hbump,
@@ -179,6 +179,7 @@ def visualize(t, nout,
     print "azimuthal U: "+str(ug.min())+" to "+str(ug.max())
     print "polar V: "+str(vg.min())+" to "+str(vg.max())
     print "Sigma: "+str(sig.min())+" to "+str(sig.max())
+    print "Pi: "+str(press.min())+" to "+str(press.max())
     print "accretion flag: "+str(accflag.min())+" to "+str(accflag.max())
     print "maximal dissipation "+str(dissipation.max())
     print "minimal dissipation "+str(dissipation.min())
@@ -196,15 +197,22 @@ def visualize(t, nout,
                  vortg-2.*cf.omega*np.sin(lats), 
                  -vorm*1.1, vorm*1.1, 
                  title="Vorticity")
-#    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
+    # pressure
+    visualizeMap(axs[1], 
+                 lonsDeg, latsDeg, 
+                 np.log10(press), 
+                 np.log10(press.min()*0.9), np.log10(press.max()*1.1), 
+                 title="$\Pi$")
+    
+    #    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
     #
-    visualizeSprofile(axs[1], 
-                      latsDeg, 
-                      vortg,
-                      title=r"$v_\varphi$")
-    axs[1].plot(latsDeg, 2.*cf.omega*np.sin(lats), color='r', linewidth=1)
-    axs[1].plot(latsDeg, 2.*cf.overkepler*cf.rsphere**(-1.5)*np.sin(lats), color='g', linewidth=1)
+#    visualizeSprofile(axs[1], 
+#                      latsDeg, 
+#                      vortg,
+#                      title=r"$v_\varphi$")
+#    axs[1].plot(latsDeg, 2.*cf.omega*np.sin(lats), color='r', linewidth=1)
+#    axs[1].plot(latsDeg, 2.*cf.overkepler*cf.rsphere**(-1.5)*np.sin(lats), color='g', linewidth=1)
 
     #divergence
     divm=np.fabs(divg).max()
@@ -215,11 +223,18 @@ def visualize(t, nout,
                  title="Divergence")
 #    axs[2].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
+    # dissipation
+    visualizeMap(axs[3], 
+                 lonsDeg, latsDeg, 
+                 np.log10(dissipation*sig), 
+                 np.log10((dissipation*sig).min()*0.9), np.log10((dissipation*sig).max()*1.1), 
+                 title="dissipation")
+    
 
-    visualizeSprofile(axs[3], 
-                      latsDeg, 
-                      divg, 
-                      title=r"$(\nabla \cdot v)$")
+#    visualizeSprofile(axs[3], 
+#                      latsDeg, 
+#                      divg, 
+#                      title=r"$(\nabla \cdot v)$")
 
 
     # sigma

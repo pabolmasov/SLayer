@@ -9,12 +9,17 @@ import numpy as np
 # a switch for plotting
 ifplot=True
 
+##########################
+# a switch for restart
+ifrestart=False
+nrest=11000 # number of output entry for restart
+restartfile='out/runOLD.hdf5' 
+
 ##################################################
 # grid, time step info
 nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid
-
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
 dt     = 5.e-9       # time step in seconds
@@ -39,7 +44,9 @@ csqmin=1e-4 # speed of sound squared (minimal or isothermal)
 sigfloor = 0.1   # auxiliary patameter for EOS; H = cs^2 * log(|sigma| + sigfloor) 
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
-cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
+mass1=1.4 # accretor mass
+# cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
+cssqscale = 1.90162e-06 / mu / mass1**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4}
 betamin=1e-5
 
 print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
@@ -62,7 +69,7 @@ beta  = 1./25.# size of the perturbed region
 
 ##################################################
 # source term
-sigplus = 1e3
+sigplus = 1e3 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
 incle      = np.pi*0.08 # inclination of initial rotation, radians
