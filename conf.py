@@ -22,7 +22,7 @@ ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
-dt     = 5.e-9       # time step in seconds
+dt     = 2.e-9       # time step in seconds
 itmax  = 10000000    # number of iterations
 outskip= 1000 # how often do we output the snapshots
 

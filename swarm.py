@@ -24,7 +24,9 @@ import matplotlib.pyplot as plt
 import time
 import os
 import h5py
-
+from sympy.solvers import solve
+from sympy import Symbol
+import scipy.interpolate as si
 
 #Code modules:
 from spharmt import Spharmt 
@@ -82,7 +84,7 @@ hyperdiff_expanded = (x.lap/np.abs(x.lap).max())**(ndiss/2) / efold
 # sigma is an exact isothermal solution + an unbalanced bump
 sig = sig0*np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) * (1. + hbump) # exact solution * (1 + perturbation)
 # in pressure, there should not be any strong bumps, as we do not want artificial shock waves
-pressg = sig * cs**2 / (1. + hbump) 
+pressg = sig * csqmin / (1. + hbump) 
 # vortg *= (1.-hbump*2.) # some initial condition for vorticity (cyclone?)
 accflag=hbump*0.
 #print accflag.max(axis=1)
@@ -121,13 +123,13 @@ f5io.saveParams(f5, conf)
 ##################################################
 # source/sink term
 def sdotsource(lats, lons, latspread):
-'''
-source term for surface density:
-lats -- latitudes, radians
-lons -- longitudes, radians
-latspread -- width of the accretion belt, radians
-outputs: dSigma/dt and cosine of the angle towards the rotation direction
-'''
+    '''
+    source term for surface density:
+    lats -- latitudes, radians
+    lons -- longitudes, radians
+    latspread -- width of the accretion belt, radians
+    outputs: dSigma/dt and cosine of the angle towards the rotation direction
+    '''
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
     
@@ -138,10 +140,10 @@ outputs: dSigma/dt and cosine of the angle towards the rotation direction
     return y, devcos
 
 def sdotsink(sigma, sigmax):
-'''
-sink term in surface density
-sdotsink(sigma, sigmax)
-'''
+    '''
+    sink term in surface density
+    sdotsink(sigma, sigmax)
+    '''
     w=np.where(sigma>(sigmax/100.))
     y=0.0*sigma
     if(np.size(w)>0):
@@ -166,14 +168,21 @@ def enthalpy(sigma, dissipation, geff):
             print str(np.size(wcold))+" cold points"
             csq[wcold]=csqmin
         return 2.*csq
-    
-def betasolve(y):
-'''
-    solves the equation x/(1-x)**0.25=y for x
-'''
-    x = Symbol('x')
-    xs=solve(x/(1.-x)**0.25-y, x)
-    return xs[0]
+
+############################
+# beta calibration
+bmin=1.e-2 ; bmax=1.e2 ; nb=100
+b=(bmax/bmin)**(np.arange(nb)/np.double(nb-1))*bmin
+bx=np.zeros(nb, dtype=np.double)
+for k in np.arange(nb):
+    t = Symbol('t')
+    ts=solve(t/(1.-t)**0.25-b[k], t)
+    bx[k]=ts[0]
+    print str(b[k])+"->"+str(bx[k])
+b[0]=0. ; bx[0]=0. ; b[nb-1]=1e3 ; bx[nb-1]=1.
+betasolve=si.interp1d(b, bx, kind='linear')
+######################################
+
 # main loop
 time1 = time.clock() # time loop
 
@@ -192,7 +201,7 @@ for ncycle in np.arange(itmax+1):
 
     ug,vg = x.getuv(vortSpec,divSpec)
 
-#    print('t=%10.5f ms' % (t*1e3*tscale))
+    #    print('t=%10.5f ms' % (t*1e3*tscale))
 
     # vorticity flux
     tmpg1 = ug*vortg
@@ -210,10 +219,13 @@ for ncycle in np.arange(itmax+1):
     wunbound=np.where(geff>=0.)
     if(np.size(wunbound)>0):
         print str(np.size(wunbound))+" unbound points with geff>0"
-        ii=raw_input('')
-    beta = betasolve(2.e-6*sig/pressg*(-geff*sig)**0.25) # beta as a function of sigma, press, geff
+        #        ii=raw_input('')
+        # maybe not so bad if geff=0 exactly? sitting at the Eddington limit...
+        geff[wunbound]=0.
+    beta = betasolve(cssqscale*sig/pressg*(-geff*sig)**0.25) # beta as a function of sigma, press, geff
+    #    print "size: "+str(np.shape(beta))+", "+str(np.shape(divg))+", "+str(np.shape(pressg))+", "+str(np.shape(dpressdtSpec[:,nnew]))
     dpressdtSpec[:,nnew] *= -1
-    dpressdtSpec[:,nnew] += divg * pressg / 3. /(1.-beta/2.)
+    dpressdtSpec[:,nnew] += x.grid2sph(divg * pressg / 3. /(1.-beta/2.))
 
     # dissipation estimates:
     dissvortSpec=vortSpec*hyperdiff_expanded #expanded exponential diffusion term
@@ -259,8 +271,8 @@ for ncycle in np.arange(itmax+1):
     # energy sources and sinks:
     qplus = sig * dissipation
     qminus = 7./3./kappa * pressg/sig *(1.-beta)
-    qns = (csqmin/csqscale)**4  # conversion of (minimal) speed of sound to flux
-    dpressdtSpec[:,nnew] += (qplus - qminus + qns) / 3. /(1.-beta/2.)
+    qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
+    dpressdtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns) / 3. /(1.-beta/2.))
     # passive scalar evolution:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
@@ -321,7 +333,7 @@ for ncycle in np.arange(itmax+1):
     nsav1 = nnew; nsav2 = nnow
     nnew = nold; nnow = nsav1; nold = nsav2
 
-    if(ncycle % floor(outskip/10) ==0):
+    if(ncycle % np.floor(outskip/10) ==0):
         print('t=%10.5f ms' % (t*1e3*tscale))
 
     #plot & save
@@ -334,7 +346,7 @@ for ncycle in np.arange(itmax+1):
         if(ifplot):
             visualize(t, nout,
                       lats, lons, 
-                      vortg, divg, ug, vg, sig, press, accflag, dissipation, 
+                      vortg, divg, ug, vg, sig, pressg, accflag, dissipation, 
                       #                  mass, energy,
                       engy,
                       hbump,
@@ -344,7 +356,7 @@ for ncycle in np.arange(itmax+1):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      energy, mass, 
-                     vortg, divg, ug, vg, sig, press, accflag, dissipation
+                     vortg, divg, ug, vg, sig, pressg, accflag, dissipation
                      )
         nout += 1
 
