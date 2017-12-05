@@ -8,18 +8,8 @@ import matplotlib.pyplot as plt
 from conf import sigmax
 
 ##################################################
-#prepare figure etc
-fig = plt.figure(figsize=(10,10))
-gs = plt.GridSpec(5, 10)
-gs.update(hspace = 0.2)
-gs.update(wspace = 0.6)
 
-axs = []
-for row in [0,1,2,3,4]:
-    axs.append( plt.subplot(gs[row, 0:5]) )
-    axs.append( plt.subplot(gs[row, 6:10]) )
-
-# converts two components to an angle
+# converts two components to an angle (change to some implemented function!)
 def tanrat(x,y):
     z=0.
     if((x*y)>0.):
@@ -91,7 +81,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
     ax.set_xticks(np.arange(-180,181,60))
     ax.set_yticks(np.linspace(-90,90,10))
 
-    ax.pcolormesh(
+    pc=ax.pcolormesh(
             lonsDeg,
             latsDeg,
             data,
@@ -99,6 +89,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
             vmax=vmax,
             cmap='plasma',
             )
+    plt.colorbar(pc, ax=ax)
     #ax.axis('equal')
 
 
@@ -147,15 +138,25 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
 def visualize(t, nout,
               lats, lons, 
-              vortg, divg, ug, vg, sig, accflag, dissipation,
+              vortg, divg, ug, vg, sig, press, beta, accflag, dissipation,
 #              mass, energy,
               engy,
               hbump,
               rsphere,
               cf):
+    
+    #prepare figure etc
+    fig = plt.figure(figsize=(10,10))
+    gs = plt.GridSpec(5, 10)
+    gs.update(hspace = 0.2)
+    gs.update(wspace = 0.6)
 
-    lonsDeg = (180./np.pi)*lons-180.
-    latsDeg = (180./np.pi)*lats
+    axs = []
+    for row in [0,1,2,3,4]:
+        axs.append( plt.subplot(gs[row, 0:5]) )
+        axs.append( plt.subplot(gs[row, 6:10]) )
+        lonsDeg = (180./np.pi)*lons-180.
+        latsDeg = (180./np.pi)*lats
 
     nlons=np.size(lons) ; nlats=np.size(lats)
     
@@ -179,6 +180,7 @@ def visualize(t, nout,
     print "azimuthal U: "+str(ug.min())+" to "+str(ug.max())
     print "polar V: "+str(vg.min())+" to "+str(vg.max())
     print "Sigma: "+str(sig.min())+" to "+str(sig.max())
+    print "Pi: "+str(press.min())+" to "+str(press.max())
     print "accretion flag: "+str(accflag.min())+" to "+str(accflag.max())
     print "maximal dissipation "+str(dissipation.max())
     print "minimal dissipation "+str(dissipation.min())
@@ -196,15 +198,22 @@ def visualize(t, nout,
                  vortg-2.*cf.omega*np.sin(lats), 
                  -vorm*1.1, vorm*1.1, 
                  title="Vorticity")
-#    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
+    # pressure
+    visualizeMap(axs[1], 
+                 lonsDeg, latsDeg, 
+                 press/sig, 
+                 (press/sig).min(), (press/sig).max(), 
+                 title="$\Pi/\Sigma c^2$")
+    
+    #    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
     #
-    visualizeSprofile(axs[1], 
-                      latsDeg, 
-                      vortg,
-                      title=r"$v_\varphi$")
-    axs[1].plot(latsDeg, 2.*cf.omega*np.sin(lats), color='r', linewidth=1)
-    axs[1].plot(latsDeg, 2.*cf.overkepler*cf.rsphere**(-1.5)*np.sin(lats), color='g', linewidth=1)
+#    visualizeSprofile(axs[1], 
+#                      latsDeg, 
+#                      vortg,
+#                      title=r"$v_\varphi$")
+#    axs[1].plot(latsDeg, 2.*cf.omega*np.sin(lats), color='r', linewidth=1)
+#    axs[1].plot(latsDeg, 2.*cf.overkepler*cf.rsphere**(-1.5)*np.sin(lats), color='g', linewidth=1)
 
     #divergence
     divm=np.fabs(divg).max()
@@ -215,16 +224,21 @@ def visualize(t, nout,
                  title="Divergence")
 #    axs[2].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
+    
+    # gas-to-total pressure ratio
+    visualizeMap(axs[3], 
+                 lonsDeg, latsDeg, 
+                 beta, 
+                 beta.min(), beta.max(), 
+                 title=r'$\beta$')
 
-    visualizeSprofile(axs[3], 
-                      latsDeg, 
-                      divg, 
-                      title=r"$(\nabla \cdot v)$")
-
-
+#    visualizeSprofile(axs[3], 
+#                      latsDeg, 
+#                      divg, 
+#                      title=r"$(\nabla \cdot v)$")
     # sigma
-    sig_init_base = cf.sig0*np.exp(-(cf.omega*cf.rsphere/cf.cs)**2/2.*(1.-np.cos(lats)))
-    sig_init = cf.sig0*(np.exp(-(cf.omega*cf.rsphere/cf.cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
+    sig_init_base = cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
+    sig_init = cf.sig0*(np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
 
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
@@ -277,7 +291,7 @@ def visualize(t, nout,
     #velocities
     du=ug # -cf.omega*cf.rsphere*np.cos(lats)
     dv=vg
-    vabs=du**2+dv**2+cf.cs**2 
+    vabs=du**2+dv**2
     dunorm=du/vabs
     dvnorm=dv/vabs
 
@@ -300,5 +314,5 @@ def visualize(t, nout,
     axs[0].set_title('{:6.2f} ms'.format( t*cf.tscale*1e3) )
     scycle = str(nout).rjust(6, '0')
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
-
+    plt.close()
 

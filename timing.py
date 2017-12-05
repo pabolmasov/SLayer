@@ -18,9 +18,14 @@ matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"]
 
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
-def fluxest(filename, lat0, lon0, nbins=10, ntimes=10):
-    # file name, the polar angle and the azimuth of the viewpoint,
-    # number of bins in spectral space, number of intervals in time (for dynamic spectral analysis)
+def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None):
+    """
+fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <keywords>)
+    keywords:
+    nbins -- number of bins in spectral space for PDS averaging
+    ntimes -- number of temporal intervals for PDS calculation (for dynamic spectral analysis)
+    nfilter
+    """
     f = h5py.File(filename,'r')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"] 
@@ -33,6 +38,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10):
 #    cosa=np.double(cosa>0.8)
     
     keys=f.keys()
+    if(nfilter):
+        keys=keys[nfilter:] # filtering out first nfilter points
 #    keys=keys[4000:]
     nsize=np.size(keys)-1 # last key contains parameters
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
@@ -109,14 +116,27 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10):
             pdsbin[kt,kb]=pds[freqrange].mean()   ;     pdsbinm[kt,kb]=pdsm[freqrange].mean()   ;   pdsbinn[kt,kb]=pdsn[freqrange].mean()
             dpdsbin[kt,kb]=pds[freqrange].std()   ;     dpdsbinm[kt,kb]=pdsm[freqrange].std()   ;   dpdsbinn[kt,kb]=pdsn[freqrange].std()
     
-    omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
-    omega/=tscale
-    wfin=np.where(np.isfinite(pdsbin))
-    print omega, omegadisk
-    print "pdsbin from "+str(pdsbin[wfin].min())+" tot "+str(pdsbin[wfin].max())
-    pmin=pdsbin[wfin].min() ; pmax=pdsbin[wfin].max()
     
+    # let us also make a Fourier of the whole series:
+    pdsbin_total=np.zeros([nbins]) ; pdsbinm_total=np.zeros([nbins]) ; pdsbinn_total=np.zeros([nbins])
+    dpdsbin_total=np.zeros([nbins]) ; dpdsbinm_total=np.zeros([nbins]) ; dpdsbinn_total=np.zeros([nbins])
+    fsp=np.fft.rfft(flux/flux.std()) ;  fspm=np.fft.rfft(mass/mass.std())
+    fspn=np.fft.rfft(newmass/newmass.std())
+    pds=np.abs(fsp)**2  ;  pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
+    freq = np.fft.rfftfreq(nsize, tspan/np.double(nsize)) # frequency grid (total)
+    for kb in np.arange(nbins):
+        freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
+        pdsbin_total[kb]=pds[freqrange].mean()   ;     pdsbinm_total[kb]=pdsm[freqrange].mean()   ;   pdsbinn_total[kb]=pdsn[freqrange].mean()
+        dpdsbin_total[kb]=pds[freqrange].std()   ;     dpdsbinm_total[kb]=pdsm[freqrange].std()
+        dpdsbinn_total[kb]=pdsn[freqrange].std()
+
     if(ifplot):
+        omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
+        omega/=tscale
+        wfin=np.where(np.isfinite(pdsbin_total))
+        print omega, omegadisk
+        print "pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max())
+        pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
         # colour plot:
         plt.clf()
         plt.pcolormesh(t2, binfreq2, np.log(pdsbin), cmap='jet',vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
@@ -128,31 +148,42 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10):
         plt.xlabel('$t$, ms')
         plt.savefig('out/dynPDS.eps')
 
-        pdsbin_total=pdsbin.mean(axis=0) ;  pdsbinm_total=pdsbinm.mean(axis=0);  pdsbinn_total=pdsbinn.mean(axis=0)
-        dpdsbin_total=pdsbin.mean(axis=0)/np.sqrt(np.double(nbins)) ;   dpdsbinm_total=pdsbinm.mean(axis=0)/np.sqrt(np.double(nbins)) ;    dpdsbinn_total=pdsbinn.mean(axis=0)/np.sqrt(np.double(nbins))
-   
+        # integral power density spectra
         plt.clf()
+        plt.plot([omega/2./np.pi,omega/2./np.pi], [pdsbin_total.min(),pdsbin_total.max()], 'b')
+        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
+        plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
+        plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pmin,pmax], 'm')
         plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs, color='k', fmt='.')
         plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs, color='r', fmt='.')
         plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs, color='g', fmt='.')
-        plt.plot([omega/2./np.pi,omega/2./np.pi], [pdsbin[wfin].min(),pdsbin[wfin].max()], 'r')
-        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pdsbin[wfin].min(),pdsbin[wfin].max()], 'r', linestyle='dotted')
-        plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pdsbin[wfin].min(),pdsbin[wfin].max()], 'g')
         plt.xscale('log')
         plt.yscale('log')
         plt.xlim(1./tspan, np.double(nsize)/tspan)
+        plt.ylim(pmin*0.5, pmax*2.)
         plt.xlabel('$|f|$, s$^{-1}$')
         plt.ylabel('PDS, relative units')
         plt.savefig('out/PDS.eps')
-    
+
+    # ascii output, total:
+    fpdstots=open('out/pdstots_diss.dat', 'w')
+    fpdstots_mass=open('out/pdstots_mass.dat', 'w')
+    fpdstots_newmass=open('out/pdstots_newmass.dat', 'w')
+    for k in np.arange(nbins):
+        fpdstots.write(str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbin_total[k])+' '+str(dpdsbin_total[k])+"\n")
+        fpdstots_mass.write(str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinm_total[k])+' '+str(dpdsbinm_total[k])+"\n")
+        fpdstots_newmass.write(str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinn_total[k])+' '+str(dpdsbinn_total[k])+"\n")
+    fpdstots.close() ;   fpdstots_mass.close() ;   fpdstots_newmass.close()
+  
+    # ascii output, dynamical spectrum:
     fpds=open('out/pds_diss.dat', 'w')
     fpdsm=open('out/pds_mass.dat', 'w')
     fpdsn=open('out/pds_newmass.dat', 'w')
     # time -- frequency -- PDS
     for k in np.arange(nbins):
         for kt in np.arange(ntimes):
-            fpds.write(str(tcenter[kt])+' '+str(binfreqc[k])+' '+str(pdsbin[kt,k])+' '+str(dpdsbin[kt,k])+"\n")
-            fpdsn.write(str(tcenter[kt])+' '+str(binfreqc[k])+' '+str(pdsbinn[kt,k])+' '+str(dpdsbinn[kt,k])+"\n")
-            fpdsm.write(str(tcenter[kt])+' '+str(binfreqc[k])+' '+str(pdsbinm[kt,k])+' '+str(dpdsbinm[kt,k])+"\n")
+            fpds.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbin[kt,k])+' '+str(dpdsbin[kt,k])+"\n")
+            fpdsn.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+' '+str(binfreq[k+1])+str(pdsbinn[kt,k])+' '+str(dpdsbinn[kt,k])+"\n")
+            fpdsm.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+' '+str(binfreq[k+1])+str(pdsbinm[kt,k])+' '+str(dpdsbinm[kt,k])+"\n")
     fpds.close() ;   fpdsm.close() ;   fpdsn.close()
     

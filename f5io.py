@@ -7,8 +7,6 @@ from spharmt import Spharmt
 
 outdir = "out" #default output directory
 
-
-
 # save general simulation parameters to the file
 def saveParams(f5, conf):
     grp0 = f5.create_group("params")
@@ -25,7 +23,7 @@ def saveParams(f5, conf):
     grp0.attrs['overkepler'] = conf.overkepler
     grp0.attrs['grav']       = conf.grav
     grp0.attrs['sig0']       = conf.sig0
-    grp0.attrs['cs']         = conf.cs
+    grp0.attrs['cs']         = conf.csqmin
 
     f5.flush()
 
@@ -33,7 +31,7 @@ def saveParams(f5, conf):
 #Save simulation snapshot
 def saveSim(f5, nout, t,
             mass, energy,
-            vortg, divg, ug, vg, sig, accflag, dissipation
+            vortg, divg, ug, vg, sig, press, accflag, dissipation
             ):
 
     scycle = str(nout).rjust(6, '0')
@@ -47,6 +45,7 @@ def saveSim(f5, nout, t,
     grp.create_dataset("ug",    data=ug)
     grp.create_dataset("vg",    data=vg)
     grp.create_dataset("sig",   data=sig)
+    grp.create_dataset("press",   data=press)
     grp.create_dataset("accflag",   data=accflag)
     grp.create_dataset("diss",  data=dissipation)
 
@@ -74,12 +73,14 @@ def restart(restartfile, nrest, conf):
         x1 = Spharmt(nlons1, nlats1, ntrunc1, rsphere, gridtype='gaussian') # old grid
         #        lons1,lats1 = np.meshgrid(x1.lons, x1.lats)
         # file contains dimensions nlats1, nlons1,
-        vortg1 = data["vortg"][:]  ;     divg1 = data["divg"][:] ;  sig1 = data["sig"][:] ;   accflag1 = data["accflag"][:]
+        vortg1 = data["vortg"][:]  ;     divg1 = data["divg"][:] ;  sig1 = data["sig"][:] ;   accflag1 = data["accflag"][:] ; press1 = data["press"][:]
+        # interpolation:
         vortfun =  si.interp2d(x1.lons, x1.lats, vortg1, kind='linear')
         divfun =  si.interp2d(x1.lons, x1.lats, divg1, kind='linear')
         sigfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
+        pressfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
         accflagfun =  si.interp2d(x1.lons, x1.lats, accflag1, kind='linear')
-        vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
+        vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; pressg = pressfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
         # accflag may be smoothed without any loss of generality or stability
         dlats=np.pi/np.double(conf.nlats) ;  dlons=2.*np.pi/np.double(conf.nlons) # approximate size in latitudinal and longitudinal directions
         print "smoothing accflag"
@@ -94,12 +95,13 @@ def restart(restartfile, nrest, conf):
         vortg = data["vortg"][:]
         divg  = data["divg"][:]
         sig   = data["sig"][:]
+        pressg   = data["press"][:]
         accflag   = data["accflag"][:]
     f5.close()
 
     # if successful, we need to take the file off the way
     #    os.system("mv "+restartfile+" "+restartfile+".backup")
 
-    return vortg, divg, sig, accflag
+    return vortg, divg, sig, pressg, accflag
 
 

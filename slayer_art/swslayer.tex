@@ -56,14 +56,6 @@
 \newcommand{\eps}{\epsilon}
 \newcommand{\cs}{\ensuremath{c_{\rm s}}}
 \renewcommand{\i}{\ensuremath{{\rm i}}}
-%\newcommand{\tcfour}{3C\,454.3}
-%\newcommand{\tctwo}{3C\,279}
-%\newcommand{\pkst}{PKS 1222$+$21}
-%\newcommand{\pksf}{PKS 1510$-$89}
-% \newcommand{\grs}{GRS~1915+105}
-
-\newcommand{\cloudy}{{\sc cloudy}}
-\newcommand{\xstar}{{\sc xstar}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -85,7 +77,9 @@
 
 \section{Introduction}
 
-\section{The main system of equations}
+\section{Equation set for a spreading layer}
+
+\subsection{Kinematics on the sphere}\label{E:kinema}
 
 The crucial part of all the dynamic equations is the non-linear term
 $(\vector{v}\nabla) \vector{v}$, containing all the inertial terms. In
@@ -169,32 +163,24 @@ sound $c_{\rm s}^2$ is constant, and $h= c_{\rm s}^2 \ln\rho$. Integration
 with height does not change the overall structure of the equation, as the
 vertical scalehight is always identical for density and pressure. 
 
-\subsection{Vertical balance}
+\subsection{Dissipation}
 
-\section{Spectral code}
-
-\section{Dissipation}
-
-To stabilize the algorithm, we use a hyperdiffusion method selective for the
-highest harmonics. Dissipation operator for both quantities, vorticity and
+To stabilize the algorithm, we use a diffusion method selective for the
+highest harmonics [ref]. Dissipation operator for vorticity and
 divergence, equals
 \begin{equation}
-\displaystyle  D = \frac{1}{t_{D}}\left(\nabla^4 - \frac{4}{R^4}\right),
+\displaystyle  D = \frac{\Delta t}{t_{\rm D}} \frac{1}{k_{\rm min}^2}\nabla^2 ,
 \end{equation}
-where the second, correction, term serves to ensure conservation of the total
-angular momentum and mass (see \citet{swater}). In the spectral domain, this
-corresponds to
-\begin{equation}
-\displaystyle   \tilde{D} = \frac{1}{t_{D}}\left( ik^4 -
-\frac{4}{R^4}\right)\simeq e^{}
-\end{equation}
+where $t_{\rm D}$ has the physical meaning of diffusion time scale...
 
-\section{Realistic vertical structure}
+\subsection{Realistic vertical structure}
+
+\alert{re-write this section!}
 
 We assume the atmosphere thin, that justifies the usage of plane-parallel
 approximation and constant effective gravity $g=const$. Vertical component of
 momentum equation, reduced to hydrostatics due to zero vertical velocities
-\alert{should be always set $v_r=0$}
+\alert{should be always set $v_r=0$?}
 \begin{equation}\label{E:vert:p}
 \frac{1}{\rho}\pardir{r}{p}
 =g_{\rm eff} = -\frac{GM}{r^2} + \frac{v_\theta^2+v_\varphi^2}{r}.
@@ -203,13 +189,209 @@ To restore the vertical density profile, let us assume, following \citet{IS99}
 and \citet{VP06}, that most of the heat is released at the bottom of the
 atmosphere, and hence radiation flux $F$ is constant with height
 \begin{equation}\label{E:vert:pr}
-F = - \frac{c}{3\varkappa \rho} \frac{p_r}{dr},
+F = - \frac{c}{3\varkappa \rho} \frac{dp_r}{dr},
 \end{equation}
 where $p_r$ is radiation pressure.
 Together, equations (\ref{E:vert:p}) and (\ref{E:vert:pr}) imply constant
 ratio pressure ratio $p_r / p$ as long as opacity is constant with height. 
+Hence, gas, radiation, and total pressure scale with each other, and the gas-to-total
+pressure ratio equals
+\begin{equation}\label{E:vert:beta}
+\beta = 1- \frac{\varkappa F }{cg_{\rm eff}}.
+\end{equation}
+Proportionality of pressures also implies $p \propto \rho T \propto T^4$, that
+leads to $p\propto \rho^{4/3}$, an effectively polytropic law. Integration of
+equation~(\ref{E:vert:p}) yields
+\begin{equation}\label{E:vert:prho}
+\frac{p}{\rho} = \frac{3}{4} g_{\rm eff} \left( r_{\rm surface} - r \right).
+\end{equation}
+Vertical density profile is $\rho \propto (r_{\rm surface} - r)^{3}$. This
+allows to connect the vertically integrated quantities,
+\begin{equation}\label{E:vert:pisigma}
+\Pi = \frac{4}{7} \frac{p_0}{\rho_0} \Sigma,
+\end{equation}
+where
+\begin{equation}\label{E:vert:p0rho0}
+\frac{p_0}{\rho_0} = \frac{1}{\beta} \frac{k}{m} \left(\frac{3}{4}\varkappa
+\Sigma \frac{F}{\sigma_{\rm SB}} \right)^{1/4},
+\end{equation}
+where $F$ is the local energy flux assumed to be released somewhere on the
+bottom of the atmosphere.
 
+In a more general case, the flux emitted from the surface is not equal to the
+energy generated inside the layer, but one can fix the vertical scalings of
+the thermodynamical quantities while allowing the total energy content to
+change in time. This assumption set leads to the following implicit equation
+for $\beta$:
+\begin{equation}\label{E:vert:beta:new}
+\frac{\beta}{\left(1-\beta\right)^{1/4}} = \frac{4}{7} \frac{k}{m}
+\left(\frac{3}{4}\frac{c}{\sigma_{\rm SB}} g_{\rm eff} \Sigma \right)^{1/4}
+\frac{\Sigma}{\Pi} \simeq 2\times 10^{-6} \mu^{-1} \frac{\Sigma c^2}{\Pi}
+\left(g_{\rm eff}^*\right)^{1/4} M_1^{1/4} \Sigma_1^{1/4},
+\end{equation}
+and dimensionless gravity
+\begin{equation}\label{E:vert:gravity}
+g_{\rm eff}^* = \frac{1}{r^2} - \frac{v_\varphi^2 + v_\theta^2}{r}.
+\end{equation}
 
+\subsection{Energy conservation}
+
+In general form, energy conservation implies \citep{SP06}:
+\begin{equation}\label{E:energy:general}
+\ppardir{t}{\frac{1}{2}\rho v^2 + \varepsilon}+\nabla \cdot \left(
+\left(\frac{1}{2}\rho v^2 + \varepsilon + p \right)
+\vector{v}\right) = q_{\rm NS} - q^{-},
+\end{equation}
+where the right hand side accounts for heat exchange with the neutron star ($q_{\rm NS}$) and radiation losses from the surface
+$q^{-}$. After integration, all the $q$ quantities will result in
+corresponding $Q$ quantities: fluxes through the surface and energy release
+per unit area.
+Diffusive heat transport by conduction or radiation is ignored here,
+as they are included in vertical balance and transfer.
+From Euler equation, by multiplying it by $\vector{v}$,
+\begin{equation}\label{E:energy:Euler}
+  \ppardir{t}{\frac{1}{2}\rho v^2}+\nabla \cdot \left(\frac{1}{2}\rho v^2
+  \vector{v}\right) = -(\vector{v} \cdot \nabla) p - q^+,
+\end{equation}
+where $q^+$ is viscous dissipation. Subtracting (\ref{E:energy:Euler}) from
+(\ref{E:energy:general}) yields
+\begin{equation}\label{E:energy:thermal}
+\pardir{t}{\varepsilon} + \nabla \cdot \left( \varepsilon \vector{v}\right) =
+p \delta + q^+ + q_{\rm NS} - q^-.
+\end{equation}
+Internal energy density $\varepsilon$ consists of gas energy density
+$\varepsilon_{\rm g} = \frac{3}{2} p_{\rm g}$ and radiation energy density
+$\varepsilon_{\rm r} = 3 p_{\rm r}$, that implies $\varepsilon = 3\left(
+1-\frac{\beta}{2}\right) p$. As $\beta$ is constant with height, integration
+gives
+\begin{equation}\label{E:energy:Pi}
+\pardir{t}{\Pi} + \nabla \cdot \left( \Pi \vector{v}\right) = \frac{1}{3\left(
+  1-\frac{\beta}{2}\right)} \left(\delta \Pi + Q^+ - Q^- + Q_{\rm NS}\right),
+\end{equation}
+where $Q^+$ is the heat released in the spreading layer, $Q_{\rm NS}$ is the
+heat received from the neutron star (may be negative, if the neutron star is
+cooler), and $Q^-$ is the radiation flux lost from the surface.
+
+Vertically integrated pressure may be treated as an independent quantity,
+connected
+
+Energy release
+\begin{equation}\label{E:energy:qplus}
+Q^+ = \Sigma \vector{v} \cdot \left.\frac{d\vector{v}}{dt}\right|_{\rm dissipation},
+\end{equation}
+\begin{equation}\label{E:energy:qminus}
+Q^- = \frac{7}{3} \frac{c}{\varkappa \Sigma}(1-\beta) \Pi,
+\end{equation}
+and $Q_{\rm NS}$ will be assumed zero so far. Pressure ratio $\beta$ is
+calculated according to equation (\ref{E:vert:beta:new}).
+
+\subsection{Complete set of equations}
+
+Spatial and temporal scales are set by the free fall,
+\begin{equation}\label{E:set:timescale}
+  t_{\rm ff} = \frac{GM}{c^3},
+\end{equation}
+\begin{equation}\label{E:set:radius}
+  R_{\rm g} = \frac{GM}{c^2},
+\end{equation}
+hence, all the kinematical quantities are naturally normalized by combinations
+of these quantities. There is no natural convenient scale for $\Sigma$, as the
+opacity does not play as fundamental a role, hence we normalize $\Sigma$ by
+$1{\rm cm^2 g^{-1}}$.
+
+Basic dynamic equations are continuity equation
+\begin{equation}\label{E:set:sigma}
+\pardir{t}{\Sigma} = - \nabla \cdot (\Sigma \vector{v}) + S^+ - S^-,
+\end{equation}
+where the source term is set explicitly as
+\begin{equation}\label{E:set:source}
+S^+ = S^+_{\rm norm}e^{-(\cos\alpha/\cos\alpha_0)^2/2},
+\end{equation}
+and $\alpha$ is the angular distance from the direction of adopted disc
+rotation axis, $\cos \alpha = \cos \theta \cos i+\sin \theta \sin i \cos
+\Delta \varphi$, where $\theta$ is polar angle (co-latitude), $i$ and $\Delta
+\varphi$ set the coordinates of the rotation axis of the source. Normalization
+$S^+_{\rm norm}$ is proportional to mass accretion rate, $S^+_{\rm norm} \simeq
+\frac{\dot{M}}{(2\pi)^{3/2} \cos\alpha_0 R_{\rm NS}^2}$ (precise to the
+accuracy of $O(\alpha_0)^2$).
+
+Sink $S^-$ is determined by the surface density only,
+\begin{equation}\label{E:set:sink}
+  S^- = \frac{\Sigma}{t_{\rm ff}} e^{-\Sigma_{\rm max}/\Sigma},
+\end{equation}
+where $\Sigma_{\rm max}$ sets the limiting value of surface density, when the
+atmosphere of the NS starts precipitating at dynamical timescales.
+
+Velocity field evolution is reasonable to trace using divergence $\delta$ and
+radial vorticity $\omega$ (see section~\ref{E:kinema}). Divergence
+\begin{equation}\label{E:set:div}
+\pardir{t}{\delta} = \nabla \cdot [\vector{v} \times  \omega \vector{e}^r] -
+\nabla^2 \left(\frac{v^2}{2}\right) - \nabla \cdot \left( \frac{1}{\Sigma}
+\nabla \Pi \right) + D\delta,
+\end{equation}
+and vorticity
+\begin{equation}\label{E:set:vort}
+\pardir{t}{\omega} = -\nabla \cdot (\omega \vector{v}) -
+\frac{7}{8}\nabla \times \frac{\nabla \Pi}{\Sigma}+
+\frac{S^+}{\Sigma} \omega_{\rm d} + D\omega,
+\end{equation}
+where the last two terms account for the initial vorticity of the injected
+matter, $\omega_{\rm d} \simeq 2\Omega_{\rm K}(R_{\rm NS})$. \alert{Friction
+  term required!}
+Energy equation may be re-written as an evolution for vertically integrated
+pressure
+\begin{equation}\label{E:set:press}
+\pardir{t}{\Pi} + \nabla \cdot \left( \Pi \vector{v}\right) = \frac{1}{3\left(
+  1-\frac{\beta}{2}\right)} \delta \Pi + Q^+ - Q^- + Q_{\rm NS},
+\end{equation}
+where 
+\begin{equation}\label{E:set:qplus}
+Q^+ = \Sigma \vector{v} \cdot \left.\frac{d\vector{v}}{dt}\right|_{\rm dissipation},
+\end{equation}
+\begin{equation}\label{E:set:qminus}
+Q^- = \frac{7}{3} \frac{c}{\varkappa \Sigma}(1-\beta) \Pi,
+\end{equation}
+and $Q_{\rm NS} =  \sigma_{\rm SB} T_{\rm NS}^4$, where $\beta$ is found
+implicitly as
+\begin{equation}\label{E:set:beta}
+\frac{\beta}{\left(1-\beta\right)^{1/4}} = \frac{4}{7} \frac{k}{m}
+\left(\frac{3}{4}\frac{c}{\sigma_{\rm SB} g_{\rm eff} \Sigma} \right)^{1/4}
+\frac{\Sigma}{\Pi} \simeq 2\times 10^{-6} \mu^{-1} \frac{\Sigma c^2}{\Pi}
+\left(g_{\rm eff}^*\right)^{1/4} M_1^{1/4} \Sigma_1^{1/4},
+\end{equation}
+and 
+\begin{equation}\label{E:set:gravity}
+g_{\rm eff}^* = \frac{1}{r^2} - \frac{v_\varphi^2 + v_\theta^2}{r}.
+\end{equation}
+
+The problem solves a set of four differential equations for four variables,
+$\delta$, $\omega$, $\Sigma$, and $\Pi$.
+
+\subsection{Initial conditions}
+
+As an initial condition, it is reasonable to take a thin isothermal
+atmosphere with the temperature set by neutron star surface effective temperature
+$T_{\rm NS}$. Rotation profile is assumed to be rigid-body that sets vorticity
+to $2\Omega_{\rm NS}\cos \theta$. We also assume no (or practically no)
+latitudinal motions are present in the beginning.
+In these assumptions, steady-state Euler equation in
+latitudinal direction becomes
+\begin{equation}\label{E:IC:Euler}
+\Omega^2 R \cot \theta = \frac{1}{R} \ppardir{\theta}{\cs^2 \ln\Sigma},
+\end{equation}
+or, solving for surface density as a function of polar angle,
+\begin{equation}
+\left( \frac{\Omega R}{\cs}\right)^2 d\ln \sin\theta = d\ln \Sigma ,
+\end{equation}
+and
+\begin{equation}\label{E:IC:Sigma}
+\displaystyle \Sigma_{\rm init} = \Sigma_0 \left(\sin \theta \right)^{\left(\Omega R / \cs\right)^2}.
+\end{equation}
+Initial pressure map should conform to that of density up to the multiplier of
+$\cs^2$.
+
+As the motions are limited to pure rotation, divergence is strictly zero. To
+the basic initial condition set, a small perturbation may be added ... 
 
 \section{Inertial modes and sonic horizons}
 
@@ -289,7 +471,8 @@ modes.
 
 \alert{Seems that the real variability patterns are due to rotation, and
   $2\Omega$ comes rather from a two-armed structure. But I have never seen
-  this derivation of the oscillation  modes on a sphere, so let us keep it. }
+  this derivation of the oscillation  modes on a sphere, so let us keep
+  it. And, by the way, why a two-armed structure always emerges?}
 
 \subsection{Sonic horizon}
 
