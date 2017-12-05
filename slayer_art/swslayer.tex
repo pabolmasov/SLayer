@@ -326,13 +326,13 @@ Velocity field evolution is reasonable to trace using divergence $\delta$ and
 radial vorticity $\omega$ (see section~\ref{E:kinema}). Divergence
 \begin{equation}\label{E:set:div}
 \pardir{t}{\delta} = \nabla \cdot [\vector{v} \times  \omega \vector{e}^r] -
-\nabla^2 \left(\frac{v^2}{2}\right) + \nabla \cdot \left( \frac{1}{\Sigma}
+\nabla^2 \left(\frac{v^2}{2}\right) - \nabla \cdot \left( \frac{1}{\Sigma}
 \nabla \Pi \right) + D\delta,
 \end{equation}
 and vorticity
 \begin{equation}\label{E:set:vort}
-\pardir{t}{\omega} = -\nabla \cdot (\omega \vector{v}) +
-\frac{7}{8}\left[\nabla \Pi \times \nabla \Sigma \right]_r +
+\pardir{t}{\omega} = -\nabla \cdot (\omega \vector{v}) -
+\frac{7}{8}\nabla \times \frac{\nabla \Pi}{\Sigma}+
 \frac{S^+}{\Sigma} \omega_{\rm d} + D\omega,
 \end{equation}
 where the last two terms account for the initial vorticity of the injected
