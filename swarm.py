@@ -46,9 +46,9 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 from conf import nlons, nlats
 from conf import grav, rsphere
 from conf import dt, omega, rsphere, sig0, overkepler, tscale
-from conf import hamp, phi0, lon0, alpha, beta  #initial height perturbation parameters
-from conf import efold, ndiss
-from conf import ifiso, csqmin, cssqscale, kappa, mu, betamin, sigfloor # EOS parameters
+from conf import bump_amp, bump_phi0, bump_lon0, bump_alpha, bump_beta  #initial perturbation parameters
+from conf import efold, ndiss, efold_diss
+from conf import csqmin, cssqscale, kappa, mu, betamin # EOS parameters
 from conf import itmax, outskip
 from conf import ifplot
 from conf import sigplus, sigmax, latspread #source and sink terms
@@ -69,7 +69,7 @@ ug = omega*rsphere*np.cos(lats)
 vg = ug*0.
 
 # density perturbation
-hbump = hamp*np.cos(lats)*np.exp(-((lons-lon0)/alpha)**2)*np.exp(-(phi0-lats)**2/beta)
+hbump = bump_amp*np.cos(lats)*np.exp(-((lons-bump_lon0)/bump_alpha)**2)*np.exp(-(bump_phi0-lats)**2/bump_beta)
 
 # initial vorticity, divergence in spectral space
 vortSpec, divSpec =  x.getVortDivSpec(ug,vg)
@@ -80,6 +80,7 @@ divg  = x.sph2grid(divSpec)
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 sigma_diff = hyperdiff_fact
 hyperdiff_expanded = (x.lap/np.abs(x.lap).max())**(ndiss/2) / efold
+diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 
 # sigma is an exact isothermal solution + an unbalanced bump
 sig = sig0*np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) * (1. + hbump) # exact solution * (1 + perturbation)
@@ -179,8 +180,8 @@ for k in np.arange(nb):
     ts=solve(t/(1.-t)**0.25-b[k], t)
     bx[k]=ts[0]
     print str(b[k])+"->"+str(bx[k])
-b[0]=0. ; bx[0]=0. ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve=si.interp1d(b, bx, kind='linear')
+# b[0]=0. ; bx[0]=0. ; b[nb-1]=1e3 ; bx[nb-1]=1.
+betasolve=si.interp1d(b, bx, kind='linear', bounds_error=False, fill_value=(0.,1.))
 ######################################
 
 # main loop
@@ -189,20 +190,15 @@ time1 = time.clock() # time loop
 nout=nrest
 
 for ncycle in np.arange(itmax+1):
-    #for ncycle in range(2): #debug option
+    # for ncycle in range(2): # debug option
     t = (ncycle+nrest*outskip)*dt
-
     # get vort,u,v,sigma on grid
     vortg = x.sph2grid(vortSpec)
     sig  = x.sph2grid(sigSpec)
     accflag = x.sph2grid(accflagSpec)
     divg  = x.sph2grid(divSpec)
     pressg  = x.sph2grid(pressSpec)
-
     ug,vg = x.getuv(vortSpec,divSpec)
-
-    #    print('t=%10.5f ms' % (t*1e3*tscale))
-
     # vorticity flux
     tmpg1 = ug*vortg
     tmpg2 = vg*vortg
@@ -235,6 +231,7 @@ for ncycle in np.arange(itmax+1):
         dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
     dissipation=(ug*dissug+vg*dissvg) # v . dv/dt_diss
+    dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
     if(np.size(wunbound)>0):
         geff[wunbound]=0.
         print "ug from "+str(ug.min())+" to "+str(ug.max())
@@ -250,12 +247,12 @@ for ncycle in np.arange(itmax+1):
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
 
     # baroclinic terms in vorticity and divirgence:
-    gradp1, gradp2 = x.getGrad(pressSpec)  # ; grads1, grads2 = x.getGrad(sigSpec)
+    gradp1, gradp2 = x.getGrad(pressSpec*7./8.)  # ; grads1, grads2 = x.getGrad(sigSpec)
     vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig)
     # x.grid2sph((gradp1 * grads2 - gradp2 * grads1)*7./8.)
     # x.getVortDivSpec(tmpg1,tmpg2)
-    ddivdtSpec[:,nnew] += divpressbarSpec *7./8.
-    dvortdtSpec[:,nnew] += vortpressbarSpec *7./8.
+    ddivdtSpec[:,nnew] += -divpressbarSpec 
+    dvortdtSpec[:,nnew] += -vortpressbarSpec
 
     # source terms in mass:
     sdotplus, sina=sdotsource(lats, lons, latspread)
@@ -269,10 +266,10 @@ for ncycle in np.arange(itmax+1):
     dvortdtSpec[:,nnew] += vortdotSpec
 
     # energy sources and sinks:
-    qplus = sig * dissipation
-    qminus = 7./3./kappa * pressg/sig *(1.-beta)
+    qplus = sig * dissipation 
+    qminus = 0.75 / kappa * (1.-beta) * (-geff)
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
-    dpressdtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns) / 3. /(1.-beta/2.))
+    dpressdtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns) / 3. /(1.-beta/2.)+sdotplus*csqmin-pressg/sig*sdotminus)
     # passive scalar evolution:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
@@ -346,7 +343,7 @@ for ncycle in np.arange(itmax+1):
         if(ifplot):
             visualize(t, nout,
                       lats, lons, 
-                      vortg, divg, ug, vg, sig, pressg, accflag, dissipation, 
+                      vortg, divg, ug, vg, sig, pressg, beta, accflag, dissipation, 
                       #                  mass, energy,
                       engy,
                       hbump,

@@ -39,9 +39,9 @@ sig0       = 1e5                   # own neutron star atmosphere
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 
 # vertical structure parameters:
-ifiso = True # if we use isothermal EOS instead
+# ifiso = False # if we use isothermal EOS instead (obsolete)
 csqmin=1e-4 # speed of sound squared (minimal or isothermal)
-sigfloor = 0.1   # auxiliary patameter for EOS; H = cs^2 * log(|sigma| + sigfloor) 
+# sigfloor = 0.1   # auxiliary patameter for EOS; H = cs^2 * log(|sigma| + sigfloor) 
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
 mass1=1.4 # accretor mass
@@ -55,21 +55,21 @@ print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
 
 # Hyperdiffusion
 ##################################################
-efold = 2000.*dt # efolding timescale at ntrunc for hyperdiffusion
+efold = 1000.*dt # efolding timescale at ntrunc for hyperdiffusion
+efold_diss = efold/10. # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion
 
 ##################################################
 #perturbation parameters
-hamp  = 0.25     # height perturbation amplitude
-phi0  = np.pi/3. # perturbation latitude
-lon0  = np.pi/3. # perturbation longitude
-alpha = 1./10. # size of the perturbed region
-beta  = 1./25.# size of the perturbed region
-
+bump_amp  = 0.25     # height perturbation amplitude
+bump_phi0  = np.pi/3. # perturbation latitude
+bump_lon0  = np.pi/3. # perturbation longitude
+bump_alpha = 1./10. # size of the perturbed region (longitude)
+bump_beta  = 1./25.# size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 1e3 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 1000. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
 incle      = np.pi*0.08 # inclination of initial rotation, radians
