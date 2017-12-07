@@ -342,14 +342,15 @@ Energy equation may be re-written as an evolution for vertically integrated
 pressure
 \begin{equation}\label{E:set:press}
 \pardir{t}{\Pi} + \nabla \cdot \left( \Pi \vector{v}\right) = \frac{1}{3\left(
-  1-\frac{\beta}{2}\right)} \delta \Pi + Q^+ - Q^- + Q_{\rm NS},
+  1-\frac{\beta}{2}\right)} \left(\delta \Pi + Q^+ - Q^- + Q_{\rm NS}\right),
 \end{equation}
 where 
 \begin{equation}\label{E:set:qplus}
 Q^+ = \Sigma \vector{v} \cdot \left.\frac{d\vector{v}}{dt}\right|_{\rm dissipation},
 \end{equation}
 \begin{equation}\label{E:set:qminus}
-Q^- = \frac{7}{3} \frac{c}{\varkappa \Sigma}(1-\beta) \Pi,
+Q^- = \frac{3}{4} \frac{c}{\varkappa \Sigma}(1-\beta) p_{\rm bottom} =
+\frac{3}{4} \frac{c}{\varkappa} (1-\beta) |-g_{\rm eff}|,
 \end{equation}
 and $Q_{\rm NS} =  \sigma_{\rm SB} T_{\rm NS}^4$, where $\beta$ is found
 implicitly as
