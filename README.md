@@ -12,7 +12,8 @@ given in the [description](https://github.com/pabolmasov/swarm/blob/master/slaye
 
 Mass conservation equation (for surface density &Sigma;):
 
-https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CSigma%7D%7B%5Cpartial%20t%7D%20%3D%20-%20%5Cnabla%20%5Ccdot%20%28%5CSigma%20%5Cmathbf%7Bv%7D%29%20&plus;%20S%5E&plus;%20-%20S%5E-%2C
+<img alt="mass conservation"
+src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CSigma%7D%7B%5Cpartial%20t%7D%20%3D%20-%20%5Cnabla%20%5Ccdot%20%28%5CSigma%20%5Cmathbf%7Bv%7D%29%20&plus;%20S%5E&plus;%20-%20S%5E-%2C">
 
 where the right-hand side also contains source and sink terms. 
 
@@ -32,10 +33,7 @@ angular momentum of the source.
 Finally, energy equation re-formulated as an equation for vertically
 integrated pressure &Pi; :
 
-<img alt="\frac{\partial \Pi}{\partial t} + \nabla \cdot \left( \Pi
-\mathbf{v}\right) = \frac{1}{3\left(1-\frac{\beta}{2}\right)} \delta \Pi + Q^+
-- Q^- + Q_{\rm NS},"
-src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CPi%7D%7B%5Cpartial%20t%7D%20&amp;plus;%20%5Cnabla%20%5Ccdot%20%5Cleft%28%20%5CPi%20%5Cmathbf%7Bv%7D%5Cright%29%20%3D%20%5Cfrac%7B1%7D%7B3%5Cleft%281-%5Cfrac%7B%5Cbeta%7D%7B2%7D%5Cright%29%7D%20%5Cdelta%20%5CPi%20&amp;plus;%20Q%5E&amp;plus;%20-%20Q%5E-%20&amp;plus;%20Q_%7B%5Crm%20NS%7D%2C">.
+<img alt="\frac{\partial \Pi}{\partial t} + \nabla \cdot \left( \Pi\mathbf{v}\right) = \frac{1}{3\left(1-\frac{\beta}{2}\right)} \delta \Pi + Q^+ - Q^- + Q_{\rm NS}," src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CPi%7D%7B%5Cpartial%20t%7D%20&amp;plus;%20%5Cnabla%20%5Ccdot%20%5Cleft%28%20%5CPi%20%5Cmathbf%7Bv%7D%5Cright%29%20%3D%20%5Cfrac%7B1%7D%7B3%5Cleft%281-%5Cfrac%7B%5Cbeta%7D%7B2%7D%5Cright%29%7D%20%5Cdelta%20%5CPi%20&amp;plus;%20Q%5E&amp;plus;%20-%20Q%5E-%20&amp;plus;%20Q_%7B%5Crm%20NS%7D%2C">
 
 Here, &beta; is the gas to total pressure ratio, Q-terms in the right-hand
 side are sources and sinks of heat. 
