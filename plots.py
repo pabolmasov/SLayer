@@ -3,9 +3,7 @@
 import numpy as np
 import scipy.ndimage as spin
 import matplotlib.pyplot as plt
-
-#####################################
-from conf import sigmax
+import numpy.ma as ma
 
 ##################################################
 
@@ -70,7 +68,8 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
     ax.cla()
 
     print title, " min/max:", data.min(), data.max()
-
+    wnan=np.where(np.isnan(data))
+    data_masked=ma.masked_where(np.isnan(data),data)
     #make fancy 
     ax.minorticks_on()
     ax.set_ylabel(title)
@@ -84,7 +83,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
     pc=ax.pcolormesh(
             lonsDeg,
             latsDeg,
-            data,
+            data_masked,
             vmin=vmin,
             vmax=vmax,
             cmap='plasma',
@@ -237,13 +236,14 @@ def visualize(t, nout,
 #                      divg, 
 #                      title=r"$(\nabla \cdot v)$")
     # sigma
-    sig_init_base = cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
-    sig_init = cf.sig0*(np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
+    sigpos=(sig+np.fabs(sig))/2.+cf.sigfloor
+    sig_init_base = cf.sig0*(np.cos(lats))**((cf.omega*cf.rsphere)**2/cf.csqinit)+cf.sigfloor
+    # cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
 
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
-                 np.log(sig/sig_init_base),  
-                 np.log((sig/sig_init_base).min()*0.9),  np.log((sig/sig_init_base).max()*1.1),  
+                 np.log(sigpos/sig_init_base),  
+                 np.log((sigpos/sig_init_base).min()*0.9),  np.log((sigpos/sig_init_base).max()*1.1),  
                  title=r'$\Sigma$')
 #    axs[4].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
     axs[4].contour(
@@ -262,7 +262,7 @@ def visualize(t, nout,
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
                          log=True)
-    axs[5].plot(sigmax, color='g', linestyle='dotted')
+    axs[5].plot(cf.sigmax, color='g', linestyle='dotted')
     #passive scalar
     visualizeMap(axs[6], 
                  lonsDeg, latsDeg, 
@@ -311,7 +311,7 @@ def visualize(t, nout,
     axs[9].plot(latsDeg, cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
     axs[9].plot(latsDeg, cf.overkepler*cf.rsphere**(-0.5)*np.cos(lats), color='g', linewidth=1)
 
-    axs[0].set_title('{:6.2f} ms'.format( t*cf.tscale*1e3) )
+    axs[0].set_title('{:7.3f} ms'.format( t*cf.tscale*1e3) )
     scycle = str(nout).rjust(6, '0')
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
     plt.close()

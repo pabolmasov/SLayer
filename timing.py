@@ -18,7 +18,7 @@ matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"]
 
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
-def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None):
+def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     """
 fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <keywords>)
     keywords:
@@ -40,15 +40,18 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
     keys=f.keys()
     if(nfilter):
         keys=keys[nfilter:] # filtering out first nfilter points
-#    keys=keys[4000:]
+    if(nlim):
+        keys=keys[:nlim] # filtering out everything after nlim
+    #    keys=keys[4000:]
     nsize=np.size(keys)-1 # last key contains parameters
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
     flc=open('out/lcurve.dat', 'w')
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
+        beta=data["beta"][:]
         tar[k]=data.attrs["t"]
-        flux[k]=(diss*sig*cosa).sum()*dlons*dlats
+        flux[k]=(press*(1.-beta)/(sig*varkappa+1.)*cosa).sum()*dlons*dlats
         mass[k]=(sig*cosa).sum()*dlons*dlats
         newmass[k]=(sig*cosa*accflag).sum()*dlons*dlats
         flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n")
