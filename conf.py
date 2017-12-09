@@ -11,8 +11,8 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=11000 # number of output entry for restart
+ifrestart=True
+nrest=5347 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 
 ##################################################
@@ -34,19 +34,20 @@ rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 1e-2                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
-sig0       = 1e5                   # own neutron star atmosphere
-
+sig0       = 1e5                   # own neutron star atmosphere scale
+sigfloor = 1e-5*sig0   # minimal initial surface density
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
-csqmin=1e-4 # speed of sound squared (minimal or isothermal)
-# sigfloor = 0.1   # auxiliary patameter for EOS; H = cs^2 * log(|sigma| + sigfloor) 
+csqmin=1e-6 # speed of sound squared (minimal or isothermal)
+csqinit=1e-3 # initial speed of sound squared
+
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
 mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
-cssqscale = 1.90162e-06 / mu / mass1**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4}
+cssqscale = 1.90162e-06 / mu / mass1**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
 betamin=1e-5
 
 print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)

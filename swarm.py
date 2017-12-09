@@ -45,10 +45,10 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 #import simulation parameters to global scope
 from conf import nlons, nlats
 from conf import grav, rsphere
-from conf import dt, omega, rsphere, sig0, overkepler, tscale
+from conf import dt, omega, rsphere, sig0, sigfloor, overkepler, tscale
 from conf import bump_amp, bump_phi0, bump_lon0, bump_alpha, bump_beta  #initial perturbation parameters
 from conf import efold, ndiss, efold_diss
-from conf import csqmin, cssqscale, kappa, mu, betamin # EOS parameters
+from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
 from conf import itmax, outskip
 from conf import ifplot
 from conf import sigplus, sigmax, latspread #source and sink terms
@@ -83,9 +83,12 @@ hyperdiff_expanded = (x.lap/np.abs(x.lap).max())**(ndiss/2) / efold
 diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 
 # sigma is an exact isothermal solution + an unbalanced bump
-sig = sig0*np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) * (1. + hbump) # exact solution * (1 + perturbation)
+# sig = sig0*np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) * (1. + hbump) # exact solution * (1 + perturbation)
+sig=sig0*(np.cos(lats))**((omega*rsphere)**2/csqinit)+sigfloor
+# print "initial sigma: "+str(sig.min())+" to "+str(sig.max())
+# ii=raw_input("")
 # in pressure, there should not be any strong bumps, as we do not want artificial shock waves
-pressg = sig * csqmin / (1. + hbump) 
+pressg = sig * csqinit / (1. + hbump) 
 # vortg *= (1.-hbump*2.) # some initial condition for vorticity (cyclone?)
 accflag=hbump*0.
 #print accflag.max(axis=1)
@@ -172,16 +175,14 @@ def enthalpy(sigma, dissipation, geff):
 
 ############################
 # beta calibration
-bmin=1.e-2 ; bmax=1.e2 ; nb=100
-b=(bmax/bmin)**(np.arange(nb)/np.double(nb-1))*bmin
-bx=np.zeros(nb, dtype=np.double)
-for k in np.arange(nb):
-    t = Symbol('t')
-    ts=solve(t/(1.-t)**0.25-b[k], t)
-    bx[k]=ts[0]
-    print str(b[k])+"->"+str(bx[k])
+bmin=0. ; bmax=1. ; nb=1000
+b=(bmax-bmin)*((np.arange(nb)+0.5)/np.double(nb))+bmin
+bx=b/(1.-b)**0.25
 # b[0]=0. ; bx[0]=0. ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve=si.interp1d(b, bx, kind='linear', bounds_error=False, fill_value=(0.,1.))
+betasolve=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=(0.,1.))
+# for k in np.arange(nb):
+#    print str(bx[k])+" -> "+str(b[k])+"\n"
+# rr=raw_input("d")
 ######################################
 
 # main loop
@@ -218,7 +219,13 @@ for ncycle in np.arange(itmax+1):
         #        ii=raw_input('')
         # maybe not so bad if geff=0 exactly? sitting at the Eddington limit...
         geff[wunbound]=0.
-    beta = betasolve(cssqscale*sig/pressg*(-geff*sig)**0.25) # beta as a function of sigma, press, geff
+    sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation
+    beta = betasolve(cssqscale*sig/pressg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, press, geff
+    wnanbeta=np.where(np.isnan(beta))
+    if(np.size(wnanbeta)>1):
+        print "cs2scale = "+str(cssqscale)
+        print "geff = "+str(geff.min())+" to "+str(geff.max())
+        ii=raw_input('')
     #    print "size: "+str(np.shape(beta))+", "+str(np.shape(divg))+", "+str(np.shape(pressg))+", "+str(np.shape(dpressdtSpec[:,nnew]))
     dpressdtSpec[:,nnew] *= -1
     dpressdtSpec[:,nnew] += x.grid2sph(divg * pressg / 3. /(1.-beta/2.))
@@ -353,7 +360,8 @@ for ncycle in np.arange(itmax+1):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      energy, mass, 
-                     vortg, divg, ug, vg, sig, pressg, accflag, dissipation
+                     vortg, divg, ug, vg, sig, pressg, beta,
+                     accflag, dissipation
                      )
         nout += 1
 

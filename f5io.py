@@ -31,7 +31,8 @@ def saveParams(f5, conf):
 #Save simulation snapshot
 def saveSim(f5, nout, t,
             mass, energy,
-            vortg, divg, ug, vg, sig, press, accflag, dissipation
+            vortg, divg, ug, vg, sig, press, beta,
+            accflag, dissipation
             ):
 
     scycle = str(nout).rjust(6, '0')
@@ -46,6 +47,7 @@ def saveSim(f5, nout, t,
     grp.create_dataset("vg",    data=vg)
     grp.create_dataset("sig",   data=sig)
     grp.create_dataset("press",   data=press)
+    grp.create_dataset("beta",   data=beta)
     grp.create_dataset("accflag",   data=accflag)
     grp.create_dataset("diss",  data=dissipation)
 
