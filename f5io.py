@@ -80,7 +80,7 @@ def restart(restartfile, nrest, conf):
         vortfun =  si.interp2d(x1.lons, x1.lats, vortg1, kind='linear')
         divfun =  si.interp2d(x1.lons, x1.lats, divg1, kind='linear')
         sigfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
-        pressfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
+        pressfun =  si.interp2d(x1.lons, x1.lats, press1, kind='linear')
         accflagfun =  si.interp2d(x1.lons, x1.lats, accflag1, kind='linear')
         vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; pressg = pressfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
         # accflag may be smoothed without any loss of generality or stability
