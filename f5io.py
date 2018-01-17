@@ -7,6 +7,38 @@ from spharmt import Spharmt
 
 outdir = "out" #default output directory
 
+# combine several HDF5 files into one
+def HDFcombine(f5array):
+    n=np.size(f5array)
+    if(n<=1):
+        print "nothing to combine"
+        exit()
+    else:
+        print "preparing to glue "+str(n)+" files"
+    fnew=h5py.File(outdir+'/runcombine.hdf5', "w")
+    f = h5py.File(f5array[0],'r')
+    #    params=f0['params']
+    #    parnew = f.create_group("params")
+    f.copy("params", fnew)
+    keys=f.keys()
+    currentkeys=[]
+    for k in np.arange(n):
+        nkeys=np.size(keys)-1 # the last one is "params", we do not need it anymore
+        for kkey in np.arange(nkeys):
+#            print keys[kkey]
+            if keys[kkey] in currentkeys:
+                print " duplicate entry "+keys[kkey]
+            else:
+                f.copy(keys[kkey], fnew)
+                currentkeys.append(keys[kkey])
+        print "file "+f5array[k]+" added"
+        if(k<(n-1)): # reading next file
+            f.close()
+            f = h5py.File(f5array[k+1],'r')
+            keys=f.keys()
+    f.flush() ;    f.close()
+    fnew.close() 
+    
 # save general simulation parameters to the file
 def saveParams(f5, conf):
     grp0 = f5.create_group("params")
