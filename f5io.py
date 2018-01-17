@@ -73,6 +73,7 @@ def restart(restartfile, nrest, conf):
         x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian') # new grid
         #        lons,lats = np.meshgrid(x.lons, x.lats)
         x1 = Spharmt(nlons1, nlats1, ntrunc1, rsphere, gridtype='gaussian') # old grid
+        x1.lats*=-1. # the picture gets upside down otherwise (why?)
         #        lons1,lats1 = np.meshgrid(x1.lons, x1.lats)
         # file contains dimensions nlats1, nlons1,
         vortg1 = data["vortg"][:]  ;     divg1 = data["divg"][:] ;  sig1 = data["sig"][:] ;   accflag1 = data["accflag"][:] ; press1 = data["press"][:]

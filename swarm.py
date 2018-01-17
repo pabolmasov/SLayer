@@ -54,6 +54,7 @@ from conf import ifplot
 from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
+from conf import ewind
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
@@ -184,6 +185,7 @@ betasolve=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=(0.,1
 #    print str(bx[k])+" -> "+str(b[k])+"\n"
 # rr=raw_input("d")
 ######################################
+sdotminuswind=np.zeros((nlats,nlons), np.float)
 
 # main loop
 time1 = time.clock() # time loop
@@ -213,7 +215,7 @@ for ncycle in np.arange(itmax+1):
     tmpg1 = ug*pressg; tmpg2 = vg*pressg
     tmpSpec, dpressdtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
     geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
-    wunbound=np.where(geff>=0.)
+    wunbound=np.where(geff>=0.) # extreme case; we can be unbound due to pressure
     if(np.size(wunbound)>0):
         print str(np.size(wunbound))+" unbound points with geff>0"
         #        ii=raw_input('')
@@ -261,21 +263,33 @@ for ncycle in np.arange(itmax+1):
     ddivdtSpec[:,nnew] += -divpressbarSpec 
     dvortdtSpec[:,nnew] += -vortpressbarSpec
 
-    # source terms in mass:
-    sdotplus, sina=sdotsource(lats, lons, latspread)
-    sdotminus=sdotsink(sig, sigmax)
-    sdotSpec=x.grid2sph(sdotplus-sdotminus)
-    dsigdtSpec[:,nnew] += sdotSpec
-
-    # source term in vorticity
-    vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*sina-vortg)
-    vortdotSpec=x.grid2sph(vortdot)
-    dvortdtSpec[:,nnew] += vortdotSpec
-
     # energy sources and sinks:
     qplus = sig * dissipation 
     qminus = 0.75 / kappa * (1.-beta) * (-geff)
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
+
+    # Bernoulli constant:
+    B=(ug**2+vg**2)/2.+7.*pressg/sig-1./rsphere
+    if(B.max()>0.):
+        sdotminuswind*=0.
+        wunbound=np.where(B>0.)
+        if (ncycle % outskip == 0):
+            print str(np.size(wunbound))+" unbound points"
+        sdotminuswind[wunbound]=2.*ewind*rsphere*qminus[wunbound] # radiation-launched wind
+        qminuswind=sdotminuswind*pressg/sig*(4.-beta*1.5) # adiabatic cooling due to wind launching
+        qminus+=qminuswind
+        
+    # source terms in mass:
+    sdotplus, sina=sdotsource(lats, lons, latspread)
+    sdotminus=sdotsink(sig, sigmax)+sdotminuswind
+    sdotSpec=x.grid2sph(sdotplus-sdotminus)
+    dsigdtSpec[:,nnew] += sdotSpec
+
+    # source term in vorticity
+    vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*sina-vortg)+sdotminus/sig*vortg
+    vortdotSpec=x.grid2sph(vortdot)
+    dvortdtSpec[:,nnew] += vortdotSpec
+
     dpressdtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns) / 3. /(1.-beta/2.)+sdotplus*csqmin-pressg/sig*sdotminus)
     # passive scalar evolution:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag

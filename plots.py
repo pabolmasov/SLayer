@@ -316,3 +316,78 @@ def visualize(t, nout,
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
     plt.close()
 
+# post-factum visualizations form snapshooter:
+def snapplot(lons, lats, sig, accflag, vx, vy, sks):
+    # longitudes, latitudes, density field, accretion flag, velocity fields, alias for velocity output
+    skx=sks[0] ; sky=sks[1]
+
+    wpoles=np.where(np.fabs(lats)<90.)
+    s0=sig[wpoles].min() ; s1=sig[wpoles].max()
+    #    s0=0.1 ; s1=10. # how to make a smooth estimate?
+    nlev=30
+    levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
+
+    plt.clf()
+    fig=plt.figure()
+    plt.contourf(lons, lats, np.log(sig),cmap='jet') #,levels=levs)
+    plt.colorbar()
+    plt.contour(lons, lats, accflag, levels=[0.5], colors='w') #,levels=levs)
+    plt.quiver(lons[::skx, ::sky],
+        lats[::skx, ::sky],
+        vx[::skx, ::sky], vy[::skx, ::sky],
+        pivot='mid',
+        units='x',
+        linewidth=1.0,
+        color='k',
+        scale=20.0,
+    )
+#    plt.ylim(-85.,85.)
+    plt.xlabel('longitude')
+    plt.ylabel('latitude')
+    fig.set_size_inches(8, 5)
+    plt.savefig('out/snapshot.png')
+    plt.savefig('out/snapshot.eps')
+    plt.close()
+    # drawing poles:
+    nlons=np.size(lons)
+    tinyover=1./np.double(nlons)
+    theta=90.*(1.+tinyover)-lats
+    plt.clf()
+    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
+    #    wnorth=np.where(lats>0.)
+    tinyover=1./np.double(nlons)
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, sig,cmap='jet',levels=levs)
+    ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
+    ax.set_rticks([30., 60.])
+    ax.set_rmax(90.)
+    plt.title('N') #, t='+str(nstep))
+    plt.tight_layout()
+    fig.set_size_inches(4, 4)
+    plt.savefig('out/northpole.eps')
+    plt.savefig('out/northpole.png')
+    plt.close()
+    plt.clf()
+    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
+    #    wnorth=np.where(lats>0.)
+    tinyover=1./np.double(nlons)
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, sig,cmap='jet',levels=levs)
+    ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
+    ax.set_rticks([30., 60.])
+    ax.set_rmax(90.)
+    plt.tight_layout(pad=2)
+    fig.set_size_inches(4, 4)
+    plt.title('S') #, t='+str(nstep))
+    plt.savefig('out/southpole.eps')
+    plt.savefig('out/southpole.png')
+    plt.close()
+    
+def sgeffplot(sig, grav, geff, radgeff):
+    plt.clf()
+    plt.plot(sig, radgeff+geff, ',k')
+    plt.plot(sig, geff, ',b')
+    plt.plot(sig, geff*0.-grav, color='r')
+    plt.xscale('log')
+    plt.xlabel(r'$\Sigma$, g\,cm$^{-2}$')
+    plt.ylabel(r'$g_{\rm eff}$, $GM/c$ units')
+    plt.savefig('out/sgeff.eps')
+    plt.close()

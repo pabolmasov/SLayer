@@ -6,7 +6,7 @@ import time
 import pylab
 import h5py
 
-from conf import ifplot
+from conf import ifplot, kappa
 
 #proper LaTeX support and decent fonts in figures 
 rc('font',**{'family':'serif','serif':['Times']})
@@ -39,23 +39,29 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
     
     keys=f.keys()
     if(nfilter):
-        keys=keys[nfilter:] # filtering out first nfilter points
-    if(nlim):
-        keys=keys[:nlim] # filtering out everything after nlim
+        if(nlim):
+            keys=keys[nfilter:nlim] # filtering out first nfilter points
+        else:
+            keys=keys[nfilter:]
+    else:
+        if(nlim):
+            keys=keys[:nlim] # filtering out everything after nlim
+
     #    keys=keys[4000:]
     nsize=np.size(keys)-1 # last key contains parameters
+    print str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2])
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
     flc=open('out/lcurve.dat', 'w')
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
-        beta=data["beta"][:]
+        press=data["press"][:] ; beta=data["beta"][:]
         tar[k]=data.attrs["t"]
-        flux[k]=(press*(1.-beta)/(sig*varkappa+1.)*cosa).sum()*dlons*dlats
+        flux[k]=(press*(1.-beta)/(sig*kappa+1.)*cosa).sum()*dlons*dlats
         mass[k]=(sig*cosa).sum()*dlons*dlats
         newmass[k]=(sig*cosa*accflag).sum()*dlons*dlats
         flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n")
-        print str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n"
+#        print str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n"
     f.close() ; flc.close() 
     tar*=tscale
 
@@ -73,9 +79,9 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
         plt.plot(tar, (flux-flux.min())/(flux.max()-flux.min()), color='k')
         plt.plot(tar, (mass-mass.min())/(mass.max()-mass.min()), color='r')
         plt.plot(tar, (newmass-newmass.min())/(newmass.max()-newmass.min()), color='g')
-        plt.plot(tar, (tar*m+b-mass.min())/(mass.max()-mass.min()), color='k', linestyle='dashed')
+        plt.plot(tar, (tar*m+b-mass.min())/(mass.max()-mass.min()), color='r', linestyle='dashed')
         plt.plot(tar, (tar*mn+bn-newmass.min())/(newmass.max()-newmass.min()), color='g', linestyle='dashed')
-        plt.plot(tar, (tar*md+bd-flux.min())/(flux.max()-flux.min()), color='r', linestyle='dashed')
+        plt.plot(tar, (tar*md+bd-flux.min())/(flux.max()-flux.min()), color='k', linestyle='dashed')
         plt.xlabel('$t$')
         plt.ylabel('flux, relative units')
         plt.savefig('out/lcurve.eps')
@@ -113,9 +119,9 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
 #        ii=raw_input('/')
         for kb in np.arange(nbins):
             freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
-            if(np.size(freqrange)<=1):
-                print "kb = "+str(kb)
-                print "kt = "+str(kt)
+#            if(np.size(freqrange)<=1):
+#                print "kb = "+str(kb)
+#                print "kt = "+str(kt)
             pdsbin[kt,kb]=pds[freqrange].mean()   ;     pdsbinm[kt,kb]=pdsm[freqrange].mean()   ;   pdsbinn[kt,kb]=pdsn[freqrange].mean()
             dpdsbin[kt,kb]=pds[freqrange].std()   ;     dpdsbinm[kt,kb]=pdsm[freqrange].std()   ;   dpdsbinn[kt,kb]=pdsn[freqrange].std()
     
