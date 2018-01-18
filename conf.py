@@ -78,6 +78,8 @@ slon0       = 0.1 # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # wind efficiency parameter:
 ewind=0.1
+# if we start losing matter when the flow becomes unbound 
+ifwindlosses=False
 # friction time scale with the neutron star
 tfric=1000.*dt
 

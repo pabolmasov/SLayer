@@ -56,6 +56,7 @@ from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
 from conf import ewind
 from conf import tfric
+from conf import ifwindlosses
 
 ############################
 # beta calibration
@@ -251,7 +252,7 @@ for ncycle in np.arange(itmax+1):
 
     # Bernoulli constant:
     B=(ug**2+vg**2)/2.+7.*pressg/sig-1./rsphere
-    if(B.max()>0.): # if the flow becomes unbound, we have the right to expel some matter with radiation pressure
+    if((B.max()>0.)&(ifwindlosses)): # if the flow becomes unbound, we have the right to expel some matter with radiation pressure
         sdotminuswind*=0.
         wunbound=np.where(B>0.)
         if (ncycle % outskip == 0):
@@ -263,7 +264,7 @@ for ncycle in np.arange(itmax+1):
     # source terms in mass:
     sdotplus, sina=sdotsource(lats, lons, latspread)
     sdotminus=sdotsink(sig, sigmax)+sdotminuswind
-    sdotSpec=x.grid2sph(sdotplus-sdotminus)
+    sdotSpec=x.grid2sph(sdotplus-sdotminus-sdotminuswind)
     dsigdtSpec[:,nnew] += sdotSpec
 
     # source term in vorticity
