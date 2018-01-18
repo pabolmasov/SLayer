@@ -12,7 +12,7 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=False
-nrest=14050 # number of output entry for restart
+nrest=460 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 
 ##################################################
@@ -81,5 +81,5 @@ ewind=0.1
 # if we start losing matter when the flow becomes unbound 
 ifwindlosses=False
 # friction time scale with the neutron star
-tfric=1000.*dt
+tfric=10.*dt
 

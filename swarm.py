@@ -101,7 +101,8 @@ diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 
 # sigma is an exact isothermal solution + an unbalanced bump
 # sig = sig0*np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) * (1. + hbump) # exact solution * (1 + perturbation)
-sig=sig0*(np.cos(lats))**((omega*rsphere)**2/csqinit)+sigfloor
+sig=sig0*np.exp(0.5*(omega*rsphere*np.cos(lats))**2/csqinit)
+# *(np.cos(lats))**((omega*rsphere)**2/csqinit)+sigfloor
 # print "initial sigma: "+str(sig.min())+" to "+str(sig.max())
 # ii=raw_input("")
 # in pressure, there should not be any strong bumps, as we do not want artificial shock waves

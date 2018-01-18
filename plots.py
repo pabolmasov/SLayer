@@ -53,7 +53,13 @@ def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="
     if(title1 == "$\Sigma$"):
         ax.plot(latsDeg, data1-data2, '.b',markersize=2)
 
-    ax.set_ylim(data2.min(), data1.max())
+    datamin=data1.min() ;    datamax=data1.max()
+    if(data2.min()<datamin):
+        datamin=data2.min()
+    if(data2.max()>datamax):
+        datamax=data2.max()
+        
+    ax.set_ylim(datamin, datamax)
     ax.set_xlabel('latitude, deg')
     ax.set_ylabel(title1+', '+title2)
     if(log):
@@ -196,7 +202,7 @@ def visualize(t, nout,
                  lonsDeg, latsDeg, 
                  vortg-2.*cf.omega*np.sin(lats), 
                  -vorm*1.1, vorm*1.1, 
-                 title="Vorticity")
+                 title="$\Delta \omega$")
     # pressure
     visualizeMap(axs[1], 
                  lonsDeg, latsDeg, 
@@ -237,7 +243,7 @@ def visualize(t, nout,
 #                      title=r"$(\nabla \cdot v)$")
     # sigma
     sigpos=(sig+np.fabs(sig))/2.+cf.sigfloor
-    sig_init_base = cf.sig0*(np.cos(lats))**((cf.omega*cf.rsphere)**2/cf.csqinit)+cf.sigfloor
+    sig_init_base = cf.sig0*np.exp(0.5*(cf.omega*cf.rsphere*np.cos(lats))**2/cf.csqinit)
     # cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
 
     visualizeMap(axs[4], 

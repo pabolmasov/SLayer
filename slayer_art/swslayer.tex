@@ -414,15 +414,15 @@ latitudinal motions are present in the beginning.
 In these assumptions, steady-state Euler equation in
 latitudinal direction becomes
 \begin{equation}\label{E:IC:Euler}
-\Omega^2 R \cot \theta = \frac{1}{R} \ppardir{\theta}{\cs^2 \ln\Sigma},
+\Omega^2 \sin^2\theta R \cot \theta = \frac{1}{R} \ppardir{\theta}{\cs^2 \ln\Sigma},
 \end{equation}
 or, solving for surface density as a function of polar angle,
 \begin{equation}
-\left( \frac{\Omega R}{\cs}\right)^2 d\ln \sin\theta = d\ln \Sigma ,
+\displaystyle \frac{1}{2}\left( \frac{\Omega R}{\cs}\right)^2 d \sin^2\theta = d\ln \Sigma ,
 \end{equation}
 and
 \begin{equation}\label{E:IC:Sigma}
-\displaystyle \Sigma_{\rm init} = \Sigma_0 \left(\sin \theta \right)^{\left(\Omega R / \cs\right)^2}.
+\displaystyle \Sigma_{\rm init} = \Sigma_0 e^{\frac{1}{2}\left(\frac{\Omega R }{ \cs}\sin^2\theta\right)^2}.
 \end{equation}
 Initial pressure map should conform to that of density up to the multiplier of
 $\cs^2$.
