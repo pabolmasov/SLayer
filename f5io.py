@@ -62,23 +62,27 @@ def saveParams(f5, conf):
 
 #Save simulation snapshot
 def saveSim(f5, nout, t,
-            mass, energy,
-            vortg, divg, ug, vg, sig, press, beta,
-            accflag, dissipation
-            ):
+            vortg, divg, ug, vg, sig, energy, beta,
+            accflag, dissipation,
+            conf):
+    sarea=4.*np.pi/np.double(conf.nlons*conf.nlats)*conf.rsphere**2
+    mass=sig.sum()*sarea
+    #        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    #        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    totenergy=(sig*energy+(ug**2+vg**2)/2.).sum()*sarea
 
     scycle = str(nout).rjust(6, '0')
     grp = f5.create_group("cycle_"+scycle)
     grp.attrs['t']      = t      # time
     grp.attrs['mass']   = mass   # total mass
-    grp.attrs['energy'] = energy # total mechanical energy
+    grp.attrs['energy'] = totenergy # total mechanical energy
 
     grp.create_dataset("vortg", data=vortg)
     grp.create_dataset("divg",  data=divg)
     grp.create_dataset("ug",    data=ug)
     grp.create_dataset("vg",    data=vg)
     grp.create_dataset("sig",   data=sig)
-    grp.create_dataset("press",   data=press)
+    grp.create_dataset("energy",   data=energy)
     grp.create_dataset("beta",   data=beta)
     grp.create_dataset("accflag",   data=accflag)
     grp.create_dataset("diss",  data=dissipation)
@@ -113,7 +117,7 @@ def restart(restartfile, nrest, conf):
         vortfun =  si.interp2d(x1.lons, x1.lats, vortg1, kind='linear')
         divfun =  si.interp2d(x1.lons, x1.lats, divg1, kind='linear')
         sigfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
-        pressfun =  si.interp2d(x1.lons, x1.lats, press1, kind='linear')
+        energyfun =  si.interp2d(x1.lons, x1.lats, energy1, kind='linear')
         accflagfun =  si.interp2d(x1.lons, x1.lats, accflag1, kind='linear')
         vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; pressg = pressfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
         # accflag may be smoothed without any loss of generality or stability
@@ -130,13 +134,13 @@ def restart(restartfile, nrest, conf):
         vortg = data["vortg"][:]
         divg  = data["divg"][:]
         sig   = data["sig"][:]
-        pressg   = data["press"][:]
+        energyg   = data["energy"][:]
         accflag   = data["accflag"][:]
     f5.close()
 
     # if successful, we need to take the file off the way
     #    os.system("mv "+restartfile+" "+restartfile+".backup")
 
-    return vortg, divg, sig, pressg, accflag
+    return vortg, divg, sig, energyg, accflag
 
 

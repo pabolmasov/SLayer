@@ -11,7 +11,7 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
+ifrestart=False
 nrest=14050 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 
@@ -78,4 +78,6 @@ slon0       = 0.1 # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # wind efficiency parameter:
 ewind=0.1
+# friction time scale with the neutron star
+tfric=1000.*dt
 

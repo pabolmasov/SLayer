@@ -139,11 +139,11 @@ def visualize(t, nout,
               lats, lons, 
               vortg, divg, ug, vg, sig, press, beta, accflag, dissipation,
 #              mass, energy,
-              engy,
-              hbump,
+#              engy,
+#              hbump,
               rsphere,
               cf):
-    
+    engy=(ug**2+vg**2)/2.
     #prepare figure etc
     fig = plt.figure(figsize=(10,10))
     gs = plt.GridSpec(5, 10)
@@ -316,6 +316,7 @@ def visualize(t, nout,
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
     plt.close()
 
+##########################################################################    
 # post-factum visualizations form snapshooter:
 def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     # longitudes, latitudes, density field, accretion flag, velocity fields, alias for velocity output
