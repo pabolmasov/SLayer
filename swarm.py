@@ -270,8 +270,11 @@ for ncycle in np.arange(itmax+1):
 
     # source term in vorticity
     vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*sina-vortg)+(vortgNS-vortg)/tfric # +sdotminus/sig*vortg
+    divdot=-divg/tfric # friction term for divergence
     vortdotSpec=x.grid2sph(vortdot)
+    divdotSpec=x.grid2sph(divdot)
     dvortdtSpec[:,nnew] += vortdotSpec
+    ddivdtSpec[:,nnew] += divdotSpec
 
     denergydtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.))
     #    dpressdtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns) / 3. /(1.-beta/2.)+sdotplus*csqmin-pressg/sig*sdotminus)
