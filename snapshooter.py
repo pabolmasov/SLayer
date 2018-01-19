@@ -11,6 +11,7 @@ import time
 from spharmt import Spharmt 
 import os
 import h5py
+import plots
 
 #proper LaTeX support and decent fonts in figures 
 rc('font',**{'family':'serif','serif':['Times']})
@@ -20,6 +21,11 @@ rc('text', usetex=True)
 # #add amsmath to the preamble
 matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 
+def keyshow(filename):
+    f = h5py.File(filename,'r')
+    print f.keys()
+    f.close()
+    
 def plotnth(filename, nstep):
 
     f = h5py.File(filename,'r')
@@ -29,7 +35,7 @@ def plotnth(filename, nstep):
     clats1d = 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d-1., np.arcsin(clats1d))
     lons*=180./np.pi ; lats*=180./np.pi
-    rsphere=params.attrs["rsphere"]
+    rsphere=params.attrs["rsphere"] ; grav=params.attrs["grav"] # ; kappa=params.attrs["kappa"]
     
     data=f["cycle_"+str(nstep).rjust(6, '0')]
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:] ; t=data.attrs["t"]
@@ -50,83 +56,13 @@ def plotnth(filename, nstep):
     skx = 8 ; sky=16
     xx = nd.filters.gaussian_filter(xx, skx/2., mode='constant')*500./vvmax
     yy = nd.filters.gaussian_filter(yy, sky/2., mode='constant')*500./vvmax
+    plots.snapplot(lons, lats, sig, accflag, xx, yy, [skx,sky]) # geographic maps
 
-    wpoles=np.where(np.fabs(lats)>30.)
-    s0=sig[wpoles].min() ; s1=sig[wpoles].max()
-    #    s0=0.1 ; s1=10. # how to make a smooth estimate?
-    nlev=10
-    levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
+    kappa=0.34
+    geff=-grav+(ug**2+vg**2)/rsphere
+    radgeff=sig*diss*kappa
+    plots.sgeffplot(sig, grav, geff, radgeff) # Eddington violation plot
     
-    plt.clf()
-    fig=plt.figure()
-    plt.contourf(lons, lats, np.log(sig1),cmap='jet') #,levels=levs)
-    plt.colorbar()
-    plt.contour(lons, lats, accflag, levels=[0.5], colors='w') #,levels=levs)
-    plt.quiver(lons[::skx, ::sky],
-        lats[::skx, ::sky],
-        xx[::skx, ::sky], yy[::skx, ::sky],
-        pivot='mid',
-        units='x',
-        linewidth=1.0,
-        color='k',
-        scale=20.0,
-    )
-#    plt.ylim(-85.,85.)
-    plt.xlabel('longitude')
-    plt.ylabel('latitude')
-    fig.set_size_inches(8, 5)
-    plt.savefig('out/snapshot.png')
-    plt.savefig('out/snapshot.eps')
-    plt.close()
-
-    # a sphere example:
-    if(0):
-        x=np.cos(lats)*np.cos(lons)
-        y=np.cos(lats)*np.sin(lons)
-        z=np.sin(lats)
-        cmap = matplotlib.cm.get_cmap('afmhot')
-        normsig=sig/sig.max()   
-        plt.clf()
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        surf = ax.plot_surface(x, y, z, facecolors=cmap(normsig), linewidth=0)
-        ax.set_zlim(-1, 1)
-        #    ax.w_zaxis.set_major_locator(LinearLocator(6))
-        plt.show()
-        plt.savefig('out/sphere.png', dpi=100)
-        plt.close()
-        # now let us make a polar plot:
-    tinyover=1./np.double(nlons)
-    theta=90.*(1.+tinyover)-lats
-    plt.clf()
-    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    #    wnorth=np.where(lats>0.)
-    tinyover=1./np.double(nlons)
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, sig,cmap='jet',levels=levs)
-    ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
-    ax.set_rticks([20., 40.])
-    ax.set_rmax(60.)
-    plt.title('N') #, t='+str(nstep))
-    plt.tight_layout()
-    fig.set_size_inches(4, 4)
-    plt.savefig('out/northpole.eps')
-    plt.savefig('out/northpole.png')
-    plt.close()
-    plt.clf()
-    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    #    wnorth=np.where(lats>0.)
-    tinyover=1./np.double(nlons)
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, sig,cmap='jet',levels=levs)
-    ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
-    ax.set_rticks([20., 40.])
-    ax.set_rmax(60.)
-    plt.tight_layout(pad=2)
-    fig.set_size_inches(4, 4)
-    plt.title('S') #, t='+str(nstep))
-    plt.savefig('out/southpole.eps')
-    plt.savefig('out/southpole.png')
-    plt.close()
-
 def multireader(nmin, nmax):
 
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
@@ -139,5 +75,6 @@ def multireader(nmin, nmax):
         os.system('cp out/snapshot.eps out/shot'+str(k).rjust(ndigits, '0')+'.eps')
         os.system('cp out/northpole.eps out/north'+str(k).rjust(ndigits, '0')+'.eps')
         os.system('cp out/southpole.eps out/south'+str(k).rjust(ndigits, '0')+'.eps')
+        os.system('cp out/sgeff.eps out/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
         print 'shot'+str(k).rjust(ndigits, '0')+'.png'
         
