@@ -11,8 +11,8 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=460 # number of output entry for restart
+ifrestart=True
+nrest=3200 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 
 ##################################################
@@ -70,7 +70,7 @@ bump_beta  = 1./25.# size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 1000. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
 incle      = np.pi*0.08 # inclination of initial rotation, radians
@@ -81,5 +81,5 @@ ewind=0.1
 # if we start losing matter when the flow becomes unbound 
 ifwindlosses=False
 # friction time scale with the neutron star
-tfric=10.*dt
+tfric=10000.*dt
 
