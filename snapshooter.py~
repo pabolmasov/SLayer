@@ -1,0 +1,73 @@
+import matplotlib
+import numpy as np
+import shtns
+import matplotlib.pyplot as plt
+from matplotlib import rc
+import time
+from spharmt import Spharmt 
+import os
+import h5py
+
+#proper LaTeX support and decent fonts in figures 
+rc('font',**{'family':'serif','serif':['Times']})
+rc('mathtext',fontset='cm')
+rc('mathtext',rm='stix')
+rc('text', usetex=True)
+# #add amsmath to the preamble
+matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
+
+def plotnth(filename, nstep):
+
+    f = h5py.File(filename,'r')
+    params=f["params"]
+    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"]
+    lons1d = (2.*np.pi/nlons)*np.arange(nlons)
+    clats1d = 2.*np.arange(nlats)/np.double(nlats)-1.
+    lons,lats = np.meshgrid(lons1d, np.arcsin(clats1d))
+    lons*=180./np.pi ; lats*=180./np.pi
+    rsphere=params.attrs["rsphere"]
+    
+    keys=f.keys()
+    data=f[keys[nstep]]
+    vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:]
+    sig=data["sig"][:] ; diss=data["diss"][:]
+
+    # velocity
+    xx=ug-omega*rsphere*np.cos(lats) ; yy=vg
+    vv=np.sqrt(xx**2+yy**2)
+    vvmax=vv.max()
+
+    s0=sig.min() ; s1=sig.max()
+    nlev=20
+    levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
+    
+    skx = 8 ; sky=16
+    plt.clf()
+    fig=plt.figure()
+    plt.contourf(lons, lats, sig,cmap='jet',levels=levs)
+    plt.colorbar()
+    plt.quiver(lons[::skx, ::sky],
+        lats[::skx, ::sky],
+        xx[::skx, ::sky]*200./vvmax, yy[::skx, ::sky]*200./vvmax,
+        pivot='mid',
+        units='x',
+        linewidth=1.0,
+        color='k',
+        scale=8.0,
+    )
+    plt.xlabel('longitude')
+    plt.ylabel('latitude')
+    fig.set_size_inches(8, 5)
+    plt.savefig('out/snapshot.png')
+    plt.savefig('out/snapshot.eps')
+    plt.close()
+
+def multireader(nmax):
+
+    ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
+    
+    for k in np.arange(nmax):
+        plotnth('out/run.hdf5', k)
+        os.system('cp out/snapshot.png out/shot'+str(k).rjust(ndigits, '0')+'.png')
+        print 'shot'+str(k).rjust(ndigits, '0')+'.png'
+        

@@ -12,7 +12,7 @@ given in the [description](https://github.com/pabolmasov/swarm/blob/master/slaye
 
 Mass conservation equation (for surface density &Sigma;):
 
-https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CSigma%7D%7B%5Cpartial%20t%7D%20%3D%20-%20%5Cnabla%20%5Ccdot%20%28%5CSigma%20%5Cmathbf%7Bv%7D%29%20&plus;%20S%5E&plus;%20-%20S%5E-%2C
+<img src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CSigma%7D%7B%5Cpartial%20t%7D%20%3D%20-%20%5Cnabla%20%5Ccdot%20%28%5CSigma%20%5Cmathbf%7Bv%7D%29%20&plus;%20S%5E&plus;%20-%20S%5E-%2C">.
 
 where the right-hand side also contains source and sink terms. 
 

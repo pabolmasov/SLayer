@@ -39,7 +39,7 @@ def plotnth(filename, nstep):
     
     data=f["cycle_"+str(nstep).rjust(6, '0')]
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:] ; t=data.attrs["t"]
-    sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
+    sig=data["sig"][:] ; energy=data["energy"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
     f.close()
     
     # velocity
@@ -62,6 +62,9 @@ def plotnth(filename, nstep):
     geff=-grav+(ug**2+vg**2)/rsphere
     radgeff=sig*diss*kappa
     plots.sgeffplot(sig, grav, geff, radgeff) # Eddington violation plot
+
+    # Reynolds's stress (I know the Pythonic way to pronounce thiss!)
+    plots.reys(lons, lats, sig, ug, vg, energy,rsphere)
     
 def multireader(nmin, nmax):
 

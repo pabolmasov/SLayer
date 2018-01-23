@@ -387,7 +387,8 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     plt.savefig('out/southpole.eps')
     plt.savefig('out/southpole.png')
     plt.close()
-    
+
+# Effective gravity and Eddington violation diagnostic plot
 def sgeffplot(sig, grav, geff, radgeff):
     plt.clf()
     plt.plot(sig, radgeff+geff, ',k')
@@ -398,3 +399,35 @@ def sgeffplot(sig, grav, geff, radgeff):
     plt.ylabel(r'$g_{\rm eff}$, $GM/c$ units')
     plt.savefig('out/sgeff.eps')
     plt.close()
+
+# Reynolds stress plot (maybe we should make a time-averaged plot; think of it!)
+def reys(lons, lats, sig, ug,vg, energy, rsphere):
+
+    omega=ug/np.cos(lats)/rsphere
+    # shear domega/dtheta:
+    nx, ny=np.shape(omega)
+    omegamean=omega.mean(axis=1)
+    dodthmean = (omegamean[1:]-omegamean[:-1])/(lats[1:,0]-lats[:-1,0])
+#    dodthmean = dodth.mean(axis=1) / (omega[1:,:]+omega[:-1,:]).mean(axis=1)
+    omegamean=(omegamean[1:]+omegamean[:-1])/2.
+    energymean = (energy[1:,:]+energy[:-1,:]).mean(axis=1)/2.
+    dug=ug ; dvg=vg
+    for kx in np.arange(nx):
+        dug[kx,:]=ug[kx,:]-ug[kx,:].mean()
+        dvg[kx,:]=vg[kx,:]-vg[kx,:].mean()
+    rxy = sig * dug * dvg
+    rxy0 = sig * ug * vg
+#    rxy0mean = (rxy0[1:,:]+rxy0[:-1,:]).mean(axis=1)/2.
+    rxymean = (rxy[1:,:]+rxy[:-1,:]).mean(axis=1)/2.
+    latsmidpoint=(lats[1:,0]+lats[:-1,0])/2.
+    plt.clf()
+    plt.plot(latsmidpoint, rxymean, color='k')
+#    plt.plot(latsmidpoint, rxy0mean, color='r')
+    plt.plot(latsmidpoint, energymean*dodthmean/omegamean, '.b')
+    plt.xlabel(r'latitude, degrees')
+    plt.ylabel(r'stress')
+#    plt.ylim([rxymean.min(), rxymean.max()])
+    plt.savefig('out/rxy.eps')
+    plt.close()
+
+    

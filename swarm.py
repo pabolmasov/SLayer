@@ -97,7 +97,7 @@ divg  = x.sph2grid(divSpec)
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 sigma_diff = hyperdiff_fact
 hyperdiff_expanded = (x.lap/np.abs(x.lap).max())**(ndiss/2) / efold
-diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
+diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2)) # -- additional diffusion factor applied to energy dissipation (as there is high-frequency noise in dissipation function that we do not need to be introduced again through dissipation function)
 
 # sigma is an exact isothermal solution + an unbalanced bump
 # sig = sig0*np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) * (1. + hbump) # exact solution * (1 + perturbation)
@@ -331,7 +331,7 @@ for ncycle in np.arange(itmax+1):
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
     sigSpec *= sigma_diff 
-#    pressSpec *= sigma_diff 
+    energySpec *= sigma_diff 
 #    accflagSpec *= sigma_diff 
 
     # switch indices, do next time step
