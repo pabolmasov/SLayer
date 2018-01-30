@@ -112,14 +112,14 @@ def restart(restartfile, nrest, conf):
         x1.lats*=-1. # the picture gets upside down otherwise (why?)
         #        lons1,lats1 = np.meshgrid(x1.lons, x1.lats)
         # file contains dimensions nlats1, nlons1,
-        vortg1 = data["vortg"][:]  ;     divg1 = data["divg"][:] ;  sig1 = data["sig"][:] ;   accflag1 = data["accflag"][:] ; press1 = data["press"][:]
+        vortg1 = data["vortg"][:]  ;     divg1 = data["divg"][:] ;  sig1 = data["sig"][:] ;   accflag1 = data["accflag"][:] ; energy1 = data["energy"][:]
         # interpolation:
         vortfun =  si.interp2d(x1.lons, x1.lats, vortg1, kind='linear')
         divfun =  si.interp2d(x1.lons, x1.lats, divg1, kind='linear')
         sigfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
         energyfun =  si.interp2d(x1.lons, x1.lats, energy1, kind='linear')
         accflagfun =  si.interp2d(x1.lons, x1.lats, accflag1, kind='linear')
-        vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; pressg = pressfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
+        vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; energyg = energyfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
         # accflag may be smoothed without any loss of generality or stability
         dlats=np.pi/np.double(conf.nlats) ;  dlons=2.*np.pi/np.double(conf.nlons) # approximate size in latitudinal and longitudinal directions
         print "smoothing accflag"
