@@ -163,8 +163,8 @@ def sdotsource(lats, lons, latspread):
     
     w=np.where(np.fabs(devcos)<(latspread*5.))
     if(np.size(w)>0):
-        y[w]=sigplus*np.exp(-(devcos[w]/latspread)**2/.2)
-        y/=(2.*np.pi)**1.5*latspread
+        y[w]=sigplus*np.exp(-(devcos[w]/latspread)**2/2.)
+#        y/=(2.*np.pi)**1.5*latspread
     return y, devcos
 
 def sdotsink(sigma, sigmax):

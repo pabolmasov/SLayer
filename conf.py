@@ -11,10 +11,11 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
-nrest=3200 # number of output entry for restart
+ifrestart=False
+nrest=13327 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
-
+if(ifrestart):
+    nrest=0
 ##################################################
 # grid, time step info
 nlons  = 256          # number of longitudes
@@ -56,7 +57,7 @@ print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
 
 # Hyperdiffusion
 ##################################################
-efold = 1000.*dt # efolding timescale at ntrunc for hyperdiffusion
+efold = 10000.*dt # efolding timescale at ntrunc for hyperdiffusion
 efold_diss = efold # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
 
@@ -70,7 +71,7 @@ bump_beta  = 1./25.# size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 1e5 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
 incle      = np.pi*0.08 # inclination of initial rotation, radians
@@ -81,5 +82,5 @@ ewind=0.1
 # if we start losing matter when the flow becomes unbound 
 ifwindlosses=False
 # friction time scale with the neutron star
-tfric=10000.*dt
+tfric=10000.*pspin
 

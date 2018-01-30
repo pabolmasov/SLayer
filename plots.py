@@ -169,6 +169,8 @@ def visualize(t, nout,
     
     vorm=np.fabs(vortg-2.*cf.omega*np.sin(lats)).max()
 
+    mdot=cf.sigplus * 4. * np.pi * cf.latspread * cf.rsphere**2 *np.sqrt(4.*np.pi)
+    mdot_msunyr = mdot * 1.58649e-26 / cf.tscale
     mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
@@ -178,6 +180,7 @@ def visualize(t, nout,
     angmoy=(sig*ug*np.sin(lats)*np.sin(lons)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
     vangmo=np.sqrt(angmox**2+angmoy**2+angmoz**2) # total angular momentum 
 
+    print "t = "+str(t)
     print "angular momentum "+str(vangmo)+", inclined wrt z by "+str(np.arccos(angmoz/vangmo)*180./np.pi)+"deg"
     print "net angular momentum "+str(vangmo/mass)
     print "vorticity: "+str(vortg.min())+" to "+str(vortg.max())
@@ -192,6 +195,8 @@ def visualize(t, nout,
     print "total mass = "+str(mass)
     print "accreted mass = "+str(mass_acc)
     print "native mass = "+str(mass_native)
+    print "mdot = "+str(mdot_msunyr)
+    print "estimated accreted mass = "+str(mdot*t*cf.tscale)
     print "total energy = "+str(energy)
     print "net energy = "+str(energy/mass)
 
