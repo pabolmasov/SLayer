@@ -39,7 +39,7 @@ def visualizePoles(ax, angmo):
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
     ax.cla()
-    ax.plot(latsDeg, data, '.k',markersize=2)
+    ax.plot(latsDeg, data, ',k',markersize=2)
     ax.set_xlabel('latitude, deg')
     ax.set_ylabel(title)
     if(log):
@@ -48,8 +48,8 @@ def visualizeSprofile(ax, latsDeg, data, title="", log=False):
 def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="", log=False):
     # latitudal profile
     ax.cla()
-    ax.plot(latsDeg, data2, '.r',markersize=2)
-    ax.plot(latsDeg, data1, '.k',markersize=2)
+    ax.plot(latsDeg, data2, ',r',markersize=2)
+    ax.plot(latsDeg, data1, ',k',markersize=2)
     if(title1 == "$\Sigma$"):
         ax.plot(latsDeg, data1-data2, '.b',markersize=2)
 

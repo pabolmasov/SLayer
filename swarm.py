@@ -64,8 +64,8 @@ bmin=0. ; bmax=1. ; nb=1000
 b=(bmax-bmin)*((np.arange(nb)+0.5)/np.double(nb))+bmin
 bx=b/(1.-b)**0.25
 # b[0]=0. ; bx[0]=0. ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=(0.,1.))
-betasolve_e=si.interp1d(bx/(1.-b/2.)*3., b, kind='linear', bounds_error=False, fill_value=(0.,1.))
+betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=(0.,1.)) # as a function of pressure
+betasolve_e=si.interp1d(bx/(1.-b/2.)*3., b, kind='linear', bounds_error=False, fill_value=(0.,1.)) # as a function of energy
 # for k in np.arange(nb):
 #    print str(bx[k])+" -> "+str(b[k])+"\n"
 # rr=raw_input("d")
@@ -161,10 +161,10 @@ def sdotsource(lats, lons, latspread):
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
     
-    w=np.where(np.fabs(devcos)<(latspread*5.))
-    if(np.size(w)>0):
-        y[w]=sigplus*np.exp(-(devcos[w]/latspread)**2/2.)
-#        y/=(2.*np.pi)**1.5*latspread
+    #    w=np.where(np.fabs(devcos)<(latspread*5.))
+    #    if(np.size(w)>0):
+    y=sigplus*np.exp(-(devcos/latspread)**2/2.)
+    #        y/=(2.*np.pi)**1.5*latspread
     return y, devcos
 
 def sdotsink(sigma, sigmax):
@@ -239,7 +239,7 @@ for ncycle in np.arange(itmax+1):
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
 
     # baroclinic terms in vorticity and divirgence:
-    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg)*7./8.)  # ; grads1, grads2 = x.getGrad(sigSpec)
+    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
     vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig)
     # x.grid2sph((gradp1 * grads2 - gradp2 * grads1)*7./8.)
     # x.getVortDivSpec(tmpg1,tmpg2)

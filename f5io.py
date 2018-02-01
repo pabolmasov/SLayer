@@ -114,7 +114,7 @@ def restart(restartfile, nrest, conf):
         # file contains dimensions nlats1, nlons1,
         vortg1 = data["vortg"][:]  ;     divg1 = data["divg"][:] ;  sig1 = data["sig"][:] ;   accflag1 = data["accflag"][:] ; energy1 = data["energy"][:]
         # interpolation:
-        vortfun =  si.interp2d(x1.lons, x1.lats, vortg1, kind='linear')
+        vortfun =  si.interp2d(x1.lons, x1.lats, -vortg1, kind='linear')
         divfun =  si.interp2d(x1.lons, x1.lats, divg1, kind='linear')
         sigfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
         energyfun =  si.interp2d(x1.lons, x1.lats, energy1, kind='linear')

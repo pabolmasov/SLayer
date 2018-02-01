@@ -11,10 +11,10 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=13327 # number of output entry for restart
+ifrestart=True
+nrest=2700 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
-if(ifrestart):
+if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
@@ -48,7 +48,7 @@ kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
 mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
-cssqscale = 1.90162e-06 / mu / mass1**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
+cssqscale = 2.89591e-06 / mu / mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
 betamin=1e-5
 
 print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
@@ -74,7 +74,7 @@ bump_beta  = 1./25.# size of the perturbed region (latitude)
 sigplus = 1e5 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
-incle      = np.pi*0.08 # inclination of initial rotation, radians
+incle      = np.pi*0.02 # inclination of initial rotation, radians
 slon0       = 0.1 # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # wind efficiency parameter:
