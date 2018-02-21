@@ -55,7 +55,8 @@ fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <key
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
-        press=data["press"][:] ; beta=data["beta"][:]
+        energy=data["energy"][:] ; beta=data["beta"][:]
+        press = energy* 3. * (1.-beta/2.)
         tar[k]=data.attrs["t"]
         flux[k]=(press*(1.-beta)/(sig*kappa+1.)*cosa).sum()*dlons*dlats
         mass[k]=(sig*cosa).sum()*dlons*dlats
