@@ -20,7 +20,7 @@ matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"]
 # it's much cheaper to read the datafile once and compute multiple data points
 def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     """
-fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <keywords>)
+    fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <keywords>)
     keywords:
     nbins -- number of bins in spectral space for PDS averaging
     ntimes -- number of temporal intervals for PDS calculation (for dynamic spectral analysis)

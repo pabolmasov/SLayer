@@ -11,24 +11,21 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
-nrest=2700 # number of output entry for restart
+ifrestart=False
+nrest=3100 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid
+# dt=1e-9
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
-dt     = 1.e-9       # time step in seconds
 itmax  = 10000000    # number of iterations
-outskip= 1000 # how often do we output the snapshots
-
-dt/=tscale # dt now in tscales
-print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
+outskip= 2000 # how often do we output the snapshots
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
@@ -38,7 +35,13 @@ grav       = 1./rsphere**2         # gravity
 sig0       = 1e5                   # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
+print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 
+# dt/=tscale # dt now in tscales
+dx = 1./np.double(nlons)/rsphere
+dt = dx*0.2 # 0.5e-9/tscale 
+print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
+# ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
@@ -63,19 +66,19 @@ ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
 
 ##################################################
 #perturbation parameters
-bump_amp  = 0.25     # height perturbation amplitude
-bump_phi0  = np.pi/3. # perturbation latitude
+bump_amp  = -0.95     # perturbation amplitude
+bump_phi0  = np.pi/6. # perturbation latitude
 bump_lon0  = np.pi/3. # perturbation longitude
-bump_alpha = 1./10. # size of the perturbed region (longitude)
-bump_beta  = 1./25.# size of the perturbed region (latitude)
+bump_alpha = 1./5. # size of the perturbed region (longitude)
+bump_beta  = 1./5. # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 1e5 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 0. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
-incle      = np.pi*0.02 # inclination of initial rotation, radians
-slon0       = 0.1 # longitudinal shift of the source, radians
+incle     = latspread*0.0 # inclination of initial rotation, radians
+slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # wind efficiency parameter:
 ewind=0.1

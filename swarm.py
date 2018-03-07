@@ -60,12 +60,14 @@ from conf import ifwindlosses
 
 ############################
 # beta calibration
-bmin=0. ; bmax=1. ; nb=1000
+bmin=1e-7 ; bmax=1.-bmin ; nb=1000
+# hard limits for stability; bmin\sim 1e-7 approximately corresponds to Coulomb coupling G\sim 1,
+# hence there is even certain physical meaningn in bmin
 b=(bmax-bmin)*((np.arange(nb)+0.5)/np.double(nb))+bmin
 bx=b/(1.-b)**0.25
 # b[0]=0. ; bx[0]=0. ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=(0.,1.)) # as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)*3., b, kind='linear', bounds_error=False, fill_value=(0.,1.)) # as a function of energy
+betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=(bmin,bmax)) # as a function of pressure
+betasolve_e=si.interp1d(bx/(1.-b/2.)*3., b, kind='linear', bounds_error=False, fill_value=(bmin,bmax)) # as a function of energy
 # for k in np.arange(nb):
 #    print str(bx[k])+" -> "+str(b[k])+"\n"
 # rr=raw_input("d")
@@ -98,6 +100,9 @@ hyperdiff_fact = np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 sigma_diff = hyperdiff_fact
 hyperdiff_expanded = (x.lap/np.abs(x.lap).max())**(ndiss/2) / efold
 diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2)) # -- additional diffusion factor applied to energy dissipation (as there is high-frequency noise in dissipation function that we do not need to be introduced again through dissipation function)
+# print "kmax = "+str((np.abs(x.lap).max()))
+# print "or "+str(nlons)
+# rr=raw_input(" ")
 
 # sigma is an exact isothermal solution + an unbalanced bump
 # sig = sig0*np.exp(-(omega*rsphere)**2/csqmin/2.*(1.-np.cos(lats))) * (1. + hbump) # exact solution * (1 + perturbation)
@@ -133,8 +138,9 @@ nold = 2
 # restart module:
 
 if(ifrestart):
-    vortg, divg, sig, energyg, accflag = f5io.restart(restartfile, nrest, conf)
+    vortg, divg, sig, energyg, accflag, t0 = f5io.restart(restartfile, nrest, conf)
 else:
+    t0=0.
     nrest=0
         
 sigSpec  = x.grid2sph(sig)
@@ -187,7 +193,7 @@ nout=nrest
 
 for ncycle in np.arange(itmax+1):
     # for ncycle in range(2): # debug option
-    t = (ncycle+nrest*outskip)*dt
+    t = ncycle*dt+t0
     # get vort,u,v,sigma on grid
     vortg = x.sph2grid(vortSpec)
     sig  = x.sph2grid(sigSpec)
@@ -197,20 +203,27 @@ for ncycle in np.arange(itmax+1):
     ug,vg = x.getuv(vortSpec,divSpec) # velocity components
     geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
     sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation
-    beta = betasolve_e(cssqscale*sig/energyg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, energy, and geff   
+    beta = betasolve_e(cssqscale*sig/energyg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, energy, and geff
+    wbnan=np.where(np.isnan(beta))
+    if(np.size(wbnan)>0):
+        print "beta = "+str(beta[wbnan])
+        print "geff = "+str(geff[wbnan])
+        print "sig = "+str(sig[wbnan])
+        print "energy = "+str(energyg[wbnan])
+        ii=raw_input("betanan")
     pressg=energyg / 3. / (1.-beta/2.)
     # vorticity flux
     tmpg1 = ug*vortg
     tmpg2 = vg*vortg
-    ddivdtSpec[:,nnew], dvortdtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
+    ddivdtSpec[:,nnew], dvortdtSpec[:,nnew] = x.getVortDivSpec(tmpg1 /rsphere,tmpg2 /rsphere) # all the nablas should contain an additional 1/R multiplier
     dvortdtSpec[:,nnew] *= -1
     tmpg = x.sph2grid(ddivdtSpec[:,nnew])
     tmpg1 = ug*sig; tmpg2 = vg*sig
-    tmpSpec, dsigdtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
+    tmpSpec, dsigdtSpec[:,nnew] = x.getVortDivSpec(tmpg1 /rsphere,tmpg2 /rsphere) # all the nablas should contain an additional 1/R multiplier
     dsigdtSpec[:,nnew] *= -1
     # energy (pressure) flux:
     tmpg1 = ug*energyg; tmpg2 = vg*energyg
-    tmpSpec, denergydtSpec[:,nnew] = x.getVortDivSpec(tmpg1,tmpg2)
+    tmpSpec, denergydtSpec[:,nnew] = x.getVortDivSpec(tmpg1 /rsphere,tmpg2 /rsphere) # all the nablas should contain an additional 1/R multiplier
     wunbound=np.where(geff>=0.) # extreme case; we can be unbound due to pressure
     if(np.size(wunbound)>0):
         print str(np.size(wunbound))+" unbound points with geff>0"
@@ -239,20 +252,20 @@ for ncycle in np.arange(itmax+1):
     ddivdtSpec[:,nnew] += -x.lap*tmpSpec
 
     # baroclinic terms in vorticity and divirgence:
-    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
-    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig)
+    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg)/rsphere)  # ; grads1, grads2 = x.getGrad(sigSpec)
+    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig/rsphere,gradp2/sig/rsphere)
     # x.grid2sph((gradp1 * grads2 - gradp2 * grads1)*7./8.)
     # x.getVortDivSpec(tmpg1,tmpg2)
     ddivdtSpec[:,nnew] += -divpressbarSpec 
     dvortdtSpec[:,nnew] += -vortpressbarSpec
 
-    # energy sources and sinks:
-    qplus = sig * dissipation 
-    qminus = 0.75 / kappa * (1.-beta) * (-geff)
+    # energy sources and sinks:   
+    qplus = sigpos * dissipation 
+    qminus = (-geff) * sigpos / 3. / (1.+kappa*sigpos) * (1.-beta) 
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
 
     # Bernoulli constant:
-    B=(ug**2+vg**2)/2.+7.*pressg/sig-1./rsphere
+    B=(ug**2+vg**2)/2.+3.75*pressg/sig-1./rsphere # v^2/2+15/4 Pi/Sigma -1/R
     if((B.max()>0.)&(ifwindlosses)): # if the flow becomes unbound, we have the right to expel some matter with radiation pressure
         sdotminuswind*=0.
         wunbound=np.where(B>0.)
@@ -262,6 +275,35 @@ for ncycle in np.arange(itmax+1):
         qminuswind=sdotminuswind*pressg/sig*(4.-beta*1.5) # adiabatic cooling due to wind launching
         qminus+=qminuswind
         
+    # emergency cooling: too hot
+    iftoothick=False
+    if(iftoothick):
+        cssq=5.*pressg/sig
+        cssqmax=0.1
+        woutx, wouty=np.where(cssq>cssqmax)
+#        print woutx
+        ns=np.size(woutx)
+        dmax=2.*np.pi/np.double(nlons)*3. # radians
+        sig1=sig
+#        energyg1=energyg ; pressg1=pressg
+#        print sig[woutx,wouty].max()
+#        print sig[woutx,wouty].min()
+        if(ns>0):
+            print "relativistic hot spots: "+str(np.size(woutx))
+#            ii=raw_input("")
+            for ks in np.arange(ns):
+                dist=np.cos(lats)*np.cos(lats[woutx[ks], wouty[ks]])+np.sin(lats)*np.sin(lats[woutx[ks], wouty[ks]])*np.cos(lons[woutx[ks], wouty[ks]]-lons)
+                dist=np.arccos(dist)
+#                print dist.max()
+                wnear=np.where((dist<dmax)&(dist>(dmax/10.))) # nearby points
+                emean=np.median(energyg[wnear]) ; pmean=np.median(pressg[wnear])
+                smean=np.median(sig[wnear])
+#                print "replaced "+str(sig[woutx[ks], wouty[ks]])+" with "+str(smean)
+                sig1[woutx[ks], wouty[ks]]=smean
+            #    print "replaced "+str(energyg[woutx[ks], wouty[ks]])+" with "+str(emean)
+            #                energyg1[woutx[ks], wouty[ks]]=emean ; pressg1[woutx[ks], wouty[ks]]=pmean
+            #            energyg=energyg1 ; pressg=pressg1
+            sig=sig1
     # source terms in mass:
     sdotplus, sina=sdotsource(lats, lons, latspread)
     sdotminus=sdotsink(sig, sigmax)+sdotminuswind
@@ -304,7 +346,7 @@ for ncycle in np.arange(itmax+1):
         dsigdtSpec[:,nold] = dsigdtSpec[:,nnew]
         denergydtSpec[:,nold] = denergydtSpec[:,nnew]
         daccflagdtSpec[:,nold] = daccflagdtSpec[:,nnew]
-
+        # regular step with a 3rd order Adams-Bashforth
     vortSpec += dt*( \
     (23./12.)*dvortdtSpec[:,nnew] - (16./12.)*dvortdtSpec[:,nnow]+ \
     (5./12.)*dvortdtSpec[:,nold] )

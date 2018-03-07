@@ -202,6 +202,8 @@ def visualize(t, nout,
 
     dismax=(dissipation*sig).max()
 
+    cspos=(press/sig+np.fabs(press/sig))/2.
+    
     #vorticity
     visualizeMap(axs[0], 
                  lonsDeg, latsDeg, 
@@ -211,8 +213,8 @@ def visualize(t, nout,
     # pressure
     visualizeMap(axs[1], 
                  lonsDeg, latsDeg, 
-                 press/sig, 
-                 (press/sig).min(), (press/sig).max(), 
+                 cspos, 
+                 (cspos).min(), (cspos).max(), 
                  title="$\Pi/\Sigma c^2$")
     
     #    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
@@ -268,8 +270,8 @@ def visualize(t, nout,
 
     visualizeTwoprofiles(axs[5], 
                          lonsDeg, latsDeg, 
-                         sig, 
-                         sig*accflag, 
+                         sigpos, 
+                         sigpos*accflag, 
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
                          log=True)
@@ -327,6 +329,8 @@ def visualize(t, nout,
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
     plt.close()
 
+##########################################################################
+#    
 ##########################################################################    
 # post-factum visualizations form snapshooter:
 def snapplot(lons, lats, sig, accflag, vx, vy, sks):
@@ -341,7 +345,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
 
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, np.log(sig),cmap='jet') #,levels=levs)
+    plt.contourf(lons, lats, np.log10(sig),cmap='jet') #,levels=levs)
     plt.colorbar()
     plt.contour(lons, lats, accflag, levels=[0.5], colors='w') #,levels=levs)
     plt.quiver(lons[::skx, ::sky],
@@ -363,7 +367,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     # drawing poles:
     nlons=np.size(lons)
     tinyover=1./np.double(nlons)
-    theta=90.*(1.+tinyover)-lats
+    theta=lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
@@ -381,7 +385,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
-    tinyover=1./np.double(nlons)
+#    tinyover=0./np.double(nlons)
     ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, sig,cmap='jet',levels=levs)
     ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
@@ -391,6 +395,73 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     plt.title('S') #, t='+str(nstep))
     plt.savefig('out/southpole.eps')
     plt.savefig('out/southpole.png')
+    plt.close()
+
+# general framework for a post-processed map of some quantity q
+def somemap(lons, lats, q, outname):
+    wnan=np.where(np.isnan(q))
+    nnan=np.size(wnan)
+    print outname+" somemap: "+str(nnan)+"NaN points out of "+str(np.size(q))
+    plt.clf()
+    fig=plt.figure()
+    plt.contourf(lons, lats, q,cmap='jet') #,levels=levs)
+    plt.colorbar()
+    plt.xlabel('longitude')
+    plt.ylabel('latitude')
+    fig.set_size_inches(8, 5)
+    plt.savefig(outname)
+    plt.close()
+    
+# vorticity correlated with other quantities
+def vortgraph(lats, lons, vort, sig, energy, omegaNS, lonrange=[0.,360.]):
+    lon1=lonrange[0] ; lon2=lonrange[1]
+    w=np.where((lons>lon1)&(lons<lon2))
+    do=vort+2.*omegaNS*np.cos(lats*np.pi/180.)
+    plt.clf()
+    plt.plot(lats, vort, ',k')
+    plt.plot(lats, -2.*omegaNS*np.cos(lats*np.pi/180.),',r')
+    plt.ylabel(r'$\omega$')
+    plt.xlabel(r'$\theta$, deg')
+    plt.savefig('out/vortgraph.eps')
+    plt.close()
+    domedian=np.median(do,axis=1) ; csmedian=np.median((energy/sig),axis=1)
+    plt.clf()
+    plt.plot(domedian, csmedian, color='k')
+    plt.scatter(do[w], (energy/sig)[w], c=lats[w]*np.pi/180., cmap='jet', s=((lons[w]-(lon1+lon2)/2.)/(lon2-lon1))**2*100., marker='d', facecolors='none')
+#    plt.plot((vort+2.*omegaNS*np.cos(lats*np.pi/180.))[w], (energy/sig)[w], markerfacecolors='none', markeredgecolors=lats[w]*np.pi/180., cmap='jet', markersize=((lons[w]-(lon1+lon2)/2.)/(lon2-lon1))**2*50.)
+    plt.xlabel(r'$\Delta\omega$')
+    plt.ylabel(r'$E/\Sigma$')
+    #    plt.xscale('log')
+    # plt.yscale('log')
+    plt.ylim(np.percentile((energy/sig)[w], 1.), np.percentile((energy/sig)[w], 99.9)*1.2)
+    plt.xlim(np.percentile(do[w], 1.)*1.1, np.percentile(do[w], 99.9)*1.1)
+    plt.savefig('out/vortcs.eps')
+    plt.close()
+
+def dissgraph(sig, energy, diss, vsq, accflag):
+    w=np.where(accflag>0.75)
+    w0=np.where(accflag<0.25)
+    plt.clf()
+    plt.plot(sig, vsq/2., '.g')
+    plt.plot(sig, energy/sig, '.k')
+    plt.plot(sig[w], energy[w]/sig[w], '.b')
+    plt.plot(sig[w0], energy[w0]/sig[w0], '.r')
+    plt.xlabel(r'$\Sigma$')
+    plt.ylabel(r'$E/\Sigma$')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.ylim((energy/sig).min(),(energy/sig).max())
+    plt.savefig('out/effeos.eps')
+    plt.close()
+    plt.clf()
+    plt.plot(sig, diss, ',k')
+    plt.plot(sig[w], diss[w], ',b')
+    plt.plot(sig[w0], diss[w0], ',r')
+    plt.xlabel(r'$\Sigma$')
+    plt.ylabel(r'dissipation')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.savefig('out/dissigma.eps')
     plt.close()
 
 # Effective gravity and Eddington violation diagnostic plot

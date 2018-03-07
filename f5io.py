@@ -136,11 +136,12 @@ def restart(restartfile, nrest, conf):
         sig   = data["sig"][:]
         energyg   = data["energy"][:]
         accflag   = data["accflag"][:]
+    t0=data.attrs["t"]
     f5.close()
 
     # if successful, we need to take the file off the way
     #    os.system("mv "+restartfile+" "+restartfile+".backup")
 
-    return vortg, divg, sig, energyg, accflag
+    return vortg, divg, sig, energyg, accflag, t0
 
 
