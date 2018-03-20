@@ -251,7 +251,7 @@ def visualize(t, nout,
     visualizeMap(axs[3], 
                  lonsDeg, latsDeg, 
                  beta, 
-                 beta.min(), beta.max(), 
+                 0., 1., 
                  title=r'$\beta$')
 
 #    visualizeSprofile(axs[3], 
@@ -337,13 +337,6 @@ def visualize(t, nout,
     axs[0].set_title('{:7.3f} ms'.format( t*cf.tscale*1e3) )
     scycle = str(nout).rjust(6, '0')
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
-    plt.close()
-    plt.clf()
-    plt.plot(cspos, beta, '.k')
-    plt.xscale('log')
-    plt.xlabel(r'$c_{\rm s}$')
-    plt.ylabel(r'$\beta$')
-    plt.savefig('csbeta.eps')
     plt.close()
 ##########################################################################
 #    

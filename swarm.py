@@ -65,11 +65,11 @@ bmin=betamin ; bmax=1.-betamin ; nb=1000
 # hence there is even certain physical meaningn in bmin
 b=(bmax-bmin)*((np.arange(nb)+0.5)/np.double(nb))+bmin
 bx=b/(1.-b)**0.25
-# b[0]=0. ; bx[0]=0. ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=(0.,1.))
-                        #(bmin,bmax)) # as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)*3., b, kind='linear', bounds_error=False,fill_value=(0.,1.))
-                        #fill_value=(bmin,bmax)) # as a function of energy
+b[0]=0. ; bx[0]=0.  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
+betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
+#(bmin,bmax)) # as a function of pressure
+betasolve_e=si.interp1d(bx/(1.-b/2.)*3., b, kind='linear', bounds_error=False,fill_value=1.)
+#fill_value=(bmin,bmax)) # as a function of energy
 # for k in np.arange(nb):
 #    print str(bx[k])+" -> "+str(b[k])+"\n"
 # rr=raw_input("d")
