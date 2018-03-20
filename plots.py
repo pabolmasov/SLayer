@@ -5,6 +5,16 @@ import scipy.ndimage as spin
 import matplotlib.pyplot as plt
 import numpy.ma as ma
 
+# font adjustment:
+import matplotlib
+from matplotlib import rc
+rc('font',**{'family':'serif','serif':['Times']})
+rc('mathtext',fontset='cm')
+rc('mathtext',rm='stix')
+rc('text', usetex=True)
+# #add amsmath to the preamble
+matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
+
 ##################################################
 
 # converts two components to an angle (change to some implemented function!)
@@ -328,7 +338,13 @@ def visualize(t, nout,
     scycle = str(nout).rjust(6, '0')
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
     plt.close()
-
+    plt.clf()
+    plt.plot(cspos, beta, '.k')
+    plt.xscale('log')
+    plt.xlabel(r'$c_{\rm s}$')
+    plt.ylabel(r'$\beta$')
+    plt.savefig('csbeta.eps')
+    plt.close()
 ##########################################################################
 #    
 ##########################################################################    

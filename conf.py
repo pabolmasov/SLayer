@@ -11,8 +11,8 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=3100 # number of output entry for restart
+ifrestart=True
+nrest=97 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -25,7 +25,7 @@ nlats  = int(nlons/2) # for gaussian grid
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
 itmax  = 10000000    # number of iterations
-outskip= 2000 # how often do we output the snapshots
+outskip= 100000 # how often do we output the snapshots
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
@@ -52,7 +52,7 @@ mu=0.6 # mean molecular weight
 mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
 cssqscale = 2.89591e-06 / mu / mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
-betamin=1e-5
+betamin=1e-7
 
 print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
 
