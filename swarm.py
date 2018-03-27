@@ -204,6 +204,7 @@ for ncycle in np.arange(itmax+1):
     energyg  = x.sph2grid(energySpec)
     ug,vg = x.getuv(vortSpec,divSpec) # velocity components
     geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
+    geff=(geff-np.fabs(geff))/2. # only negative geff
     sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation
     beta = betasolve_e(cssqscale*sig/energyg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, energy, and geff
     wbnan=np.where(np.isnan(beta))

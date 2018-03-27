@@ -12,7 +12,7 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=True
-nrest=97 # number of output entry for restart
+nrest=100 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -29,7 +29,7 @@ outskip= 100000 # how often do we output the snapshots
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 1e-2                  # spin period, in seconds
+pspin      = 10.                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 sig0       = 1e5                   # own neutron star atmosphere scale
@@ -38,13 +38,13 @@ print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 
 # dt/=tscale # dt now in tscales
-dx = 1./np.double(nlons)/rsphere
-dt = dx*0.2 # 0.5e-9/tscale 
+dx = rsphere/np.double(nlons)
+dt = dx*0.4 # 0.5e-9/tscale 
 print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
 # ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
-csqmin=1e-6 # speed of sound squared (minimal or isothermal)
+csqmin=1e-4 # speed of sound squared (minimal or isothermal)
 csqinit=1e-3 # initial speed of sound squared
 
 kappa = 0.35 # opacity, cm^2/g
@@ -52,7 +52,8 @@ mu=0.6 # mean molecular weight
 mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
 cssqscale = 2.89591e-06 / mu / mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
-betamin=1e-7
+betamin=1e-7 # beta is solved for in the range betamin .. 1-betamin
+# there is a singularity near beta=1, not sure about beta=0
 
 print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
 
@@ -66,7 +67,7 @@ ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
 
 ##################################################
 #perturbation parameters
-bump_amp  = -0.95     # perturbation amplitude
+bump_amp  = -0.05     # perturbation amplitude
 bump_phi0  = np.pi/6. # perturbation latitude
 bump_lon0  = np.pi/3. # perturbation longitude
 bump_alpha = 1./5. # size of the perturbed region (longitude)
