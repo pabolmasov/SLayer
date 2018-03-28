@@ -25,7 +25,7 @@ nlats  = int(nlons/2) # for gaussian grid
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
 itmax  = 10000000    # number of iterations
-outskip= 100000 # how often do we output the snapshots
+outskip= 10000 # how often do we output the snapshots
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
@@ -39,19 +39,20 @@ print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 
 # dt/=tscale # dt now in tscales
 dx = rsphere/np.double(nlons)
-dt = dx*0.4 # 0.5e-9/tscale 
+dt = dx*0.01 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
 print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
 # ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
-csqmin=1e-4 # speed of sound squared (minimal or isothermal)
+csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 csqinit=1e-3 # initial speed of sound squared
 
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
 mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
-cssqscale = 2.89591e-06 / mu / mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
+cssqscale = 2.89591e-06 / mu * mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
+# if csqmin>cssqscale, we are inevitably super-Eddington
 betamin=1e-7 # beta is solved for in the range betamin .. 1-betamin
 # there is a singularity near beta=1, not sure about beta=0
 

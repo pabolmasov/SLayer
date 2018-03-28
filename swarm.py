@@ -68,7 +68,7 @@ bx=b/(1.-b)**0.25
 b[0]=0. ; bx[0]=0.  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
 betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
 #(bmin,bmax)) # as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)*3., b, kind='linear', bounds_error=False,fill_value=1.)
+betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value=1.)
 #fill_value=(bmin,bmax)) # as a function of energy
 # for k in np.arange(nb):
 #    print str(bx[k])+" -> "+str(b[k])+"\n"
@@ -101,7 +101,7 @@ divg  = x.sph2grid(divSpec)
 hyperdiff_fact = np.exp((-dt/efold)*(x.lap/np.abs(x.lap).max())**(ndiss/2))
 sigma_diff = hyperdiff_fact
 hyperdiff_expanded = (x.lap/np.abs(x.lap).max())**(ndiss/2) / efold
-diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2)) # -- additional diffusion factor applied to energy dissipation (as there is high-frequency noise in dissipation function that we do not need to be introduced again through dissipation function)
+diss_diff = np.exp((-dt/efold_diss)*(x.lap/np.abs(x.lap).max())**(ndiss/2)) # -- additional diffusion factor applied to energy dissipation (as there is high-frequency noise in dissipation function that we do not want to be introduced again through dissipation function)
 # print "kmax = "+str((np.abs(x.lap).max()))
 # print "or "+str(nlons)
 # rr=raw_input(" ")
@@ -206,6 +206,7 @@ for ncycle in np.arange(itmax+1):
     geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
     geff=(geff-np.fabs(geff))/2. # only negative geff
     sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation
+    # there could be bias if many sigma<0 points appear
     beta = betasolve_e(cssqscale*sig/energyg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, energy, and geff
     wbnan=np.where(np.isnan(beta))
     if(np.size(wbnan)>0):
@@ -320,8 +321,18 @@ for ncycle in np.arange(itmax+1):
     divdotSpec=x.grid2sph(divdot)
     dvortdtSpec[:,nnew] += vortdotSpec
     ddivdtSpec[:,nnew] += divdotSpec
-
-    denergydtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.))
+    energy_dt=1./(np.fabs(qplus - qminus + qns)/energyg).max()
+    if( energy_dt<=dt): # very rapid thermal evolution; we can artificially 
+        print "energy dt = "+str(energy_dt)
+        print "compare to dt = "+str(dt)
+        energy_dt=1./np.fabs((qplus - qminus + qns)/energyg)
+        #        rdt=raw_input('dt')
+        # solving for beta
+        betanew=1.-3.*(1.+kappa*sigpos)/(-geff)*(dissipation+qns/sigpos)
+        energynew=3.*cssqscale*sigpos**1.25*(-geff)**0.25*(1.-betanew)**0.25*(1.-betanew/2.)/betanew
+        denergydtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns)*(1.-np.exp(-energy_dt/dt/2.)))
+    else:
+        denergydtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.))
     #    dpressdtSpec[:,nnew] += x.grid2sph((qplus - qminus + qns) / 3. /(1.-beta/2.)+sdotplus*csqmin-pressg/sig*sdotminus)
     # passive scalar evolution:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
@@ -363,8 +374,8 @@ for ncycle in np.arange(itmax+1):
     (5./12.)*dsigdtSpec[:,nold] )
 
     energySpec += dt*( \
-    (23./12.)*denergydtSpec[:,nnew] - (16./12.)*denergydtSpec[:,nnow]+ \
-    (5./12.)*denergydtSpec[:,nold] )
+                       (23./12.)*denergydtSpec[:,nnew] - (16./12.)*denergydtSpec[:,nnow]+ \
+                       (5./12.)*denergydtSpec[:,nold] )
 
     accflagSpec += dt*( \
     (23./12.)*daccflagdtSpec[:,nnew] - (16./12.)*daccflagdtSpec[:,nnow]+ \
