@@ -49,7 +49,7 @@ def visualizePoles(ax, angmo):
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
     ax.cla()
-    ax.plot(latsDeg, data, ',k',markersize=2)
+    ax.plot(latsDeg, data, '.k',markersize=2)
     ax.set_xlabel('latitude, deg')
     ax.set_ylabel(title)
     if(log):
@@ -58,8 +58,8 @@ def visualizeSprofile(ax, latsDeg, data, title="", log=False):
 def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="", log=False):
     # latitudal profile
     ax.cla()
-    ax.plot(latsDeg, data2, ',r',markersize=2)
-    ax.plot(latsDeg, data1, ',k',markersize=2)
+    ax.plot(latsDeg, data2, '.r',markersize=2)
+    ax.plot(latsDeg, data1, '.k',markersize=2)
     if(title1 == "$\Sigma$"):
         ax.plot(latsDeg, data1-data2, '.b',markersize=2)
 
@@ -109,7 +109,6 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
 
 
 def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
-
     """ 
     make a quiver map plot of the incoming vector field (in grid)
     """
@@ -125,11 +124,12 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.std() # normalization
-
-    sk = 10
+    nlons=np.size(np.unique(lonsDeg))
+    sk = int(np.floor(5.*np.double(nlons)/128.))
+    #    print "nlons="+str(nlons)
     sigma = [sk/2., sk/2.]
-    xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*40./vvmax
-    yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*40./vvmax
+    xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*30./vvmax
+    yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*30./vvmax
     
     ax.quiver(
         lonsDeg[::sk, ::sk],
@@ -333,7 +333,7 @@ def visualize(t, nout,
                          title2=r"$v_\theta$" )
     axs[9].plot(latsDeg, cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
     axs[9].plot(latsDeg, cf.overkepler*cf.rsphere**(-0.5)*np.cos(lats), color='g', linewidth=1)
-
+    axs[9].set_ylim(ug.min()+vg.min(), ug.max()+vg.max())
     axs[0].set_title('{:7.3f} ms'.format( t*cf.tscale*1e3) )
     scycle = str(nout).rjust(6, '0')
     plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 

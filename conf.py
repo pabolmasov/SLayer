@@ -11,14 +11,14 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
-nrest=100 # number of output entry for restart
+ifrestart=False
+nrest=160 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 128          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid
 # dt=1e-9
@@ -29,23 +29,23 @@ outskip= 10000 # how often do we output the snapshots
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 10.                  # spin period, in seconds
+pspin      = 0.01                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
-sig0       = 1e5                   # own neutron star atmosphere scale
+sig0       = 1e6                   # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
 print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
 print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 
 # dt/=tscale # dt now in tscales
 dx = rsphere/np.double(nlons)
-dt = dx*0.01 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
+dtcfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
 print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
 # ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
-csqmin=1e-6 # speed of sound squared (minimal or isothermal)
-csqinit=1e-3 # initial speed of sound squared
+csqmin=1e-2 # speed of sound squared (minimal or isothermal)
+csqinit=1e-2 # initial speed of sound squared
 
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
@@ -57,6 +57,7 @@ betamin=1e-7 # beta is solved for in the range betamin .. 1-betamin
 # there is a singularity near beta=1, not sure about beta=0
 
 print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
+print "vertical scaleheight is ~ "+str(csqmin/grav)+" = "+str(csqmin/grav/dx)+"dx"
 
 ##################################################
 
@@ -79,7 +80,7 @@ bump_beta  = 1./5. # size of the perturbed region (latitude)
 sigplus = 0. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
-incle     = latspread*0.0 # inclination of initial rotation, radians
+incle     = latspread*.1 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # wind efficiency parameter:
@@ -87,5 +88,5 @@ ewind=0.1
 # if we start losing matter when the flow becomes unbound 
 ifwindlosses=False
 # friction time scale with the neutron star
-tfric=10000.*pspin
+tfric=1000.*pspin/tscale
 
