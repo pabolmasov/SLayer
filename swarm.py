@@ -1,21 +1,9 @@
-# Simple spherical harmonic shallow water model toy code based on shtns library.
-#
-# 
-# Refs:
-#  "non-linear barotropically unstable shallow water test case"
-#  example provided by Jeffrey Whitaker
-#  https://gist.github.com/jswhit/3845307
-#
-#  Galewsky et al (2004, Tellus, 56A, 429-440)
-#  "An initial-value problem for testing numerical models of the global
-#  shallow-water equations" DOI: 10.1111/j.1600-0870.2004.00071.x
-#  http://www-vortex.mcs.st-and.ac.uk/~rks/reprints/galewsky_etal_tellus_2004.pdf
-#  
-#  shtns/examples/shallow_water.py
-#
-#  Jakob-Chien et al. 1995:
-#  "Spectral Transform Solutions to the Shallow Water Test Set"
-#
+"""
+Main module of SLayer, supposed to be run under ipython as 
+> %run swarm.py
+
+All the parameters are set in conf.py
+"""
 
 import numpy as np
 import scipy.ndimage as spin
@@ -45,7 +33,7 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 #import simulation parameters to global scope
 from conf import nlons, nlats
 from conf import grav, rsphere
-from conf import dtcfl, omega, rsphere, sig0, sigfloor, overkepler, tscale
+from conf import dt_cfl, omega, rsphere, sig0, sigfloor, overkepler, tscale, dtout
 from conf import bump_amp, bump_phi0, bump_lon0, bump_alpha, bump_beta  #initial perturbation parameters
 from conf import efold, ndiss, efold_diss
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
@@ -86,7 +74,7 @@ lats1d = (180./np.pi)*x.lats
 
 ############
 # time step
-dt=dtcfl # if we are in trouble, dt=1./(1./dtcfl + 1./dtthermal)
+dt=dt_cfl # if we are in trouble, dt=1./(1./dtcfl + 1./dtthermal)
 
 #######################################################
 ## initial conditions: ###
@@ -98,7 +86,7 @@ vg = ug*0.
 hbump = bump_amp*np.cos(lats)*np.exp(-((lons-bump_lon0)/bump_alpha)**2)*np.exp(-(bump_phi0-lats)**2/bump_beta)
 
 # initial vorticity, divergence in spectral space
-vortSpec, divSpec =  x.getVortDivSpec(ug,vg)/rsphere 
+vortSpec, divSpec =  x.getVortDivSpec(ug/rsphere,vg/rsphere) 
 vortg = x.sph2grid(vortSpec)
 vortgNS = x.sph2grid(vortSpec) # rotation of the neutron star 
 divg  = x.sph2grid(divSpec)
@@ -236,7 +224,7 @@ for ncycle in np.arange(itmax+1):
     wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
     if(np.size(wnan)>0):
         dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
-    dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)*rsphere
+    dissug, dissvg = x.getuv(dissvortSpec*rsphere, dissdivSpec*rsphere)
     dissipation=(ug*dissug+vg*dissvg) # v . dv/dt_diss
     dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
     if(np.size(wunbound)>0):
@@ -265,8 +253,8 @@ for ncycle in np.arange(itmax+1):
         
     # source terms in mass:
     sdotplus, sina=sdotsource(lats, lons, latspread)
-    sdotminus=sdotsink(sig, sigmax)+sdotminuswind
-    sdotSpec=x.grid2sph(sdotplus-sdotminus-sdotminuswind)
+    sdotminus=sdotsink(sig, sigmax)
+    sdotSpec=x.grid2sph(sdotplus-sdotminus)
     dsigdtSpec += sdotSpec
 
     # source term in vorticity
@@ -276,7 +264,9 @@ for ncycle in np.arange(itmax+1):
     divdotSpec=x.grid2sph(divdot)
     dvortdtSpec += vortdotSpec
     ddivdtSpec += divdotSpec
-    dt_thermal=1./(np.fabs(qplus - qminus + qns)/energyg).max()
+    denergydtSpec += x.grid2sph((qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.))
+    denergyg = x.sph2grid(denergydtSpec) # maybe we can optimize this?
+    dt_thermal=1./(np.fabs(denergyg)/energyg).max()
     if( dt_thermal <= (5. * dt) ): # very rapid thermal evolution; we can artificially 
         dt=1./(1./dt_cfl+1./dt_thermal)
     else:
@@ -290,7 +280,7 @@ for ncycle in np.arange(itmax+1):
     
     # at last, the time step
     t += dt
-    vortSpec += dvortdtSpec[:,nnew] * dt
+    vortSpec += dvortdtSpec * dt
 
     divSpec += ddivdtSpec * dt
 
@@ -305,17 +295,18 @@ for ncycle in np.arange(itmax+1):
     divSpec *= hyperdiff_fact
     sigSpec *= sigma_diff 
     energySpec *= sigma_diff 
-#    accflagSpec *= sigma_diff 
+    #    accflagSpec *= sigma_diff 
 
-#    if(ncycle % np.floor(outskip/10) ==0):
-#        print('t=%10.5f ms' % (t*1e3*tscale))
-
-    #plot & save
-    if ( t >  (tstore+dtout)):
+    #    if(ncycle % np.floor(outskip/10) ==0):
+    #        print('t=%10.5f ms' % (t*1e3*tscale))
+    if(ncycle % 100 ==0 ): # make sure it's alive
         print('t=%10.5f ms' % (t*1e3*tscale))
         print " dt(CFL) = "+str(dt_cfl)
         print " dt(thermal) = "+str(dt_thermal)
         print "dt = "+str(dt)
+
+    #plot & save
+    if ( t >  (tstore+dtout)):
         tstore=t
         if(ifplot):
             visualize(t, nout,

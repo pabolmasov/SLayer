@@ -39,13 +39,14 @@ print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 
 # dt/=tscale # dt now in tscales
 dx = rsphere/np.double(nlons)
-dtcfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
-print "dt = "+str(dt)+"GM/c**3 = "+str(dt*tscale)+"s"
+dt_cfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
+print "dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s"
+dtout=1000.*dt_cfl # time step for output
 # ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
-csqmin=1e-2 # speed of sound squared (minimal or isothermal)
-csqinit=1e-2 # initial speed of sound squared
+csqmin=1e-6 # speed of sound squared (minimal or isothermal)
+csqinit=1e-4 # initial speed of sound squared
 
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
@@ -63,7 +64,7 @@ print "vertical scaleheight is ~ "+str(csqmin/grav)+" = "+str(csqmin/grav/dx)+"d
 
 # Hyperdiffusion
 ##################################################
-efold = 10000.*dt # efolding timescale at ntrunc for hyperdiffusion
+efold = 10000.*dt_cfl # efolding timescale at ntrunc for hyperdiffusion
 efold_diss = efold # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
 
