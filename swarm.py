@@ -42,9 +42,7 @@ from conf import ifplot
 from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
-from conf import ewind
 from conf import tfric
-from conf import ifwindlosses
 
 ############################
 # beta calibration

@@ -78,16 +78,12 @@ bump_beta  = 1./5. # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 0. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 1e3 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
 incle     = latspread*.1 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
-# wind efficiency parameter:
-ewind=0.1
-# if we start losing matter when the flow becomes unbound 
-ifwindlosses=False
 # friction time scale with the neutron star
 tfric=1000.*pspin/tscale
 
