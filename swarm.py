@@ -289,10 +289,17 @@ for ncycle in np.arange(itmax+1):
     accflagSpec += daccflagdtSpec * dt
 
     # implicit hyperdiffusion for vort and div
-    vortSpec *= hyperdiff_fact
-    divSpec *= hyperdiff_fact
-    sigSpec *= sigma_diff 
-    energySpec *= sigma_diff 
+    if(dt<dt_cfl):
+        vortSpec *= hyperdiff_fact**(dt/dt_cfl)
+        divSpec *= hyperdiff_fact**(dt/dt_cfl)
+        sigSpec *= sigma_diff**(dt/dt_cfl)
+        energySpec *= sigma_diff**(dt/dt_cfl)
+    else:
+        vortSpec *= hyperdiff_fact
+        divSpec *= hyperdiff_fact
+        sigSpec *= sigma_diff
+        energySpec *= sigma_diff
+      
     #    accflagSpec *= sigma_diff 
 
     #    if(ncycle % np.floor(outskip/10) ==0):
