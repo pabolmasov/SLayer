@@ -12,7 +12,7 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=False
-nrest=160 # number of output entry for restart
+nrest=100 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -29,7 +29,7 @@ outskip= 10000 # how often do we output the snapshots
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 0.01                  # spin period, in seconds
+pspin      = 0.1                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 sig0       = 1e6                   # own neutron star atmosphere scale
@@ -39,7 +39,7 @@ print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 
 # dt/=tscale # dt now in tscales
 dx = rsphere/np.double(nlons)
-dt_cfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
+dt_cfl = dx*0.25 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
 print "dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s"
 dtout=1000.*dt_cfl # time step for output
 # ii=raw_input("x")
@@ -65,8 +65,9 @@ print "vertical scaleheight is ~ "+str(csqmin/grav)+" = "+str(csqmin/grav/dx)+"d
 # Hyperdiffusion
 ##################################################
 efold = 10000.*dt_cfl # efolding timescale at ntrunc for hyperdiffusion
-efold_diss = efold # smoothing the dissipation term when used as a heat source
+efold_diss = 10.*efold # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
+ifscalediffusion = True
 
 ##################################################
 #perturbation parameters
@@ -78,7 +79,7 @@ bump_beta  = 1./5. # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 1e3 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 0. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
 incle     = latspread*.1 # inclination of initial rotation, radians

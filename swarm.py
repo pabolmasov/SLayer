@@ -43,6 +43,7 @@ from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
 from conf import tfric
+from conf import ifscalediffusion
 
 ############################
 # beta calibration
@@ -63,7 +64,7 @@ betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fi
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
-x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
+x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian') # rsphere is known by x!!
 lons,lats = np.meshgrid(x.lons, x.lats)
 
 # guide grids for plotting
@@ -77,14 +78,14 @@ dt=dt_cfl # if we are in trouble, dt=1./(1./dtcfl + 1./dtthermal)
 #######################################################
 ## initial conditions: ###
 # initial velocity field 
-ug = 2.*omega*np.cos(lats)*rsphere # without R, as we are using vorticity and we do not want to multiply and then to divide by the radius
+ug = 2.*omega*np.cos(lats)*rsphere
 vg = ug*0.
 
 # density perturbation
 hbump = bump_amp*np.cos(lats)*np.exp(-((lons-bump_lon0)/bump_alpha)**2)*np.exp(-(bump_phi0-lats)**2/bump_beta)
 
 # initial vorticity, divergence in spectral space
-vortSpec, divSpec =  x.getVortDivSpec(ug/rsphere,vg/rsphere) 
+vortSpec, divSpec =  x.getVortDivSpec(ug,vg) 
 vortg = x.sph2grid(vortSpec)
 vortgNS = x.sph2grid(vortSpec) # rotation of the neutron star 
 divg  = x.sph2grid(divSpec)
@@ -196,48 +197,41 @@ for ncycle in np.arange(itmax+1):
         ii=raw_input("betanan")
     pressg=energyg / 3. / (1.-beta/2.)
     # vorticity flux
-    tmpg1 = ug*vortg
-    tmpg2 = vg*vortg
-    ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1 /rsphere,tmpg2 /rsphere) # all the nablas should contain an additional 1/R multiplier
+    tmpg1 = ug*vortg ;    tmpg2 = vg*vortg
+    ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1 ,tmpg2 ) # all the nablas already contain an additional 1/R multiplier
     dvortdtSpec *= -1
     tmpg = x.sph2grid(ddivdtSpec)
     tmpg1 = ug*sig; tmpg2 = vg*sig
-    tmpSpec, dsigdtSpec = x.getVortDivSpec(tmpg1 /rsphere,tmpg2 /rsphere) # all the nablas should contain an additional 1/R multiplier
+    tmpSpec, dsigdtSpec = x.getVortDivSpec(tmpg1 ,tmpg2 ) # all the nablas should contain an additional 1/R multiplier
     dsigdtSpec *= -1
     # energy (pressure) flux:
     tmpg1 = ug*energyg; tmpg2 = vg*energyg
-    tmpSpec, denergydtSpec = x.getVortDivSpec(tmpg1 /rsphere,tmpg2 /rsphere) # all the nablas should contain an additional 1/R multiplier
-    wunbound=np.where(geff>=0.) # extreme case; we can be unbound due to pressure
-    if(np.size(wunbound)>0):
-        print str(np.size(wunbound))+" unbound points with geff>0"
-        #        ii=raw_input('')
-        # maybe not so bad if geff=0 exactly? sitting at the Eddington limit...
-        geff[wunbound]=0.
+    tmpSpec, denergydtSpec = x.getVortDivSpec(tmpg1, tmpg2) # all the nablas should contain an additional 1/R multiplier
+    #    wunbound=np.where(geff>=0.) # extreme case; we can be unbound due to pressure
     denergydtSpec *= -1
-    denergydtSpec += x.grid2sph(divg * pressg)
-
+    denergyg_adv = x.sph2grid(denergydtSpec) # for debugging
     # dissipation estimates:
-    dissvortSpec=vortSpec*hyperdiff_expanded #expanded exponential diffusion term
-    dissdivSpec=divSpec*hyperdiff_expanded 
+    dissvortSpec=vortSpec*(hyperdiff_expanded+1./tfric) #expanded exponential diffusion term
+    dissdivSpec=divSpec*(hyperdiff_expanded+1./tfric) # need to incorporate for omegaNS in the friction term
     wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
     if(np.size(wnan)>0):
         dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
-    dissug, dissvg = x.getuv(dissvortSpec*rsphere, dissdivSpec*rsphere)
-    dissipation=(ug*dissug+vg*dissvg) # v . dv/dt_diss
+    dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
+    dissipation=-(ug*dissug+vg*dissvg) # -v . dv/dt_diss
+    dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
     dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
-    if(np.size(wunbound)>0):
-        geff[wunbound]=0.
-        print "ug from "+str(ug.min())+" to "+str(ug.max())
-        print "vg from "+str(vg.min())+" to "+str(vg.max())
-        rr=raw_input(".")
+    #    if(np.size(wunbound)>0):
+#        geff[wunbound]=0.
+#        print "ug from "+str(ug.min())+" to "+str(ug.max())
+#        print "vg from "+str(vg.min())+" to "+str(vg.max())
+#        rr=raw_input(".")
     kenergy=0.5*(ug**2+vg**2) # kinetic energy per unit mass (merge this with baroclinic term?)
     tmpSpec = x.grid2sph(kenergy)
     ddivdtSpec += -x.lap*tmpSpec
 
     # baroclinic terms in vorticity and divirgence:
-    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg)/rsphere)  # ; grads1, grads2 = x.getGrad(sigSpec)
-    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig/rsphere,gradp2/sig/rsphere)
-    # each nabla should have its 1/R multiplier
+    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
+    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig) # each nabla already has its rsphere
     ddivdtSpec += -divpressbarSpec 
     dvortdtSpec += -vortpressbarSpec
 
@@ -245,9 +239,6 @@ for ncycle in np.arange(itmax+1):
     qplus = sigpos * dissipation 
     qminus = (-geff) * sigpos / 3. / (1.+kappa*sigpos) * (1.-beta) 
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
-
-    # Bernoulli constant:
-    B=(ug**2+vg**2)/2.+3.75*pressg/sig-1./rsphere # v^2/2+15/4 Pi/Sigma -1/R
         
     # source terms in mass:
     sdotplus, sina=sdotsource(lats, lons, latspread)
@@ -262,10 +253,49 @@ for ncycle in np.arange(itmax+1):
     divdotSpec=x.grid2sph(divdot)
     dvortdtSpec += vortdotSpec
     ddivdtSpec += divdotSpec
-    denergydtSpec += x.grid2sph((qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.))
+    denergydtSpec += x.grid2sph(-divg * pressg+(qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.))
     denergyg = x.sph2grid(denergydtSpec) # maybe we can optimize this?
-    dt_thermal=1./(np.fabs(denergyg)/energyg).max()
-    if( dt_thermal <= (5. * dt) ): # very rapid thermal evolution; we can artificially 
+    denergyg1= denergyg_adv-divg*pressg + (qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.)
+    energyslip=np.abs(denergyg-denergyg1).max()
+    if(energyslip>1.):
+        dq= qplus - qminus + qns
+        dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.)
+        print "dE = "+str(energyslip)
+        print "correctness of inverse transform (with hyperdiff)"+str(np.abs(denergydtSpec*hyperdiff_fact-x.grid2sph(x.sph2grid(denergydtSpec))).max())
+        print "correctness of inverse transform "+str(np.abs(denergydtSpec-x.grid2sph(x.sph2grid(denergydtSpec))).max())
+        print "correctness of inverse transform "+str(np.abs(denergydtSpec-x.grid2sph(x.sph2grid(denergydtSpec))).max())
+        print "correctness of inverse transform "+str(np.abs(denergyg_adv-x.sph2grid(x.grid2sph(denergyg_adv))).max())
+        print "accuracy (grid) "+str(np.abs(x.sph2grid(x.grid2sph(denergyg_adv-divg * pressg+dq+dsrc))-(denergyg_adv-divg * pressg+dq+dsrc)).max())
+        print "mean "+str((x.sph2grid(denergydtSpec)-(denergyg_adv-divg * pressg+dq+dsrc)).mean())
+        print "std of nabla(vE) "+str(denergyg_adv.std())
+        print "std of delta * Pi "+str((divg * pressg).std())
+        print "accuracy (sph) "+str(np.abs(denergydtSpec-x.grid2sph(denergyg_adv-divg * pressg+dq+dsrc)).max())
+        print "accuracy (sph->grid) "+str(np.abs(x.sph2grid(denergydtSpec-x.grid2sph(denergyg_adv-divg * pressg+dq+dsrc))).max())
+        print "accuracy (grid->sph) "+str(np.abs(x.grid2sph(x.sph2grid(denergydtSpec)-(denergyg_adv-divg * pressg+dq+dsrc))).max())
+        print "accuracy (grid, rms) "+str((x.sph2grid(denergydtSpec)-(denergyg_adv-divg * pressg+dq+dsrc)).std())
+        rr=raw_input('//')
+    #    dt_thermal=1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
+    dt_thermal=0.5/(np.fabs(denergyg)/energyg).max()
+    wtrouble=(np.fabs(denergyg)/energyg).argmax()
+    if(dt_thermal <= 1e-10):
+        dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.)
+        print "E = "+str(energyg.flatten()[wtrouble])
+        print "sig = "+str(sig.flatten()[wtrouble])
+        print "beta = "+str(beta.flatten()[wtrouble])
+        print "divg = "+str(divg.flatten()[wtrouble])
+        print "dE = "+str(denergyg.flatten()[wtrouble])
+        print "Q+ +QNS= "+str((qplus+qns).flatten()[wtrouble])
+        print "Q- = "+str(qminus.flatten()[wtrouble])
+        print "nabla(vE) = "+str((denergyg_adv).flatten()[wtrouble])
+        print "delta * P = "+str((divg * pressg).flatten()[wtrouble])
+        print "delta(dE) = "+str(np.fabs(denergyg-denergyg_adv-qplus-qns+qminus+divg * pressg-dsrc).flatten()[wtrouble])
+        print "dissipation = "+str((dissipation).flatten()[wtrouble])
+        print "source term = "+str(dsrc.flatten()[wtrouble])
+        print "nearby points: "
+        print "E = "+str(energyg.flatten()[wtrouble-3:wtrouble+3])
+        print "Q+ = "+str(qplus.flatten()[wtrouble-3:wtrouble+3])
+        rr=raw_input()
+    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially 
         dt=1./(1./dt_cfl+1./dt_thermal)
     else:
         dt=dt_cfl
@@ -289,7 +319,7 @@ for ncycle in np.arange(itmax+1):
     accflagSpec += daccflagdtSpec * dt
 
     # implicit hyperdiffusion for vort and div
-    if(dt<dt_cfl):
+    if((dt<dt_cfl)&ifscalediffusion):
         vortSpec *= hyperdiff_fact**(dt/dt_cfl)
         divSpec *= hyperdiff_fact**(dt/dt_cfl)
         sigSpec *= sigma_diff**(dt/dt_cfl)
