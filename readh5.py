@@ -45,7 +45,7 @@ nlons      = params.attrs['nlons']
 ntrunc     = params.attrs['ntrunc']
 nlats      = params.attrs['nlats']
 tscale     = params.attrs['tscale']
-dt         = params.attrs['dt']
+dt_cfl         = params.attrs['dt_cfl']
 itmax      = params.attrs['itmax']
 rsphere    = params.attrs['rsphere']
 pspin      = params.attrs['pspin']
@@ -170,8 +170,6 @@ def visualizeMapVecs(ax, xx, yy, title=""):
     )
 
 
-
-
 def visualizeCycle(dset, ncycle):
     vortg        = np.array( dset['vortg'] )
     divg         = np.array( dset['divg']  ) 
@@ -179,7 +177,7 @@ def visualizeCycle(dset, ncycle):
     vg           = np.array( dset['vg']    ) 
     sig          = np.array( dset['sig']   ) 
     dissipation  = np.array( dset['diss']  )
-
+    t=dset.attrs['t']
     vorm=np.fabs(vortg-2.*omega*np.sin(lats)).max()
     divm=np.fabs(divg).max()
 
@@ -212,13 +210,11 @@ def visualizeCycle(dset, ncycle):
 
     visualizeTwoprofiles(axs[9], ug, vg, title1=r"$v_\varphi$", title2=r"$v_\theta$", ome=True)
 
-    t = ncycle*dt
+#    t = ncycle*dt
     axs[0].set_title('{:6.2f} ms'.format( t*tscale*1e3) )
-
 
     scycle = str(ncycle).rjust(6, '0')
     plt.savefig(directory+'swater'+scycle+'.png' ) #, bbox_inches='tight') 
-
 
 
 dset = f5['cycle_001000']

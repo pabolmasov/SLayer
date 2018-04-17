@@ -47,7 +47,7 @@ def saveParams(f5, conf):
     grp0.attrs['ntrunc']     = conf.ntrunc
     grp0.attrs['nlats']      = conf.nlats
     grp0.attrs['tscale']     = conf.tscale
-    grp0.attrs['dt']         = conf.dt
+    grp0.attrs['dt_cfl']     = conf.dt_cfl
     grp0.attrs['itmax']      = conf.itmax
     grp0.attrs['rsphere']    = conf.rsphere
     grp0.attrs['pspin']      = conf.pspin
@@ -56,6 +56,7 @@ def saveParams(f5, conf):
     grp0.attrs['grav']       = conf.grav
     grp0.attrs['sig0']       = conf.sig0
     grp0.attrs['cs']         = conf.csqmin
+    grp0.attrs['NSmass']         = conf.mass1
 
     f5.flush()
 
@@ -136,11 +137,12 @@ def restart(restartfile, nrest, conf):
         sig   = data["sig"][:]
         energyg   = data["energy"][:]
         accflag   = data["accflag"][:]
+    t0=data.attrs["t"]
     f5.close()
 
     # if successful, we need to take the file off the way
     #    os.system("mv "+restartfile+" "+restartfile+".backup")
 
-    return vortg, divg, sig, energyg, accflag
+    return vortg, divg, sig, energyg, accflag, t0
 
 
