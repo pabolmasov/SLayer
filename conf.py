@@ -72,10 +72,10 @@ ifscalediffusion = True
 ##################################################
 #perturbation parameters
 bump_amp  = -0.05     # perturbation amplitude
-bump_phi0  = np.pi/6. # perturbation latitude
+bump_lat0  = np.pi/6. # perturbation latitude
 bump_lon0  = np.pi/3. # perturbation longitude
-bump_alpha = 1./5. # size of the perturbed region (longitude)
-bump_beta  = 1./5. # size of the perturbed region (latitude)
+bump_dlon = np.pi/15. # size of the perturbed region (longitude)
+bump_dlat  = np.pi/15. # size of the perturbed region (latitude)
 
 ##################################################
 # source term

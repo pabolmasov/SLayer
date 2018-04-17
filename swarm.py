@@ -84,7 +84,8 @@ ug = 2.*omega*np.cos(lats)*rsphere
 vg = ug*0.
 
 # density perturbation
-hbump = bump_amp*np.cos(lats)*np.exp(-((lons-bump_lon0)/bump_alpha)**2)*np.exp(-(bump_phi0-lats)**2/bump_beta)
+# hbump = bump_amp*np.cos(lats)*np.exp(-((lons-bump_lon0)/bump_alpha)**2)*np.exp(-((bump_phi0-lats)/bump_beta)**2)
+hbump = bump_amp*np.exp(-((lons-bump_lon0)/bump_dlon)**2)*np.exp(-((lats-bump_lat0)/bump_dlat)**2)
 
 # initial vorticity, divergence in spectral space
 vortSpec, divSpec =  x.getVortDivSpec(ug,vg) 
@@ -220,7 +221,7 @@ for ncycle in np.arange(itmax+1):
         dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
     dissipation=-(ug*dissug+vg*dissvg) # -v . dv/dt_diss
-    dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
+    #    dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
     dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
     #    if(np.size(wunbound)>0):
 #        geff[wunbound]=0.

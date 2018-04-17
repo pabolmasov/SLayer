@@ -60,11 +60,13 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     print str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2])
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
+    kenergy=np.zeros(nsize) ;  thenergy=np.zeros(nsize)
     flc=open('out/lcurve.dat', 'w')
     fmc=open('out/mcurve.dat', 'w')
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
+        ug=data["ug"][:] ;  vg=data["vg"][:]
         energy=data["energy"][:] ; beta=data["beta"][:]
 #        print np.shape(energy)
         press = energy* 3. * (1.-beta/2.)
@@ -73,6 +75,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa).sum(axis=1), x=-clats1d)*dlons
         newmass[k]=trapz((accflag*sig*cosa).sum(axis=1), x=-clats1d)*dlons
+        kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
+        thenergy[k]=trapz(energy.sum(axis=1), x=-clats1d)*dlons/2.
         flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n")
         fmc.write(str(tar[k])+' '+str(mass_total[k])+"\n")
         flc.flush() ; fmc.flush()
@@ -86,7 +90,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     newmass *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
     meanmass=mass_total.mean() ; stdmass=mass_total.std()
     print "M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g"
-    
+    kenergy *= rsphere**2*NSmass**2*19.6002e-5 # 10^{35} erg
+    thenergy *= rsphere**2*NSmass**2*19.6002e-5  # 10^{35} erg
     wnan=np.where(np.isnan(flux))
     if(np.size(wnan)>0):
         print str(np.size(wnan))+" NaN points"
@@ -104,6 +109,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.xlabel('$t$')
         plt.ylabel('mass, $10^{20}$g')
         plt.savefig('out/mcurve.eps')
+        plt.clf()
+        plt.plot(tar, kenergy, color='k')
+        plt.plot(tar, thenergy, color='r')
+        plt.xlabel('$t$')
+        plt.ylabel('energy, $10^{35}$erg')
+        plt.savefig('out/ecurve.eps')
         plt.clf()
         plt.plot(tar, (flux-flux.min())/(flux.max()-flux.min()), color='k')
         plt.plot(tar, (mass-mass.min())/(mass.max()-mass.min()), color='r')
