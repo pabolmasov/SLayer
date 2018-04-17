@@ -56,6 +56,7 @@ def saveParams(f5, conf):
     grp0.attrs['grav']       = conf.grav
     grp0.attrs['sig0']       = conf.sig0
     grp0.attrs['cs']         = conf.csqmin
+    grp0.attrs['NSmass']         = conf.mass1
 
     f5.flush()
 

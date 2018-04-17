@@ -39,7 +39,7 @@ print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 
 # dt/=tscale # dt now in tscales
 dx = rsphere/np.double(nlons)
-dt_cfl = dx*0.25 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
+dt_cfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
 print "dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s"
 dtout=1000.*dt_cfl # time step for output
 # ii=raw_input("x")

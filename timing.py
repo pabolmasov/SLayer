@@ -5,6 +5,9 @@ import numpy as np
 import time
 import pylab
 import h5py
+from spharmt import Spharmt 
+
+from scipy.integrate import trapz
 
 from conf import ifplot, kappa
 
@@ -28,9 +31,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     """
     f = h5py.File(filename,'r')
     params=f["params"]
-    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"] 
-    lons1d = (2.*np.pi/nlons)*np.arange(nlons)
-    clats1d = 2.*np.arange(nlats)/np.double(nlats)-1.
+    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"]
+    # NSmass=params.attrs["mass"]
+    NSmass=1.4
+    x = Spharmt(nlons,nlats,int(nlons/3),rsphere,gridtype='gaussian')
+    lons1d = x.lons
+    clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
     dlons=2.*np.pi/np.size(lons1d) ; dlats=2./np.double(nlats)
     cosa=np.cos(lats)*np.cos(lat0)+np.sin(lats)*np.sin(lat0)*np.cos(lons-lon0)
@@ -50,22 +56,35 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     #    keys=keys[4000:]
     nsize=np.size(keys)-1 # last key contains parameters
     print str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2])
+    mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
     flc=open('out/lcurve.dat', 'w')
+    fmc=open('out/mcurve.dat', 'w')
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
         energy=data["energy"][:] ; beta=data["beta"][:]
+#        print np.shape(energy)
         press = energy* 3. * (1.-beta/2.)
         tar[k]=data.attrs["t"]
-        flux[k]=(press*(1.-beta)/(sig*kappa+1.)*cosa).sum()*dlons*dlats
-        mass[k]=(sig*cosa).sum()*dlons*dlats
-        newmass[k]=(sig*cosa*accflag).sum()*dlons*dlats
+        flux[k]=trapz((press*(1.-beta)/(sig*kappa+1.)*cosa).sum(axis=1), x=clats1d)*dlons
+        mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
+        mass[k]=trapz((sig*cosa).sum(axis=1), x=-clats1d)*dlons
+        newmass[k]=trapz((accflag*sig*cosa).sum(axis=1), x=-clats1d)*dlons
         flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n")
+        fmc.write(str(tar[k])+' '+str(mass_total[k])+"\n")
+        flc.flush() ; fmc.flush()
 #        print str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n"
-    f.close() ; flc.close() 
+    f.close() ; flc.close() ; fmc.close()
     tar*=tscale
 
+    # mass consistency:
+    mass_total *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
+    mass *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
+    newmass *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
+    meanmass=mass_total.mean() ; stdmass=mass_total.std()
+    print "M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g"
+    
     wnan=np.where(np.isnan(flux))
     if(np.size(wnan)>0):
         print str(np.size(wnan))+" NaN points"
@@ -75,7 +94,14 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     mn,bn =  np.polyfit(tar, newmass, 1) # for "visible accreted mass"
     md,bd =  np.polyfit(tar, flux, 1) # for dissipation
 
-    if(ifplot):
+    if(ifplot): # move to plots.py!
+        plt.clf()
+        plt.plot(tar, mass_total, color='k')
+        plt.plot(tar, mass, color='r')
+        plt.plot(tar, newmass, color='g')
+        plt.xlabel('$t$')
+        plt.ylabel('mass, $10^{20}$g')
+        plt.savefig('out/mcurve.eps')
         plt.clf()
         plt.plot(tar, (flux-flux.min())/(flux.max()-flux.min()), color='k')
         plt.plot(tar, (mass-mass.min())/(mass.max()-mass.min()), color='r')
@@ -99,7 +125,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     binfreqc=(binfreq[:-1]+binfreq[1:])/2. ;   binfreqs=(-binfreq[:-1]+binfreq[1:])/2.
     pdsbin=np.zeros([ntimes, nbins]) ; pdsbinm=np.zeros([ntimes, nbins]) ; pdsbinn=np.zeros([ntimes, nbins])
     dpdsbin=np.zeros([ntimes, nbins]) ; dpdsbinm=np.zeros([ntimes, nbins]) ; dpdsbinn=np.zeros([ntimes, nbins])
-
+    print "binfreqs = "+str(binfreqs)
     # dynamical spectra:
     #    fsp=np.zeros([ntimes, nsize]) ;fspm=np.zeros([ntimes, nsize]) ; fspn=np.zeros([ntimes, nsize])
     tcenter=np.zeros(ntimes, dtype=np.double)
@@ -154,7 +180,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.plot([tar.min(), tar.max()],[omega/2./np.pi,omega/2./np.pi], 'r')
         plt.plot([tar.min(), tar.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
         plt.yscale('log')
-        plt.ylabel('$|f|$, s$^{-1}$')
+        plt.ylabel('$f$, Hz')
         plt.xlabel('$t$, ms')
         plt.savefig('out/dynPDS.eps')
 
@@ -164,14 +190,14 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
         plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
         plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pmin,pmax], 'm')
-        plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs, color='k', fmt='.')
-        plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs, color='r', fmt='.')
-        plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs, color='g', fmt='.')
+        plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='k', fmt='.')
+        plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='r', fmt='.')
+        plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='g', fmt='.')
         plt.xscale('log')
         plt.yscale('log')
         plt.xlim(1./tspan, np.double(nsize)/tspan)
         plt.ylim(pmin*0.5, pmax*2.)
-        plt.xlabel('$|f|$, s$^{-1}$')
+        plt.xlabel('$f$, Hz')
         plt.ylabel('PDS, relative units')
         plt.savefig('out/PDS.eps')
 

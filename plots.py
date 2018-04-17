@@ -181,9 +181,13 @@ def visualize(t, nout,
 
     mdot=cf.sigplus * 4. * np.pi * cf.latspread * cf.rsphere**2 *np.sqrt(4.*np.pi)
     mdot_msunyr = mdot * 1.58649e-26 / cf.tscale
-    mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-    mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-    mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    mass=simps(sig.sum(axis=1), x=np.cos(lats))*4.*pi/np.double(nlons)
+    mass_acc=simps((sig*accflag).sum(axis=1), x=np.cos(lats))*4.*pi/np.double(nlons)
+    mass_native=simps((sig*(1.-accflag)).sum(axis=1), x=np.cos(lats))*4.*pi/np.double(nlons)
+
+    #    mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    #    mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    #    mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     angmoz=(sig*ug*np.cos(lats)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
     angmox=(sig*ug*np.sin(lats)*np.cos(lons)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
@@ -331,7 +335,7 @@ def visualize(t, nout,
                          ug, vg, 
                          title1=r"$v_\varphi$", 
                          title2=r"$v_\theta$" )
-    axs[9].plot(latsDeg, cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
+    axs[9].plot(latsDeg, 2.*cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
     axs[9].plot(latsDeg, cf.overkepler*cf.rsphere**(-0.5)*np.cos(lats), color='g', linewidth=1)
     axs[9].set_ylim(ug.min()+vg.min(), ug.max()+vg.max())
     axs[0].set_title('{:7.3f} ms'.format( t*cf.tscale*1e3) )

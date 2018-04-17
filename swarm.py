@@ -64,7 +64,7 @@ betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fi
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
-x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian') # rsphere is known by x!!
+x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian') # rsphere is known by x!! Is Gaussian grid what we need?
 lons,lats = np.meshgrid(x.lons, x.lats)
 
 # guide grids for plotting
@@ -257,7 +257,7 @@ for ncycle in np.arange(itmax+1):
     denergyg = x.sph2grid(denergydtSpec) # maybe we can optimize this?
     denergyg1= denergyg_adv-divg*pressg + (qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.)
     energyslip=np.abs(denergyg-denergyg1).max()
-    if(energyslip>1.):
+    if(energyslip>1.e-10):
         dq= qplus - qminus + qns
         dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.)
         print "dE = "+str(energyslip)
