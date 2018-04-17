@@ -1,9 +1,5 @@
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib import rc
 import numpy as np
 import time
-import pylab
 import h5py
 from spharmt import Spharmt 
 
@@ -11,13 +7,19 @@ from scipy.integrate import trapz
 
 from conf import ifplot, kappa
 
-#proper LaTeX support and decent fonts in figures 
-rc('font',**{'family':'serif','serif':['Times']})
-rc('mathtext',fontset='cm')
-rc('mathtext',rm='stix')
-rc('text', usetex=True)
-# #add amsmath to the preamble
-matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
+if(ifplot):
+    import matplotlib
+    import matplotlib.pyplot as plt
+    from matplotlib import rc
+    import pylab
+
+    #proper LaTeX support and decent fonts in figures 
+    rc('font',**{'family':'serif','serif':['Times']})
+    rc('mathtext',fontset='cm')
+    rc('mathtext',rm='stix')
+    rc('text', usetex=True)
+    # #add amsmath to the preamble
+    matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
@@ -120,12 +122,9 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     # binning:
     binfreq=(freq2/freq1)**(np.arange(nbins+1)/np.double(nbins))*freq1
     binfreq[0]=0.
-
-    print "frequencies ", binfreq
     binfreqc=(binfreq[:-1]+binfreq[1:])/2. ;   binfreqs=(-binfreq[:-1]+binfreq[1:])/2.
     pdsbin=np.zeros([ntimes, nbins]) ; pdsbinm=np.zeros([ntimes, nbins]) ; pdsbinn=np.zeros([ntimes, nbins])
     dpdsbin=np.zeros([ntimes, nbins]) ; dpdsbinm=np.zeros([ntimes, nbins]) ; dpdsbinn=np.zeros([ntimes, nbins])
-    print "binfreqs = "+str(binfreqs)
     # dynamical spectra:
     #    fsp=np.zeros([ntimes, nsize]) ;fspm=np.zeros([ntimes, nsize]) ; fspn=np.zeros([ntimes, nsize])
     tcenter=np.zeros(ntimes, dtype=np.double)
@@ -190,7 +189,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
         plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
         plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pmin,pmax], 'm')
-        plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='k', fmt='.')
+        plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='k', fmt='.') # we need asymmetric error bars, otherwise they are incorrectly shown
         plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='r', fmt='.')
         plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='g', fmt='.')
         plt.xscale('log')

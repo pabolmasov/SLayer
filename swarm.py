@@ -8,19 +8,18 @@ All the parameters are set in conf.py
 import numpy as np
 import scipy.ndimage as spin
 import shtns
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import time
 import os
 import h5py
 from sympy.solvers import solve
-from sympy import Symbol
+# from sympy import Symbol
 import scipy.interpolate as si
 
 #Code modules:
 from spharmt import Spharmt 
 import f5io as f5io #module for file I/O
 import conf as conf #importing simulation setup module
-from plots import visualize
 
 ##################################################
 # setup code environment
@@ -44,6 +43,9 @@ from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
 from conf import tfric
 from conf import ifscalediffusion
+
+if(ifplot):
+    from plots import visualize
 
 ############################
 # beta calibration
