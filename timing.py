@@ -60,7 +60,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     print str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2])
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
-    kenergy=np.zeros(nsize) ;  thenergy=np.zeros(nsize)
+    kenergy=np.zeros(nsize) ;  thenergy=np.zeros(nsize) ; meancs=np.zeros(nsize)
     flc=open('out/lcurve.dat', 'w')
     fmc=open('out/mcurve.dat', 'w')
     for k in np.arange(nsize):
@@ -77,6 +77,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         newmass[k]=trapz((accflag*sig*cosa).sum(axis=1), x=-clats1d)*dlons
         kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
         thenergy[k]=trapz(energy.sum(axis=1), x=-clats1d)*dlons/2.
+        csqmap=press/sig*(4.+beta)/3.
+        meancs[k]=np.sqrt(csqmap.mean())
         flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n")
         fmc.write(str(tar[k])+' '+str(mass_total[k])+"\n")
         flc.flush() ; fmc.flush()
@@ -100,7 +102,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     m,b =  np.polyfit(tar, mass, 1) # for "visible mass"
     mn,bn =  np.polyfit(tar, newmass, 1) # for "visible accreted mass"
     md,bd =  np.polyfit(tar, flux, 1) # for dissipation
-
+    
     if(ifplot): # move to plots.py!
         plt.clf()
         plt.plot(tar, mass_total, color='k')
@@ -110,8 +112,9 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.ylabel('mass, $10^{20}$g')
         plt.savefig('out/mcurve.eps')
         plt.clf()
-        plt.plot(tar, kenergy, color='k')
+        plt.plot(tar, kenergy+thenergy, color='k')
         plt.plot(tar, thenergy, color='r')
+        plt.plot(tar, kenergy, color='b')
         plt.xlabel('$t$')
         plt.ylabel('energy, $10^{35}$erg')
         plt.savefig('out/ecurve.eps')
@@ -130,6 +133,9 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
     freq1=1./tspan*np.double(ntimes)/2. ; freq2=freq1*np.double(nsize)/np.double(ntimes)
     
+    # sound waves:
+    fsound=meancs/rsphere/2./np.pi/tscale*np.sqrt(2.)
+
     # binning:
     binfreq=(freq2/freq1)**(np.arange(nbins+1)/np.double(nbins))*freq1
     binfreq[0]=0.
@@ -197,12 +203,14 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         # integral power density spectra
         plt.clf()
         plt.plot([omega/2./np.pi,omega/2./np.pi], [pdsbin_total.min(),pdsbin_total.max()], 'b')
+        plt.plot([fsound, fsound], [pdsbin_total.min(),pdsbin_total.max()], 'g', linewidth=1)
+        plt.plot([fsound*2., fsound*2.], [pdsbin_total.min(),pdsbin_total.max()], 'g', linewidth=0.5, linestyle='dotted')
         plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
         plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
         plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pmin,pmax], 'm')
-        plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='k', fmt='.') # we need asymmetric error bars, otherwise they are incorrectly shown
-        plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='r', fmt='.')
-        plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='g', fmt='.')
+        plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='k') #, fmt='.') # we need asymmetric error bars, otherwise they are incorrectly shown
+        plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='r') #, fmt='.')
+        plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='g') #, fmt='.')
         plt.xscale('log')
         plt.yscale('log')
         plt.xlim(1./tspan, np.double(nsize)/tspan)

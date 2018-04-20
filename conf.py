@@ -11,8 +11,8 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=100 # number of output entry for restart
+ifrestart=True
+nrest=201 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -25,7 +25,7 @@ nlats  = int(nlons/2) # for gaussian grid
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
 itmax  = 10000000    # number of iterations
-outskip= 10000 # how often do we output the snapshots
+outskip= 10000 # how often do we output the snapshots (in dt_CFL)
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
@@ -41,7 +41,7 @@ print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
 dx = rsphere/np.double(nlons)
 dt_cfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
 print "dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s"
-dtout=1000.*dt_cfl # time step for output
+dtout=np.double(outskip)*dt_cfl # time step for output
 # ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)

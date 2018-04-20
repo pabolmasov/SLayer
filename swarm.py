@@ -33,7 +33,7 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 from conf import nlons, nlats
 from conf import grav, rsphere
 from conf import dt_cfl, omega, rsphere, sig0, sigfloor, overkepler, tscale, dtout
-from conf import bump_amp, bump_phi0, bump_lon0, bump_alpha, bump_beta  #initial perturbation parameters
+from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import efold, ndiss, efold_diss
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
 from conf import itmax, outskip
@@ -220,7 +220,7 @@ for ncycle in np.arange(itmax+1):
     if(np.size(wnan)>0):
         dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
-    dissipation=-(ug*dissug+vg*dissvg) # -v . dv/dt_diss
+    dissipation=(ug*dissug+vg*dissvg) # -v . dv/dt_diss
     #    dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
     dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
     #    if(np.size(wunbound)>0):
@@ -260,7 +260,7 @@ for ncycle in np.arange(itmax+1):
     denergyg = x.sph2grid(denergydtSpec) # maybe we can optimize this?
     denergyg1= denergyg_adv-divg*pressg + (qplus - qminus + qns)+(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.)
     energyslip=np.abs(denergyg-denergyg1).max()
-    if(energyslip>1.e-10):
+    if(energyslip>1.):
         dq= qplus - qminus + qns
         dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-beta/2.)
         print "dE = "+str(energyslip)
@@ -337,7 +337,7 @@ for ncycle in np.arange(itmax+1):
 
     #    if(ncycle % np.floor(outskip/10) ==0):
     #        print('t=%10.5f ms' % (t*1e3*tscale))
-    if(ncycle % 100 ==0 ): # make sure it's alive
+    if(ncycle % (outskip/10) ==0 ): # make sure it's alive
         print('t=%10.5f ms' % (t*1e3*tscale))
         print " dt(CFL) = "+str(dt_cfl)
         print " dt(thermal) = "+str(dt_thermal)
@@ -351,7 +351,7 @@ for ncycle in np.arange(itmax+1):
                       lats, lons, 
                       vortg, divg, ug, vg, sig, pressg, beta, accflag, dissipation, 
 #                      hbump,
-                      rsphere,
+#                      rsphere,
                       conf)
 
         #file I/O

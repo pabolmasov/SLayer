@@ -1,29 +1,33 @@
-import matplotlib
 import numpy as np
 import shtns
-import matplotlib.pyplot as plt
-from matplotlib import rc
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator
-from mpl_toolkits.mplot3d import Axes3D
 import scipy.ndimage as nd
 import time
 from spharmt import Spharmt 
 import os
 import h5py
-import plots
-
-#proper LaTeX support and decent fonts in figures 
-rc('font',**{'family':'serif','serif':['Times']})
-rc('mathtext',fontset='cm')
-rc('mathtext',rm='stix')
-rc('text', usetex=True)
-# #add amsmath to the preamble
-matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 
 '''
 Post-processing and various post-factum diagnostic outputs
 '''
+from conf import ifplot
+
+if(ifplot):
+    import matplotlib
+    import matplotlib.pyplot as plt
+    from matplotlib import rc
+    import pylab
+    from matplotlib import cm
+    from matplotlib.ticker import LinearLocator
+    from mpl_toolkits.mplot3d import Axes3D
+    import plots
+
+    #proper LaTeX support and decent fonts in figures 
+    rc('font',**{'family':'serif','serif':['Times']})
+    rc('mathtext',fontset='cm')
+    rc('mathtext',rm='stix')
+    rc('text', usetex=True)
+    # #add amsmath to the preamble
+    matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 
 def keyshow(filename):
     '''

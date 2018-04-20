@@ -4,6 +4,7 @@ import numpy as np
 import scipy.ndimage as spin
 import matplotlib.pyplot as plt
 import numpy.ma as ma
+from scipy.integrate import trapz
 
 # font adjustment:
 import matplotlib
@@ -19,32 +20,44 @@ matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"]
 
 # converts two components to an angle (change to some implemented function!)
 def tanrat(x,y):
-    z=0.
-    if((x*y)>0.):
-        z=np.arctan(y/x)
-        if(x<0.):
-            z+=np.pi
-    elif((x*y)<0.):
-        z=np.arctan(y/x)+np.pi
-        if(y<0.):
-            z+=np.pi
+    sx=np.size(x) ; sy=np.size(y)
+    if(sx>1):
+        if(sx!=sy):
+            print "tanrat: array sizes do not match, "+str(sx)+" !="+str(sy)
+            sx=minimum(sx,sy)
+        z=np.zeros(sx, dtype=np.double)
+        for k in np.arange(sx):
+            z[k]=tanrat(x[k],y[k])
+        return z
     else:
-        if(x==0.):
-            if(y<0.):
-                return 1.5*np.pi
-        else:
+        z=0.
+        if((x*y)>0.):
+            z=np.arctan(y/x)
             if(x<0.):
-                return np.pi
-    return z
+                z+=np.pi
+        elif((x*y)<0.):
+            z=np.arctan(y/x)+np.pi
+            if(y<0.):
+                z+=np.pi
+        else:
+            if(x==0.):
+                if(y<0.):
+                    return 1.5*np.pi
+                else:
+                    return np.pi*0.5
+            else:
+                if(x<0.):
+                    return np.pi
+        return z
 
 def visualizePoles(ax, angmo):
     # axes and angular momentum components (3-tuple)
     x,y,z=angmo
     polelon = tanrat(x, y)
     polelat = np.arcsin(z/np.sqrt(x**2+y**2+z**2))
-    polelonDeg=((polelon/np.pi+1.)%2.)*180.-180. ;polelatDeg=(polelat/np.pi)*180.
+    polelonDeg=180.*(polelon/np.pi-1.) ; polelatDeg=(polelat/np.pi)*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
-    ax.plot([(polelonDeg+360.) % 360.-180.], [-polelatDeg], '.r')
+    ax.plot([((180.-polelonDeg) % 360.)], [-polelatDeg], '.r')
     
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
@@ -157,9 +170,9 @@ def visualize(t, nout,
 #              mass, energy,
 #              engy,
 #              hbump,
-              rsphere,
+#              rsphere,
               cf):
-    engy=(ug**2+vg**2)/2.
+    energy= press / (3. * (1.-beta/2.))# (ug**2+vg**2)/2.
     #prepare figure etc
     fig = plt.figure(figsize=(10,10))
     gs = plt.GridSpec(5, 10)
@@ -174,24 +187,27 @@ def visualize(t, nout,
         latsDeg = (180./np.pi)*lats
 
     nlons=np.size(lons) ; nlats=np.size(lats)
-    
+    lats1d=np.unique(lats)
+    clats=np.sin(lats1d)
     print "visualize: accreted fraction from "+str(accflag.min())+" to "+str(accflag.max())
     
     vorm=np.fabs(vortg-2.*cf.omega*np.sin(lats)).max()
 
     mdot=cf.sigplus * 4. * np.pi * cf.latspread * cf.rsphere**2 *np.sqrt(4.*np.pi)
     mdot_msunyr = mdot * 1.58649e-26 / cf.tscale
-    mass=simps(sig.sum(axis=1), x=np.cos(lats))*4.*pi/np.double(nlons)
-    mass_acc=simps((sig*accflag).sum(axis=1), x=np.cos(lats))*4.*pi/np.double(nlons)
-    mass_native=simps((sig*(1.-accflag)).sum(axis=1), x=np.cos(lats))*4.*pi/np.double(nlons)
+    mass=trapz(sig.mean(axis=1), x=clats)
+    mass_acc=trapz((sig*accflag).mean(axis=1), x=clats)
+    mass_native=trapz((sig*(1.-accflag)).mean(axis=1), x=clats)
 
     #    mass=sig.sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     #    mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     #    mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-    energy=(sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-    angmoz=(sig*ug*np.cos(lats)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
-    angmox=(sig*ug*np.sin(lats)*np.cos(lons)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
-    angmoy=(sig*ug*np.sin(lats)*np.sin(lons)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**3
+    thenergy=trapz(energy.mean(axis=1), x=clats)
+    kenergy=trapz((sig*(ug**2+vg**2)).mean(axis=1), x=clats)/2.
+#    (sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
+    angmoz=trapz((sig*ug*np.cos(lats)).mean(axis=1), x=clats)*cf.rsphere
+    angmox=trapz((sig*(vg*np.sin(lons)-ug*np.sin(lats)*np.cos(lons))).mean(axis=1), x=clats)*cf.rsphere
+    angmoy=trapz((sig*(vg*np.cos(lons)-ug*np.sin(lats)*np.sin(lons))).mean(axis=1), x=clats)*cf.rsphere
     vangmo=np.sqrt(angmox**2+angmoy**2+angmoz**2) # total angular momentum 
 
     print "t = "+str(t)
@@ -211,11 +227,10 @@ def visualize(t, nout,
     print "native mass = "+str(mass_native)
     print "mdot = "+str(mdot_msunyr)
     print "estimated accreted mass = "+str(mdot*t*cf.tscale)
-    print "total energy = "+str(energy)
-    print "net energy = "+str(energy/mass)
+    print "total energy = "+str(thenergy)+"(thermal) + "+str(kenergy)+"(kinetic)"
+    print "net energy = "+str((thenergy+kenergy)/mass)
 
     dismax=(dissipation*sig).max()
-
     cspos=(press/sig+np.fabs(press/sig))/2.
     
     #vorticity
