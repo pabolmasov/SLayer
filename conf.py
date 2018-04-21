@@ -15,7 +15,7 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
+ifrestart=False
 nrest=201 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
@@ -91,4 +91,9 @@ slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star
 tfric=1000.*pspin/tscale
+
+#####################################################
+# twist test
+iftwist=True
+twistscale=latspread
 

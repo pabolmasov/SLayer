@@ -48,6 +48,7 @@ from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
 from conf import tfric
 from conf import ifscalediffusion
+from conf import iftwist, twistscale
 
 if(ifplot):
     from plots import visualize
@@ -87,6 +88,8 @@ dt=dt_cfl # if we are in trouble, dt=1./(1./dtcfl + 1./dtthermal)
 # initial velocity field 
 ug = 2.*omega*np.cos(lats)*rsphere
 vg = ug*0.
+if(iftwist):
+    ug *= (lats/twistscale) / np.sqrt(1.+(lats/twistscale)**2)
 
 # density perturbation
 # hbump = bump_amp*np.cos(lats)*np.exp(-((lons-bump_lon0)/bump_alpha)**2)*np.exp(-((bump_phi0-lats)/bump_beta)**2)
