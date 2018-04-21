@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import str
+from past.utils import old_div
 import numpy as np
 import time
 import h5py
@@ -36,16 +40,16 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"]
     # NSmass=params.attrs["mass"]
     NSmass=1.4
-    x = Spharmt(nlons,nlats,int(nlons/3),rsphere,gridtype='gaussian')
+    x = Spharmt(nlons,nlats,int(old_div(nlons,3)),rsphere,gridtype='gaussian')
     lons1d = x.lons
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
-    dlons=2.*np.pi/np.size(lons1d) ; dlats=2./np.double(nlats)
+    dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
     cosa=np.cos(lats)*np.cos(lat0)+np.sin(lats)*np.sin(lat0)*np.cos(lons-lon0)
-    cosa=(cosa+np.fabs(cosa))/2. # only positive viewing angle
+    cosa=old_div((cosa+np.fabs(cosa)),2.) # only positive viewing angle
 #    cosa=np.double(cosa>0.8)
     
-    keys=f.keys()
+    keys=list(f.keys())
     if(nfilter):
         if(nlim):
             keys=keys[nfilter:nlim] # filtering out first nfilter points
@@ -57,7 +61,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
 
     #    keys=keys[4000:]
     nsize=np.size(keys)-1 # last key contains parameters
-    print str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2])
+    print(str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2]))
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
     kenergy=np.zeros(nsize) ;  thenergy=np.zeros(nsize) ; meancs=np.zeros(nsize)
@@ -69,7 +73,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         ug=data["ug"][:] ;  vg=data["vg"][:]
         energy=data["energy"][:] ; beta=data["beta"][:]
 #        print np.shape(energy)
-        press = energy* 3. * (1.-beta/2.)
+        press = energy* 3. * (1.-old_div(beta,2.))
         tar[k]=data.attrs["t"]
         flux[k]=trapz((press*(1.-beta)/(sig*kappa+1.)*cosa).sum(axis=1), x=clats1d)*dlons
         mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
@@ -91,12 +95,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     mass *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
     newmass *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
     meanmass=mass_total.mean() ; stdmass=mass_total.std()
-    print "M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g"
+    print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
     kenergy *= rsphere**2*NSmass**2*19.6002e-5 # 10^{35} erg
     thenergy *= rsphere**2*NSmass**2*19.6002e-5  # 10^{35} erg
     wnan=np.where(np.isnan(flux))
     if(np.size(wnan)>0):
-        print str(np.size(wnan))+" NaN points"
+        print(str(np.size(wnan))+" NaN points")
         ii=war_input('?')
     # linear trend:
     m,b =  np.polyfit(tar, mass, 1) # for "visible mass"
@@ -119,12 +123,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.ylabel('energy, $10^{35}$erg')
         plt.savefig('out/ecurve.eps')
         plt.clf()
-        plt.plot(tar, (flux-flux.min())/(flux.max()-flux.min()), color='k')
-        plt.plot(tar, (mass-mass.min())/(mass.max()-mass.min()), color='r')
-        plt.plot(tar, (newmass-newmass.min())/(newmass.max()-newmass.min()), color='g')
-        plt.plot(tar, (tar*m+b-mass.min())/(mass.max()-mass.min()), color='r', linestyle='dashed')
-        plt.plot(tar, (tar*mn+bn-newmass.min())/(newmass.max()-newmass.min()), color='g', linestyle='dashed')
-        plt.plot(tar, (tar*md+bd-flux.min())/(flux.max()-flux.min()), color='k', linestyle='dashed')
+        plt.plot(tar, old_div((flux-flux.min()),(flux.max()-flux.min())), color='k')
+        plt.plot(tar, old_div((mass-mass.min()),(mass.max()-mass.min())), color='r')
+        plt.plot(tar, old_div((newmass-newmass.min()),(newmass.max()-newmass.min())), color='g')
+        plt.plot(tar, old_div((tar*m+b-mass.min()),(mass.max()-mass.min())), color='r', linestyle='dashed')
+        plt.plot(tar, old_div((tar*mn+bn-newmass.min()),(newmass.max()-newmass.min())), color='g', linestyle='dashed')
+        plt.plot(tar, old_div((tar*md+bd-flux.min()),(flux.max()-flux.min())), color='k', linestyle='dashed')
         plt.xlabel('$t$')
         plt.ylabel('flux, relative units')
         plt.savefig('out/lcurve.eps')
@@ -137,9 +141,9 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     fsound=meancs/rsphere/2./np.pi/tscale*np.sqrt(2.)
 
     # binning:
-    binfreq=(freq2/freq1)**(np.arange(nbins+1)/np.double(nbins))*freq1
+    binfreq=(old_div(freq2,freq1))**(old_div(np.arange(nbins+1),np.double(nbins)))*freq1
     binfreq[0]=0.
-    binfreqc=(binfreq[:-1]+binfreq[1:])/2. ;   binfreqs=(-binfreq[:-1]+binfreq[1:])/2.
+    binfreqc=old_div((binfreq[:-1]+binfreq[1:]),2.) ;   binfreqs=old_div((-binfreq[:-1]+binfreq[1:]),2.)
     pdsbin=np.zeros([ntimes, nbins]) ; pdsbinm=np.zeros([ntimes, nbins]) ; pdsbinn=np.zeros([ntimes, nbins])
     dpdsbin=np.zeros([ntimes, nbins]) ; dpdsbinm=np.zeros([ntimes, nbins]) ; dpdsbinn=np.zeros([ntimes, nbins])
     # dynamical spectra:
@@ -150,15 +154,15 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     t2[ntimes,:]=tar.max() ; binfreq2[ntimes,:]=binfreq
     for kt in np.arange(ntimes):
         tbegin=tar.min()+tspan*np.double(kt)/np.double(ntimes); tend=tar.min()+tspan*np.double(kt+1)/np.double(ntimes)
-        tcenter[kt]=(tbegin+tend)/2.   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
+        tcenter[kt]=old_div((tbegin+tend),2.)   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
         wwindow=np.where((tar>=tbegin)&(tar<tend))
         wsize=np.size(wwindow)
-        fsp=np.fft.rfft(flux[wwindow]/flux.std()) ;   fspm=np.fft.rfft(mass[wwindow]/mass.std())
-        fspn=np.fft.rfft(newmass[wwindow]/newmass.std())
+        fsp=np.fft.rfft(old_div(flux[wwindow],flux.std())) ;   fspm=np.fft.rfft(old_div(mass[wwindow],mass.std()))
+        fspn=np.fft.rfft(old_div(newmass[wwindow],newmass.std()))
         pds=np.abs(fsp)**2  ;   pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
-        freq = np.fft.rfftfreq(wsize, tspan/np.double(nsize)) # frequency grid (different for all the time bins)
-        print "frequencies from "+str(freq.min())+" to "+str(freq.max())
-        print "compare to "+str(binfreq[0])+" and "+str(binfreq[-1])
+        freq = np.fft.rfftfreq(wsize, old_div(tspan,np.double(nsize))) # frequency grid (different for all the time bins)
+        print("frequencies from "+str(freq.min())+" to "+str(freq.max()))
+        print("compare to "+str(binfreq[0])+" and "+str(binfreq[-1]))
 #        ii=raw_input('/')
         for kb in np.arange(nbins):
             freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
@@ -172,10 +176,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     # let us also make a Fourier of the whole series:
     pdsbin_total=np.zeros([nbins]) ; pdsbinm_total=np.zeros([nbins]) ; pdsbinn_total=np.zeros([nbins])
     dpdsbin_total=np.zeros([nbins]) ; dpdsbinm_total=np.zeros([nbins]) ; dpdsbinn_total=np.zeros([nbins])
-    fsp=np.fft.rfft(flux/flux.std()) ;  fspm=np.fft.rfft(mass/mass.std())
-    fspn=np.fft.rfft(newmass/newmass.std())
+    fsp=np.fft.rfft(old_div(flux,flux.std())) ;  fspm=np.fft.rfft(old_div(mass,mass.std()))
+    fspn=np.fft.rfft(old_div(newmass,newmass.std()))
     pds=np.abs(fsp)**2  ;  pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
-    freq = np.fft.rfftfreq(nsize, tspan/np.double(nsize)) # frequency grid (total)
+    freq = np.fft.rfftfreq(nsize, old_div(tspan,np.double(nsize))) # frequency grid (total)
     for kb in np.arange(nbins):
         freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
         pdsbin_total[kb]=pds[freqrange].mean()   ;     pdsbinm_total[kb]=pdsm[freqrange].mean()   ;   pdsbinn_total[kb]=pdsn[freqrange].mean()
@@ -186,8 +190,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
         omega/=tscale
         wfin=np.where(np.isfinite(pdsbin_total))
-        print omega, omegadisk
-        print "pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max())
+        print(omega, omegadisk)
+        print("pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max()))
         pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
         # colour plot:
         plt.clf()
@@ -213,7 +217,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='g') #, fmt='.')
         plt.xscale('log')
         plt.yscale('log')
-        plt.xlim(1./tspan, np.double(nsize)/tspan)
+        plt.xlim(old_div(1.,tspan), old_div(np.double(nsize),tspan))
         plt.ylim(pmin*0.5, pmax*2.)
         plt.xlabel('$f$, Hz')
         plt.ylabel('PDS, relative units')

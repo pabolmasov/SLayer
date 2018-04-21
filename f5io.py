@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import str
+from past.utils import old_div
 import h5py
 import numpy as np
 import os
@@ -11,31 +15,31 @@ outdir = "out" #default output directory
 def HDFcombine(f5array):
     n=np.size(f5array)
     if(n<=1):
-        print "nothing to combine"
+        print("nothing to combine")
         exit()
     else:
-        print "preparing to glue "+str(n)+" files"
+        print("preparing to glue "+str(n)+" files")
     fnew=h5py.File(outdir+'/runcombine.hdf5', "w")
     f = h5py.File(f5array[0],'r')
     #    params=f0['params']
     #    parnew = f.create_group("params")
     f.copy("params", fnew)
-    keys=f.keys()
+    keys=list(f.keys())
     currentkeys=[]
     for k in np.arange(n):
         nkeys=np.size(keys)-1 # the last one is "params", we do not need it anymore
         for kkey in np.arange(nkeys):
 #            print keys[kkey]
             if keys[kkey] in currentkeys:
-                print " duplicate entry "+keys[kkey]
+                print(" duplicate entry "+keys[kkey])
             else:
                 f.copy(keys[kkey], fnew)
                 currentkeys.append(keys[kkey])
-        print "file "+f5array[k]+" added"
+        print("file "+f5array[k]+" added")
         if(k<(n-1)): # reading next file
             f.close()
             f = h5py.File(f5array[k+1],'r')
-            keys=f.keys()
+            keys=list(f.keys())
     f.flush() ;    f.close()
     fnew.close() 
     
@@ -70,7 +74,7 @@ def saveSim(f5, nout, t,
     mass=sig.sum()*sarea
     #        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     #        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-    totenergy=(sig*energy+(ug**2+vg**2)/2.).sum()*sarea
+    totenergy=(sig*energy+old_div((ug**2+vg**2),2.)).sum()*sarea
 
     scycle = str(nout).rjust(6, '0')
     grp = f5.create_group("cycle_"+scycle)
@@ -98,15 +102,15 @@ def restart(restartfile, nrest, conf):
     params=f5['params/']
     nlons1 =params.attrs["nlons"]
     nlats1 =params.attrs["nlats"]
-    ntrunc1 = int(nlons1/3) 
+    ntrunc1 = int(old_div(nlons1,3)) 
     rsphere=params.attrs["rsphere"]
     
     data  = f5["cycle_"+str(nrest).rjust(6, '0')]
 
     if ((nlons1 != conf.nlons) | (nlats1 != conf.nlats)): # interpolate!
-        print "restart: dimensions unequal\n"
-        print "restart: interpolating from "+str(nlons1)+", "+str(nlats1)
-        print " to "+str(conf.nlons)+", "+str(conf.nlats)
+        print("restart: dimensions unequal\n")
+        print("restart: interpolating from "+str(nlons1)+", "+str(nlats1))
+        print(" to "+str(conf.nlons)+", "+str(conf.nlats))
         x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian') # new grid
         #        lons,lats = np.meshgrid(x.lons, x.lats)
         x1 = Spharmt(nlons1, nlats1, ntrunc1, rsphere, gridtype='gaussian') # old grid
@@ -122,15 +126,15 @@ def restart(restartfile, nrest, conf):
         accflagfun =  si.interp2d(x1.lons, x1.lats, accflag1, kind='linear')
         vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; energyg = energyfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
         # accflag may be smoothed without any loss of generality or stability
-        dlats=np.pi/np.double(conf.nlats) ;  dlons=2.*np.pi/np.double(conf.nlons) # approximate size in latitudinal and longitudinal directions
-        print "smoothing accflag"
-        accflag = nd.filters.gaussian_filter(accflag, 2./(1./dlats+1./dlons), mode='constant') # smoothing
+        dlats=old_div(np.pi,np.double(conf.nlats)) ;  dlons=2.*np.pi/np.double(conf.nlons) # approximate size in latitudinal and longitudinal directions
+        print("smoothing accflag")
+        accflag = nd.filters.gaussian_filter(accflag, old_div(2.,(old_div(1.,dlats)+old_div(1.,dlons))), mode='constant') # smoothing
         w1=np.where(accflag > 1.) ; w0=np.where(accflag <0.)
         if(np.size(w1)>0):
             accflag[w1]=1.
         if(np.size(w0)>0):
             accflag[w0]=0. 
-        print "restart: restore and interpolation finished"
+        print("restart: restore and interpolation finished")
     else:
         vortg = data["vortg"][:]
         divg  = data["divg"][:]

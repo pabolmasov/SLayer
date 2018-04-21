@@ -3,6 +3,10 @@
 
     NOTE: Can be imported as module that contains everything defined here.
 """
+from __future__ import print_function
+from __future__ import division
+from builtins import str
+from past.utils import old_div
 import numpy as np
 
 #################################
@@ -19,8 +23,8 @@ if(not(ifrestart)):
 ##################################################
 # grid, time step info
 nlons  = 256          # number of longitudes
-ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
-nlats  = int(nlons/2) # for gaussian grid
+ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
+nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
@@ -31,16 +35,16 @@ outskip= 10000 # how often do we output the snapshots (in dt_CFL)
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 0.1                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
-grav       = 1./rsphere**2         # gravity
+grav       = old_div(1.,rsphere**2)         # gravity
 sig0       = 1e6                   # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
-print "rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian"
-print "approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere)
+print("rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian")
+print("approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere))
 
 # dt/=tscale # dt now in tscales
-dx = rsphere/np.double(nlons)
+dx = old_div(rsphere,np.double(nlons))
 dt_cfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
-print "dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s"
+print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
 dtout=np.double(outskip)*dt_cfl # time step for output
 # ii=raw_input("x")
 # vertical structure parameters:
@@ -57,8 +61,8 @@ cssqscale = 2.89591e-06 / mu * mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma
 betamin=1e-7 # beta is solved for in the range betamin .. 1-betamin
 # there is a singularity near beta=1, not sure about beta=0
 
-print "speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere)
-print "vertical scaleheight is ~ "+str(csqmin/grav)+" = "+str(csqmin/grav/dx)+"dx"
+print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
+print("vertical scaleheight is ~ "+str(old_div(csqmin,grav))+" = "+str(csqmin/grav/dx)+"dx")
 
 ##################################################
 
@@ -72,10 +76,10 @@ ifscalediffusion = True
 ##################################################
 #perturbation parameters
 bump_amp  = -0.05     # perturbation amplitude
-bump_lat0  = np.pi/6. # perturbation latitude
-bump_lon0  = np.pi/3. # perturbation longitude
-bump_dlon = np.pi/15. # size of the perturbed region (longitude)
-bump_dlat  = np.pi/15. # size of the perturbed region (latitude)
+bump_lat0  = old_div(np.pi,6.) # perturbation latitude
+bump_lon0  = old_div(np.pi,3.) # perturbation longitude
+bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
+bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term

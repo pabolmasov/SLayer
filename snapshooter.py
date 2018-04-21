@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import str
+from past.utils import old_div
 import numpy as np
 import shtns
 import scipy.ndimage as nd
@@ -34,7 +38,7 @@ def keyshow(filename):
     showing the list of keys (entries) in a given data file
     '''
     f = h5py.File(filename,'r')
-    print f.keys()
+    print(list(f.keys()))
     f.close()
 
 def plotnth(filename, nstep):
@@ -47,7 +51,7 @@ def plotnth(filename, nstep):
     lons1d = (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d-1., np.arccos(clats1d))
-    lons*=180./np.pi ; lats*=180./np.pi
+    lons*=old_div(180.,np.pi) ; lats*=old_div(180.,np.pi)
     rsphere=params.attrs["rsphere"] ; grav=params.attrs["grav"] # ; kappa=params.attrs["kappa"]
     omegaNS=params.attrs["omega"]
     
@@ -68,12 +72,12 @@ def plotnth(filename, nstep):
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.max()
     skx = 8 ; sky=16
-    xx = nd.filters.gaussian_filter(xx, skx/2., mode='constant')*500./vvmax
-    yy = nd.filters.gaussian_filter(yy, sky/2., mode='constant')*500./vvmax
+    xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
+    yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
     plots.snapplot(lons, lats, sig, accflag, xx, yy, [skx,sky]) # geographic maps
 
     kappa=0.34
-    geff=-grav+(ug**2+vg**2)/rsphere
+    geff=-grav+old_div((ug**2+vg**2),rsphere)
     radgeff=sig*diss*kappa
     plots.sgeffplot(sig, grav, geff, radgeff) # Eddington violation plot
     plots.vortgraph(lats, lons, vortg, sig, energy, omegaNS, lonrange=[0.,360.])
@@ -82,11 +86,11 @@ def plotnth(filename, nstep):
     #    plots.reys(lons, lats, sig, ug, vg, energy,rsphere)
 
     # thicknesses and Froude number:
-    hthick=-5./geff*energy/sig/3./(1.-beta/2.)
-    fru=ug/np.sqrt(-hthick*geff) # azimuthal Froude/Mach
-    frv=vg/np.sqrt(-hthick*geff) # polar Froude/Mach
+    hthick=-5./geff*energy/sig/3./(1.-old_div(beta,2.))
+    fru=old_div(ug,np.sqrt(-hthick*geff)) # azimuthal Froude/Mach
+    frv=old_div(vg,np.sqrt(-hthick*geff)) # polar Froude/Mach
     plots.somemap(lons, lats, np.sqrt(frv**2), 'out/froude.eps')
-    plots.somemap(lons, lats, np.log10(hthick/rsphere), 'out/htor.eps')
+    plots.somemap(lons, lats, np.log10(old_div(hthick,rsphere)), 'out/htor.eps')
     
 def multireader(nmin, nmax):
 
@@ -101,5 +105,5 @@ def multireader(nmin, nmax):
         os.system('cp out/northpole.eps out/north'+str(k).rjust(ndigits, '0')+'.eps')
         os.system('cp out/southpole.eps out/south'+str(k).rjust(ndigits, '0')+'.eps')
         os.system('cp out/sgeff.eps out/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
-        print 'shot'+str(k).rjust(ndigits, '0')+'.png'
+        print('shot'+str(k).rjust(ndigits, '0')+'.png')
         

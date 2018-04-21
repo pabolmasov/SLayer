@@ -1,3 +1,5 @@
+from __future__ import division
+from past.utils import old_div
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -20,16 +22,16 @@ def allview():
 
     bmin=1e-5 ; bmax=1e5 ; nb=100
     smin=1. ; smax=1e10 ; ns=29
-    beta1d=(bmax/bmin)**(arange(nb)/double(nb-1))*bmin
-    beta1d=beta1d/(1.-beta1d)
-    sig1d=(smax/smin)**(arange(ns)/double(ns-1))*smin
+    beta1d=(old_div(bmax,bmin))**(old_div(arange(nb),double(nb-1)))*bmin
+    beta1d=old_div(beta1d,(1.-beta1d))
+    sig1d=(old_div(smax,smin))**(old_div(arange(ns),double(ns-1)))*smin
     beta, sig=meshgrid(beta1d, sig1d)
     
-    bcom=beta/(1.-beta)**0.25/(1.-beta/2.)
+    bcom=beta/(1.-beta)**0.25/(1.-old_div(beta,2.))
     # speed of sound E/Sigma c^2
     etos=8.7e-6/mu*(grav*mass1*sig)**0.25/bcom
     rho=1.87066*mu*beta/(1.-beta)**0.25*(grav*sig)**0.75
-    gammae=0.006347*(beta/(1.-beta))**(1./3.)
+    gammae=0.006347*(old_div(beta,(1.-beta)))**(old_div(1.,3.))
     
     plt.clf()
     plt.contourf(beta, sig, etos, nlevels=100)

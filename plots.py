@@ -1,5 +1,9 @@
+from __future__ import print_function
+from __future__ import division
 # module for all the visualization tools & functions
 
+from builtins import str
+from past.utils import old_div
 import numpy as np
 import scipy.ndimage as spin
 import matplotlib.pyplot as plt
@@ -23,7 +27,7 @@ def tanrat(x,y):
     sx=np.size(x) ; sy=np.size(y)
     if(sx>1):
         if(sx!=sy):
-            print "tanrat: array sizes do not match, "+str(sx)+" !="+str(sy)
+            print("tanrat: array sizes do not match, "+str(sx)+" !="+str(sy))
             sx=minimum(sx,sy)
         z=np.zeros(sx, dtype=np.double)
         for k in np.arange(sx):
@@ -32,11 +36,11 @@ def tanrat(x,y):
     else:
         z=0.
         if((x*y)>0.):
-            z=np.arctan(y/x)
+            z=np.arctan(old_div(y,x))
             if(x<0.):
                 z+=np.pi
         elif((x*y)<0.):
-            z=np.arctan(y/x)+np.pi
+            z=np.arctan(old_div(y,x))+np.pi
             if(y<0.):
                 z+=np.pi
         else:
@@ -54,8 +58,8 @@ def visualizePoles(ax, angmo):
     # axes and angular momentum components (3-tuple)
     x,y,z=angmo
     polelon = tanrat(x, y)
-    polelat = np.arcsin(z/np.sqrt(x**2+y**2+z**2))
-    polelonDeg=180.*(polelon/np.pi-1.) ; polelatDeg=(polelat/np.pi)*180.
+    polelat = np.arcsin(old_div(z,np.sqrt(x**2+y**2+z**2)))
+    polelonDeg=180.*(old_div(polelon,np.pi)-1.) ; polelatDeg=(old_div(polelat,np.pi))*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
     ax.plot([((180.-polelonDeg) % 360.)], [-polelatDeg], '.r')
     
@@ -96,7 +100,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
     """
     ax.cla()
 
-    print title, " min/max:", data.min(), data.max()
+    print(title, " min/max:", data.min(), data.max())
     wnan=np.where(np.isnan(data))
     data_masked=ma.masked_where(np.isnan(data),data)
     #make fancy 
@@ -133,14 +137,14 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
     M = np.hypot(xx, yy)
 
-    print title, " min/max vec len: ", M.min(), M.max()
+    print(title, " min/max vec len: ", M.min(), M.max())
 
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.std() # normalization
     nlons=np.size(np.unique(lonsDeg))
     sk = int(np.floor(5.*np.double(nlons)/128.))
     #    print "nlons="+str(nlons)
-    sigma = [sk/2., sk/2.]
+    sigma = [old_div(sk,2.), old_div(sk,2.)]
     xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*30./vvmax
     yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*30./vvmax
     
@@ -172,7 +176,7 @@ def visualize(t, nout,
 #              hbump,
 #              rsphere,
               cf):
-    energy= press / (3. * (1.-beta/2.))# (ug**2+vg**2)/2.
+    energy= old_div(press, (3. * (1.-old_div(beta,2.))))# (ug**2+vg**2)/2.
     #prepare figure etc
     fig = plt.figure(figsize=(10,10))
     gs = plt.GridSpec(5, 10)
@@ -183,13 +187,13 @@ def visualize(t, nout,
     for row in [0,1,2,3,4]:
         axs.append( plt.subplot(gs[row, 0:5]) )
         axs.append( plt.subplot(gs[row, 6:10]) )
-        lonsDeg = (180./np.pi)*lons-180.
-        latsDeg = (180./np.pi)*lats
+        lonsDeg = (old_div(180.,np.pi))*lons-180.
+        latsDeg = (old_div(180.,np.pi))*lats
 
     nlons=np.size(lons) ; nlats=np.size(lats)
     lats1d=np.unique(lats)
     clats=np.sin(lats1d)
-    print "visualize: accreted fraction from "+str(accflag.min())+" to "+str(accflag.max())
+    print("visualize: accreted fraction from "+str(accflag.min())+" to "+str(accflag.max()))
     
     vorm=np.fabs(vortg-2.*cf.omega*np.sin(lats)).max()
 
@@ -203,35 +207,35 @@ def visualize(t, nout,
     #    mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     #    mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     thenergy=trapz(energy.mean(axis=1), x=clats)
-    kenergy=trapz((sig*(ug**2+vg**2)).mean(axis=1), x=clats)/2.
+    kenergy=old_div(trapz((sig*(ug**2+vg**2)).mean(axis=1), x=clats),2.)
 #    (sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     angmoz=trapz((sig*ug*np.cos(lats)).mean(axis=1), x=clats)*cf.rsphere
     angmox=trapz((sig*(vg*np.sin(lons)-ug*np.sin(lats)*np.cos(lons))).mean(axis=1), x=clats)*cf.rsphere
     angmoy=trapz((sig*(vg*np.cos(lons)-ug*np.sin(lats)*np.sin(lons))).mean(axis=1), x=clats)*cf.rsphere
     vangmo=np.sqrt(angmox**2+angmoy**2+angmoz**2) # total angular momentum 
 
-    print "t = "+str(t)
-    print "angular momentum "+str(vangmo)+", inclined wrt z by "+str(np.arccos(angmoz/vangmo)*180./np.pi)+"deg"
-    print "net angular momentum "+str(vangmo/mass)
-    print "vorticity: "+str(vortg.min())+" to "+str(vortg.max())
-    print "divergence: "+str(divg.min())+" to "+str(divg.max())
-    print "azimuthal U: "+str(ug.min())+" to "+str(ug.max())
-    print "polar V: "+str(vg.min())+" to "+str(vg.max())
-    print "Sigma: "+str(sig.min())+" to "+str(sig.max())
-    print "Pi: "+str(press.min())+" to "+str(press.max())
-    print "accretion flag: "+str(accflag.min())+" to "+str(accflag.max())
-    print "maximal dissipation "+str(dissipation.max())
-    print "minimal dissipation "+str(dissipation.min())
-    print "total mass = "+str(mass)
-    print "accreted mass = "+str(mass_acc)
-    print "native mass = "+str(mass_native)
-    print "mdot = "+str(mdot_msunyr)
-    print "estimated accreted mass = "+str(mdot*t*cf.tscale)
-    print "total energy = "+str(thenergy)+"(thermal) + "+str(kenergy)+"(kinetic)"
-    print "net energy = "+str((thenergy+kenergy)/mass)
+    print("t = "+str(t))
+    print("angular momentum "+str(vangmo)+", inclined wrt z by "+str(np.arccos(old_div(angmoz,vangmo))*180./np.pi)+"deg")
+    print("net angular momentum "+str(old_div(vangmo,mass)))
+    print("vorticity: "+str(vortg.min())+" to "+str(vortg.max()))
+    print("divergence: "+str(divg.min())+" to "+str(divg.max()))
+    print("azimuthal U: "+str(ug.min())+" to "+str(ug.max()))
+    print("polar V: "+str(vg.min())+" to "+str(vg.max()))
+    print("Sigma: "+str(sig.min())+" to "+str(sig.max()))
+    print("Pi: "+str(press.min())+" to "+str(press.max()))
+    print("accretion flag: "+str(accflag.min())+" to "+str(accflag.max()))
+    print("maximal dissipation "+str(dissipation.max()))
+    print("minimal dissipation "+str(dissipation.min()))
+    print("total mass = "+str(mass))
+    print("accreted mass = "+str(mass_acc))
+    print("native mass = "+str(mass_native))
+    print("mdot = "+str(mdot_msunyr))
+    print("estimated accreted mass = "+str(mdot*t*cf.tscale))
+    print("total energy = "+str(thenergy)+"(thermal) + "+str(kenergy)+"(kinetic)")
+    print("net energy = "+str(old_div((thenergy+kenergy),mass)))
 
     dismax=(dissipation*sig).max()
-    cspos=(press/sig+np.fabs(press/sig))/2.
+    cspos=old_div((old_div(press,sig)+np.fabs(old_div(press,sig))),2.)
     
     #vorticity
     visualizeMap(axs[0], 
@@ -278,14 +282,14 @@ def visualize(t, nout,
 #                      divg, 
 #                      title=r"$(\nabla \cdot v)$")
     # sigma
-    sigpos=(sig+np.fabs(sig))/2.+cf.sigfloor
+    sigpos=old_div((sig+np.fabs(sig)),2.)+cf.sigfloor
     sig_init_base = cf.sig0*np.exp(0.5*(cf.omega*cf.rsphere*np.cos(lats))**2/cf.csqinit)
     # cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
 
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
-                 np.log(sigpos/sig_init_base),  
-                 np.log((sigpos/sig_init_base).min()*0.9),  np.log((sigpos/sig_init_base).max()*1.1),  
+                 np.log(old_div(sigpos,sig_init_base)),  
+                 np.log((old_div(sigpos,sig_init_base)).min()*0.9),  np.log((old_div(sigpos,sig_init_base)).max()*1.1),  
                  title=r'$\Sigma$')
 #    axs[4].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
     axs[4].contour(
@@ -334,8 +338,8 @@ def visualize(t, nout,
     du=ug # -cf.omega*cf.rsphere*np.cos(lats)
     dv=vg
     vabs=du**2+dv**2
-    dunorm=du/vabs
-    dvnorm=dv/vabs
+    dunorm=old_div(du,vabs)
+    dvnorm=old_div(dv,vabs)
 
     visualizeMapVecs(axs[8], 
                      lonsDeg, latsDeg, 
@@ -369,7 +373,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     s0=sig[wpoles].min() ; s1=sig[wpoles].max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
-    levs=(s1/s0)**(np.arange(nlev)/np.double(nlev-1))*s0
+    levs=(old_div(s1,s0))**(old_div(np.arange(nlev),np.double(nlev-1)))*s0
 
     plt.clf()
     fig=plt.figure()
@@ -394,12 +398,12 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     plt.close()
     # drawing poles:
     nlons=np.size(lons)
-    tinyover=1./np.double(nlons)
+    tinyover=old_div(1.,np.double(nlons))
     theta=lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
-    tinyover=1./np.double(nlons)
+    tinyover=old_div(1.,np.double(nlons))
     ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, sig,cmap='jet',levels=levs)
     ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
@@ -429,7 +433,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
 def somemap(lons, lats, q, outname):
     wnan=np.where(np.isnan(q))
     nnan=np.size(wnan)
-    print outname+" somemap: "+str(nnan)+"NaN points out of "+str(np.size(q))
+    print(outname+" somemap: "+str(nnan)+"NaN points out of "+str(np.size(q)))
     plt.clf()
     fig=plt.figure()
     plt.contourf(lons, lats, q,cmap='jet') #,levels=levs)
@@ -452,16 +456,16 @@ def vortgraph(lats, lons, vort, sig, energy, omegaNS, lonrange=[0.,360.]):
     plt.xlabel(r'$\theta$, deg')
     plt.savefig('out/vortgraph.eps')
     plt.close()
-    domedian=np.median(do,axis=1) ; csmedian=np.median((energy/sig),axis=1)
+    domedian=np.median(do,axis=1) ; csmedian=np.median((old_div(energy,sig)),axis=1)
     plt.clf()
     plt.plot(domedian, csmedian, color='k')
-    plt.scatter(do[w], (energy/sig)[w], c=lats[w]*np.pi/180., cmap='jet', s=((lons[w]-(lon1+lon2)/2.)/(lon2-lon1))**2*100., marker='d', facecolors='none')
+    plt.scatter(do[w], (old_div(energy,sig))[w], c=lats[w]*np.pi/180., cmap='jet', s=(old_div((lons[w]-old_div((lon1+lon2),2.)),(lon2-lon1)))**2*100., marker='d', facecolors='none')
 #    plt.plot((vort+2.*omegaNS*np.cos(lats*np.pi/180.))[w], (energy/sig)[w], markerfacecolors='none', markeredgecolors=lats[w]*np.pi/180., cmap='jet', markersize=((lons[w]-(lon1+lon2)/2.)/(lon2-lon1))**2*50.)
     plt.xlabel(r'$\Delta\omega$')
     plt.ylabel(r'$E/\Sigma$')
     #    plt.xscale('log')
     # plt.yscale('log')
-    plt.ylim(np.percentile((energy/sig)[w], 1.), np.percentile((energy/sig)[w], 99.9)*1.2)
+    plt.ylim(np.percentile((old_div(energy,sig))[w], 1.), np.percentile((old_div(energy,sig))[w], 99.9)*1.2)
     plt.xlim(np.percentile(do[w], 1.)*1.1, np.percentile(do[w], 99.9)*1.1)
     plt.savefig('out/vortcs.eps')
     plt.close()
@@ -470,15 +474,15 @@ def dissgraph(sig, energy, diss, vsq, accflag):
     w=np.where(accflag>0.75)
     w0=np.where(accflag<0.25)
     plt.clf()
-    plt.plot(sig, vsq/2., '.g')
-    plt.plot(sig, energy/sig, '.k')
-    plt.plot(sig[w], energy[w]/sig[w], '.b')
-    plt.plot(sig[w0], energy[w0]/sig[w0], '.r')
+    plt.plot(sig, old_div(vsq,2.), '.g')
+    plt.plot(sig, old_div(energy,sig), '.k')
+    plt.plot(sig[w], old_div(energy[w],sig[w]), '.b')
+    plt.plot(sig[w0], old_div(energy[w0],sig[w0]), '.r')
     plt.xlabel(r'$\Sigma$')
     plt.ylabel(r'$E/\Sigma$')
     plt.xscale('log')
     plt.yscale('log')
-    plt.ylim((energy/sig).min(),(energy/sig).max())
+    plt.ylim((old_div(energy,sig)).min(),(old_div(energy,sig)).max())
     plt.savefig('out/effeos.eps')
     plt.close()
     plt.clf()
@@ -511,10 +515,10 @@ def reys(lons, lats, sig, ug,vg, energy, rsphere):
     # shear domega/dtheta:
     nx, ny=np.shape(omega)
     omegamean=omega.mean(axis=1)
-    dodthmean = (omegamean[1:]-omegamean[:-1])/(lats[1:,0]-lats[:-1,0])
+    dodthmean = old_div((omegamean[1:]-omegamean[:-1]),(lats[1:,0]-lats[:-1,0]))
 #    dodthmean = dodth.mean(axis=1) / (omega[1:,:]+omega[:-1,:]).mean(axis=1)
-    omegamean=(omegamean[1:]+omegamean[:-1])/2.
-    energymean = (energy[1:,:]+energy[:-1,:]).mean(axis=1)/2.
+    omegamean=old_div((omegamean[1:]+omegamean[:-1]),2.)
+    energymean = old_div((energy[1:,:]+energy[:-1,:]).mean(axis=1),2.)
     dug=ug ; dvg=vg
     for kx in np.arange(nx):
         dug[kx,:]=ug[kx,:]-ug[kx,:].mean()
@@ -522,8 +526,8 @@ def reys(lons, lats, sig, ug,vg, energy, rsphere):
     rxy = sig * dug * dvg
     rxy0 = sig * ug * vg
 #    rxy0mean = (rxy0[1:,:]+rxy0[:-1,:]).mean(axis=1)/2.
-    rxymean = (rxy[1:,:]+rxy[:-1,:]).mean(axis=1)/2.
-    latsmidpoint=(lats[1:,0]+lats[:-1,0])/2.
+    rxymean = old_div((rxy[1:,:]+rxy[:-1,:]).mean(axis=1),2.)
+    latsmidpoint=old_div((lats[1:,0]+lats[:-1,0]),2.)
     plt.clf()
     plt.plot(latsmidpoint, rxymean, color='k')
 #    plt.plot(latsmidpoint, rxy0mean, color='r')
