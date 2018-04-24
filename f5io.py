@@ -100,8 +100,8 @@ def restart(restartfile, nrest, conf):
     f5 = h5py.File(restartfile,'r')
 
     params=f5['params/']
-    nlons1 =params.attrs["nlons"]
-    nlats1 =params.attrs["nlats"]
+    nlons1 =int(params.attrs["nlons"])
+    nlats1 =int(params.attrs["nlats"])
     ntrunc1 = int(old_div(nlons1,3)) 
     rsphere=params.attrs["rsphere"]
     

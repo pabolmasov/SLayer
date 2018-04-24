@@ -15,14 +15,14 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=201 # number of output entry for restart
+ifrestart=True
+nrest=762 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 512          # number of longitudes
 ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
 nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9

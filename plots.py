@@ -58,10 +58,10 @@ def visualizePoles(ax, angmo):
     # axes and angular momentum components (3-tuple)
     x,y,z=angmo
     polelon = tanrat(x, y)
-    polelat = np.arcsin(old_div(z,np.sqrt(x**2+y**2+z**2)))
-    polelonDeg=180.*(old_div(polelon,np.pi)-1.) ; polelatDeg=(old_div(polelat,np.pi))*180.
+    polelat = np.pi/2.-np.arcsin(z/np.sqrt(x**2+y**2+z**2))
+    polelonDeg=180.*(polelon/np.pi-1.) ; polelatDeg=polelat/np.pi*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
-    ax.plot([((180.-polelonDeg) % 360.)], [-polelatDeg], '.r')
+    ax.plot([-polelonDeg], [-polelatDeg], '.r')
     
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile
@@ -538,4 +538,22 @@ def reys(lons, lats, sig, ug,vg, energy, rsphere):
     plt.savefig('out/rxy.eps')
     plt.close()
 
+########################################################################
+# post-processing of remotely produced light curves and spectra
+def pdsplot(infile="pdstots_diss"):
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    freq1=lines[:,0] ; freq2=lines[:,1]
+    fc=(freq1+freq2)/2. # center of frequency interval
+    f=lines[:,2] ; df=lines[:,3] # replace df with quantiles!
+    nf=np.size(f)
+    plt.clf()
+    for kf in np.arange(nf):
+        plt.plot([freq1[kf], freq2[kf]], [f[kf], f[kf]], color='k')
+        plt.plot([fc[kf], fc[kf]], [f[kf]-df[kf], f[kf]+df[kf]], color='k')
+    plt.xlabel(r'$f$, Hz')
+    plt.ylabel(r'$L$, $10^{37}{\rm erg\,s^{-1}}$')
+    plt.xscale('log') ;    plt.yscale('log')
+    plt.savefig(infile+'.png')
+    plt.savefig(infile+'.eps')
+    plt.close()
     
