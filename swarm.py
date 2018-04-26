@@ -207,7 +207,8 @@ time1 = time.clock() # time loop
 
 nout=nrest ;  t=t0 ; tstore=t0 # starting counters
 
-for ncycle in np.arange(itmax+1):
+while(t<(tmax+t0)):
+# ncycle in np.arange(itmax+1):
     # get vort,u,v,sigma on grid
     vortg = x.sph2grid(vortSpec)
     sig  = x.sph2grid(sigSpec)
@@ -374,7 +375,7 @@ for ncycle in np.arange(itmax+1):
         print("dt = "+str(dt))
         time2 = time.clock()
         print('simulation time = '+str(time2-time1)+'s')
-        print("about "+str(np.double(ncycle)/np.double(itmax)*100.)+"% done") 
+        print("about "+str(t/tmax*100.)+"% done") 
 
     #plot & save
     if ( t >  (tstore+dtout)):
