@@ -58,10 +58,10 @@ def visualizePoles(ax, angmo):
     # axes and angular momentum components (3-tuple)
     x,y,z=angmo
     polelon = tanrat(x, y)
-    polelat = np.pi/2.-np.arcsin(z/np.sqrt(x**2+y**2+z**2))
+    polelat = np.arcsin(z/np.sqrt(x**2+y**2+z**2))
     polelonDeg=180.*(polelon/np.pi-1.) ; polelatDeg=polelat/np.pi*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
-    ax.plot([-polelonDeg], [-polelatDeg], '.r')
+    ax.plot([(polelonDeg+360.)%360.-180.], [-polelatDeg], '.r')
     
 def visualizeSprofile(ax, latsDeg, data, title="", log=False):
     # latitudal profile

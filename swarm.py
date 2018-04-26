@@ -34,19 +34,20 @@ import conf as conf #importing simulation setup module
 
 ####################################
 # extra arguments (allow to run several slayers in parallel and write results to arbitrary outputs)
+f5io.outdir = 'out'
 if(np.size(sys.argv)>1):
     print("launched with arguments "+str(', '.join(sys.argv)))
-    newconf=sys.argv[1]
     # new conf file
-    fp, pathname, description = imp.find_module(newconf)
-    imp.load_module('conf', fp, pathname, description)
-    fp.close()
+    newconf=sys.argv[1]
     print("loaded "+newconf+".py instead of the standard setup file conf.py")
     if(np.size(sys.argv)>2):
         # alternative output directory
         f5io.outdir = sys.argv[2]
-    else:
-        f5io.outdir = 'out'
+else:
+    newconf='conf'
+fp, pathname, description = imp.find_module(newconf)
+imp.load_module('conf', fp, pathname, description)
+fp.close()
 ##################################################
 # setup code environment
 # f5io.outdir = 'out'
@@ -207,7 +208,6 @@ time1 = time.clock() # time loop
 nout=nrest ;  t=t0 ; tstore=t0 # starting counters
 
 for ncycle in np.arange(itmax+1):
-    # for ncycle in range(2): # debug option
     # get vort,u,v,sigma on grid
     vortg = x.sph2grid(vortSpec)
     sig  = x.sph2grid(sigSpec)
@@ -228,6 +228,7 @@ for ncycle in np.arange(itmax+1):
         print("energy = "+str(energyg[wbnan]))
         ii=input("betanan")
     pressg=energyg / 3. / (1.-old_div(beta,2.))
+    cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     # vorticity flux
     tmpg1 = ug*vortg ;    tmpg2 = vg*vortg
     ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1 ,tmpg2 ) # all the nablas already contain an additional 1/R multiplier
@@ -327,10 +328,10 @@ for ncycle in np.arange(itmax+1):
         print("E = "+str(energyg.flatten()[wtrouble-3:wtrouble+3]))
         print("Q+ = "+str(qplus.flatten()[wtrouble-3:wtrouble+3]))
         rr=input()
-    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially 
-        dt=old_div(1.,(old_div(1.,dt_cfl)+old_div(1.,dt_thermal)))
-    else:
-        dt=dt_cfl
+    #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
+    dt=old_div(0.5,np.minimum(3.*np.sqrt(cssqmax),1.)/dt_cfl+1./dt_thermal+1./dtout)
+#    else:
+#        dt=dt_cfl # maybe we can try increasing dt_cfl = dt0 /sqrt(csqmax)?
     # passive scalar evolution:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
@@ -351,7 +352,7 @@ for ncycle in np.arange(itmax+1):
     accflagSpec += daccflagdtSpec * dt
 
     # implicit hyperdiffusion for vort and div
-    if((dt<dt_cfl)&ifscalediffusion):
+    if(ifscalediffusion):
         vortSpec *= hyperdiff_fact**(old_div(dt,dt_cfl))
         divSpec *= hyperdiff_fact**(old_div(dt,dt_cfl))
         sigSpec *= sigma_diff**(old_div(dt,dt_cfl))
@@ -371,6 +372,9 @@ for ncycle in np.arange(itmax+1):
         print(" dt(CFL) = "+str(dt_cfl))
         print(" dt(thermal) = "+str(dt_thermal))
         print("dt = "+str(dt))
+        time2 = time.clock()
+        print('simulation time = '+str(time2-time1)+'s')
+        print("about "+str(np.double(ncycle)/np.double(itmax)*100.)+"% done") 
 
     #plot & save
     if ( t >  (tstore+dtout)):

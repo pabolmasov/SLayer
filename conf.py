@@ -15,7 +15,7 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
+ifrestart=False
 nrest=762 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
@@ -28,7 +28,7 @@ nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
-itmax  = 10000000    # number of iterations
+# itmax  = 10000000    # number of iterations
 outskip= 10000 # how often do we output the snapshots (in dt_CFL)
 
 # basic physical parameters
@@ -40,17 +40,22 @@ sig0       = 1e6                   # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
 print("rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian")
 print("approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere))
+tmax=10.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
+
 
 # dt/=tscale # dt now in tscales
 dx = old_div(rsphere,np.double(nlons))
-dt_cfl = dx*0.1 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
+dt_cfl = dx*0.5 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
 print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
 dtout=np.double(outskip)*dt_cfl # time step for output
+itmax  = np.int(np.ceil(tmax/dt_cfl))    # number of iterations   
+print("preparing to run for "+str(itmax)+"iterations, making "+str(np.int(np.floor(tmax/dtout)))+" outputs")
 # ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
-csqinit=1e-4 # initial speed of sound squared
+# 1e-6 is about 1keV...
+csqinit=1e-6 # initial speed of sound squared
 
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
@@ -71,7 +76,7 @@ print("vertical scaleheight is ~ "+str(old_div(csqmin,grav))+" = "+str(csqmin/gr
 efold = 10000.*dt_cfl # efolding timescale at ntrunc for hyperdiffusion
 efold_diss = 10.*efold # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
-ifscalediffusion = True
+ifscalediffusion = False
 
 ##################################################
 #perturbation parameters
@@ -83,10 +88,10 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 0. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 1e6 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
-incle     = latspread*.1 # inclination of initial rotation, radians
+incle     = np.pi/6. # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star
