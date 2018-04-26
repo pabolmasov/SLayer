@@ -175,7 +175,7 @@ def visualize(t, nout,
 #              engy,
 #              hbump,
 #              rsphere,
-              cf):
+              cf, outdir):
     energy= old_div(press, (3. * (1.-old_div(beta,2.))))# (ug**2+vg**2)/2.
     #prepare figure etc
     fig = plt.figure(figsize=(10,10))
@@ -359,13 +359,13 @@ def visualize(t, nout,
     axs[9].set_ylim(ug.min()+vg.min(), ug.max()+vg.max())
     axs[0].set_title('{:7.3f} ms'.format( t*cf.tscale*1e3) )
     scycle = str(nout).rjust(6, '0')
-    plt.savefig('out/swater'+scycle+'.png' ) #, bbox_inches='tight') 
+    plt.savefig(outdir+'/swater'+scycle+'.png' ) #, bbox_inches='tight') 
     plt.close()
 ##########################################################################
 #    
 ##########################################################################    
-# post-factum visualizations form snapshooter:
-def snapplot(lons, lats, sig, accflag, vx, vy, sks):
+# post-factum visualizations from snapshooter:
+def snapplot(lons, lats, sig, accflag, vx, vy, sks, outdir='out'):
     # longitudes, latitudes, density field, accretion flag, velocity fields, alias for velocity output
     skx=sks[0] ; sky=sks[1]
 
@@ -377,7 +377,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
 
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, np.log10(sig),cmap='jet') #,levels=levs)
+    plt.contourf(lons, lats, sig, cmap='jet',levels=levs)
     plt.colorbar()
     plt.contour(lons, lats, accflag, levels=[0.5], colors='w') #,levels=levs)
     plt.quiver(lons[::skx, ::sky],
@@ -389,12 +389,12 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
         color='k',
         scale=20.0,
     )
-#    plt.ylim(-85.,85.)
+    plt.ylim(-85.,85.)
     plt.xlabel('longitude')
     plt.ylabel('latitude')
     fig.set_size_inches(8, 5)
-    plt.savefig('out/snapshot.png')
-    plt.savefig('out/snapshot.eps')
+    plt.savefig(outdir+'/snapshot.png')
+    plt.savefig(outdir+'/snapshot.eps')
     plt.close()
     # drawing poles:
     nlons=np.size(lons)
@@ -411,8 +411,8 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     plt.title('N') #, t='+str(nstep))
     plt.tight_layout()
     fig.set_size_inches(4, 4)
-    plt.savefig('out/northpole.eps')
-    plt.savefig('out/northpole.png')
+    plt.savefig(outdir+'/northpole.eps')
+    plt.savefig(outdir+'/northpole.png')
     plt.close()
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
@@ -425,8 +425,8 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks):
     plt.tight_layout(pad=2)
     fig.set_size_inches(4, 4)
     plt.title('S') #, t='+str(nstep))
-    plt.savefig('out/southpole.eps')
-    plt.savefig('out/southpole.png')
+    plt.savefig(outdir+'/southpole.eps')
+    plt.savefig(outdir+'/southpole.png')
     plt.close()
 
 # general framework for a post-processed map of some quantity q
@@ -445,16 +445,28 @@ def somemap(lons, lats, q, outname):
     plt.close()
     
 # vorticity correlated with other quantities
-def vortgraph(lats, lons, vort, sig, energy, omegaNS, lonrange=[0.,360.]):
+def vortgraph(lats, lons, vort, div, sig, energy, omegaNS, lonrange=[0.,360.], outdir='out'):
     lon1=lonrange[0] ; lon2=lonrange[1]
     w=np.where((lons>lon1)&(lons<lon2))
     do=vort+2.*omegaNS*np.cos(lats*np.pi/180.)
+    plt.clf()
+    plt.scatter(vort, div, c=sig)
+    plt.colorbar()
+    plt.plot(2.*omegaNS*np.sin(lats*np.pi/180.), div, ',k')
+    plt.ylabel(r'$\delta$')
+    plt.xlabel(r'$\omega$')
+    plt.xlim(vort.min(), vort.max())
+    plt.ylim(div.min(), div.max())
+    plt.savefig(outdir+'/vortdiv.eps')
+    plt.savefig(outdir+'/vortdiv.png')
+    plt.close()
+    
     plt.clf()
     plt.plot(lats, vort, ',k')
     plt.plot(lats, -2.*omegaNS*np.cos(lats*np.pi/180.),',r')
     plt.ylabel(r'$\omega$')
     plt.xlabel(r'$\theta$, deg')
-    plt.savefig('out/vortgraph.eps')
+    plt.savefig(outdir+'/vortgraph.eps')
     plt.close()
     domedian=np.median(do,axis=1) ; csmedian=np.median((old_div(energy,sig)),axis=1)
     plt.clf()
@@ -467,10 +479,10 @@ def vortgraph(lats, lons, vort, sig, energy, omegaNS, lonrange=[0.,360.]):
     # plt.yscale('log')
     plt.ylim(np.percentile((old_div(energy,sig))[w], 1.), np.percentile((old_div(energy,sig))[w], 99.9)*1.2)
     plt.xlim(np.percentile(do[w], 1.)*1.1, np.percentile(do[w], 99.9)*1.1)
-    plt.savefig('out/vortcs.eps')
+    plt.savefig(outdir+'/vortcs.eps')
     plt.close()
 
-def dissgraph(sig, energy, diss, vsq, accflag):
+def dissgraph(sig, energy, diss, vsq, accflag, outdir='out'):
     w=np.where(accflag>0.75)
     w0=np.where(accflag<0.25)
     plt.clf()
@@ -483,7 +495,7 @@ def dissgraph(sig, energy, diss, vsq, accflag):
     plt.xscale('log')
     plt.yscale('log')
     plt.ylim((old_div(energy,sig)).min(),(old_div(energy,sig)).max())
-    plt.savefig('out/effeos.eps')
+    plt.savefig(outdir+'/effeos.eps')
     plt.close()
     plt.clf()
     plt.plot(sig, diss, ',k')
@@ -493,23 +505,23 @@ def dissgraph(sig, energy, diss, vsq, accflag):
     plt.ylabel(r'dissipation')
     plt.xscale('log')
     plt.yscale('log')
-    plt.savefig('out/dissigma.eps')
+    plt.savefig(outdir+'/dissigma.eps')
     plt.close()
 
 # Effective gravity and Eddington violation diagnostic plot
-def sgeffplot(sig, grav, geff, radgeff):
+def sgeffplot(sig, grav, geff, radgeff, outdir='out'):
     plt.clf()
     plt.plot(sig, radgeff+geff, ',k')
     plt.plot(sig, geff, ',b')
     plt.plot(sig, geff*0.-grav, color='r')
     plt.xscale('log')
     plt.xlabel(r'$\Sigma$, g\,cm$^{-2}$')
-    plt.ylabel(r'$g_{\rm eff}$, $GM/c$ units')
-    plt.savefig('out/sgeff.eps')
+    plt.ylabel(r'$g_{\rm eff}$, $c^4/GM$ units')
+    plt.savefig(outdir+'/sgeff.eps')
     plt.close()
 
 # Reynolds stress plot (maybe we should make a time-averaged plot; think of it!)
-def reys(lons, lats, sig, ug,vg, energy, rsphere):
+def reys(lons, lats, sig, ug,vg, energy, rsphere, outdir='out'):
 
     omega=ug/np.cos(lats)/rsphere
     # shear domega/dtheta:
@@ -535,7 +547,7 @@ def reys(lons, lats, sig, ug,vg, energy, rsphere):
     plt.xlabel(r'latitude, degrees')
     plt.ylabel(r'stress')
 #    plt.ylim([rxymean.min(), rxymean.max()])
-    plt.savefig('out/rxy.eps')
+    plt.savefig(outdir+'/rxy.eps')
     plt.close()
 
 ########################################################################

@@ -75,6 +75,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
 #        print np.shape(energy)
         press = energy* 3. * (1.-old_div(beta,2.))
         tar[k]=data.attrs["t"]
+        print("entrance "+keys[k]+", dimensions "+str(np.shape(energy)))
         flux[k]=trapz((press*(1.-beta)/(sig*kappa+1.)*cosa).sum(axis=1), x=clats1d)*dlons
         mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa).sum(axis=1), x=-clats1d)*dlons

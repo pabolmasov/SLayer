@@ -2,7 +2,11 @@
 Main module of SLayer, supposed to be run under ipython as 
 > %run swarm.py
 
-All the parameters are set in conf.py
+All the parameters are set in conf.py by default; output directory is called 'out' and is created if needed. Main output is called out/run.hdf5 and is supplemented by png snapshots if ifplot=True
+
+If you want to use several setup files and output directories, you can try to run swarm with additional parameters:
+> %run swarm.py your_conf your_out
+where your setup is written in your_conf.py and the output directory is your_out
 """
 from __future__ import print_function
 from __future__ import division
@@ -20,15 +24,32 @@ import h5py
 from sympy.solvers import solve
 # from sympy import Symbol
 import scipy.interpolate as si
+import imp
+import sys
 
 #Code modules:
 from spharmt import Spharmt 
 import f5io as f5io #module for file I/O
 import conf as conf #importing simulation setup module
 
+####################################
+# extra arguments (allow to run several slayers in parallel and write results to arbitrary outputs)
+if(np.size(sys.argv)>1):
+    print("launched with arguments "+str(', '.join(sys.argv)))
+    newconf=sys.argv[1]
+    # new conf file
+    fp, pathname, description = imp.find_module(newconf)
+    imp.load_module('conf', fp, pathname, description)
+    fp.close()
+    print("loaded "+newconf+".py instead of the standard setup file conf.py")
+    if(np.size(sys.argv)>2):
+        # alternative output directory
+        f5io.outdir = sys.argv[2]
+    else:
+        f5io.outdir = 'out'
 ##################################################
 # setup code environment
-f5io.outdir = 'out'
+# f5io.outdir = 'out'
 if not os.path.exists(f5io.outdir):
     os.makedirs(f5io.outdir)
 
@@ -360,7 +381,7 @@ for ncycle in np.arange(itmax+1):
                       vortg, divg, ug, vg, sig, pressg, beta, accflag, dissipation, 
 #                      hbump,
 #                      rsphere,
-                      conf)
+                      conf, f5io.outdir)
 
         #file I/O
         f5io.saveSim(f5, nout, t,
