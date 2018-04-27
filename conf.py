@@ -22,7 +22,7 @@ if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 512          # number of longitudes
 ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
 nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9
@@ -39,18 +39,21 @@ grav       = old_div(1.,rsphere**2)         # gravity
 sig0       = 1e6                   # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
 print("rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian")
-print("approximate cell size is dx ~ "+str(1./np.double(nlons)/rsphere))
+print("approximate cell size is dx ~ "+str(rsphere/np.double(nlons)))
 tmax=10.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
 
-
 # dt/=tscale # dt now in tscales
-dx = old_div(rsphere,np.double(nlons))
-dt_cfl = dx*0.5 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
-print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
-dtout=np.double(outskip)*dt_cfl # time step for output
-print("dtout = "+str(dtout)+"GM/c**3 = "+str(dtout*tscale)+"s")
-itmax  = np.int(np.ceil(tmax/dt_cfl))    # number of iterations   
-print("preparing to run for "+str(itmax)+"iterations, making "+str(np.int(np.floor(tmax/dtout)))+" outputs")
+# dx = old_div(rsphere,np.double(nlons))
+# dy = old_div(rsphere,np.double(nlats))
+# minimal physical size of the cell is smaller than R/N_phi because of the variable Lame multiplier np.cos(lats)
+# dx=np.fabs((lons[1:-1,1:]-lons[1:-1,:-1])*np.cos(lats[1:-1,:-1])).min()
+# dy=np.fabs(x.lats[1:]-x.lats[:-1]).min()
+# dt_cfl = 0.5 * (1./dx + 1./dy) # basic CFL limit for light velocity
+# print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
+# dtout=np.double(outskip)*dt_cfl # time step for output
+# print("dtout = "+str(dtout)+"GM/c**3 = "+str(dtout*tscale)+"s")
+# itmax  = np.int(np.ceil(tmax/dt_cfl))    # number of iterations   
+# print("preparing to run for "+str(itmax)+"iterations, making "+str(np.int(np.floor(tmax/dtout)))+" outputs")
 # ii=raw_input("x")
 # vertical structure parameters:
 # ifiso = False # if we use isothermal EOS instead (obsolete)
@@ -68,16 +71,15 @@ betamin=1e-7 # beta is solved for in the range betamin .. 1-betamin
 # there is a singularity near beta=1, not sure about beta=0
 
 print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
-print("vertical scaleheight is ~ "+str(old_div(csqmin,grav))+" = "+str(csqmin/grav/dx)+"dx")
+# print("vertical scaleheight is ~ "+str(old_div(csqmin,grav))+" = "+str(csqmin/grav/dx)+"dx")
 
 ##################################################
 
 # Hyperdiffusion
 ##################################################
-efold = 10000.*dt_cfl # efolding timescale at ntrunc for hyperdiffusion
-efold_diss = 10.*efold # smoothing the dissipation term when used as a heat source
+efold = 100000. # efolding timescale at ntrunc for hyperdiffusion (in dt_cfl units)
+efold_diss = 0.1*efold # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
-ifscalediffusion = False
 
 ##################################################
 #perturbation parameters
@@ -89,7 +91,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus = 1e6 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus = 1e10 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
 latspread = 0.1   # spread in radians
 incle     = np.pi/6. # inclination of initial rotation, radians

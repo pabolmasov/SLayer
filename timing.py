@@ -179,7 +179,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         tcenter[kt]=old_div((tbegin+tend),2.)   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
         wwindow=np.where((tar>=tbegin)&(tar<tend))
         wsize=np.size(wwindow)
-        fsp=np.fft.rfft(old_div(flux[wwindow],flux.std())) ;   fspm=np.fft.rfft(old_div(mass[wwindow],mass.std()))
+        fstd=flux.std()
+        if(fstd<=0.):
+            fstd=1.
+        fsp=np.fft.rfft(old_div(flux[wwindow],fstd)) ;   fspm=np.fft.rfft(old_div(mass[wwindow],mass.std()))
         fspn=np.fft.rfft(old_div(newmass[wwindow],newmass.std()))
         pds=np.abs(fsp)**2  ;   pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
         freq = np.fft.rfftfreq(wsize, old_div(tspan,np.double(nsize))) # frequency grid (different for all the time bins)
@@ -197,7 +200,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     # let us also make a Fourier of the whole series:
     pdsbin_total=np.zeros([nbins]) ; pdsbinm_total=np.zeros([nbins]) ; pdsbinn_total=np.zeros([nbins])
     dpdsbin_total=np.zeros([nbins]) ; dpdsbinm_total=np.zeros([nbins]) ; dpdsbinn_total=np.zeros([nbins])
-    fsp=np.fft.rfft(old_div(flux,flux.std())) ;  fspm=np.fft.rfft(old_div(mass,mass.std()))
+    fsp=np.fft.rfft(old_div(flux,fstd)) ;  fspm=np.fft.rfft(old_div(mass,mass.std()))
     fspn=np.fft.rfft(old_div(newmass,newmass.std()))
     pds=np.abs(fsp)**2  ;  pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
     freq = np.fft.rfftfreq(nsize, old_div(tspan,np.double(nsize))) # frequency grid (total)
@@ -207,6 +210,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         dpdsbin_total[kb]=pds[freqrange].std()   ;     dpdsbinm_total[kb]=pdsm[freqrange].std()
         dpdsbinn_total[kb]=pdsn[freqrange].std()
 
+#    print(pds)
     if(ifplot):
         omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
         omega/=tscale

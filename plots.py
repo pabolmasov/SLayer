@@ -197,7 +197,7 @@ def visualize(t, nout,
     
     vorm=np.fabs(vortg-2.*cf.omega*np.sin(lats)).max()
 
-    mdot=cf.sigplus * 4. * np.pi * cf.latspread * cf.rsphere**2 *np.sqrt(4.*np.pi)
+    mdot=cf.sigplus * 4. * np.pi * np.sin(cf.latspread) * cf.rsphere**2 *np.sqrt(4.*np.pi)
     mdot_msunyr = mdot * 1.58649e-26 / cf.tscale
     mass=trapz(sig.mean(axis=1), x=clats)
     mass_acc=trapz((sig*accflag).mean(axis=1), x=clats)

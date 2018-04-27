@@ -58,18 +58,17 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 
 #import simulation parameters to global scope
 from conf import nlons, nlats
-from conf import grav, rsphere
-from conf import dt_cfl, omega, rsphere, sig0, sigfloor, overkepler, tscale, dtout
+from conf import grav, rsphere, mass1
+from conf import omega, rsphere, sig0, sigfloor, overkepler, tscale
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import efold, ndiss, efold_diss
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
-from conf import itmax, outskip, tmax
+from conf import outskip, tmax
 from conf import ifplot
 from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
 from conf import tfric
-from conf import ifscalediffusion
 from conf import iftwist, twistscale
 
 if(ifplot):
@@ -96,15 +95,19 @@ betasolve_e=si.interp1d(bx/(1.-old_div(b,2.))/3., b, kind='linear', bounds_error
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian') # rsphere is known by x!! Is Gaussian grid what we need?
 lons,lats = np.meshgrid(x.lons, x.lats)
-
 # guide grids for plotting
 lons1d = (old_div(180.,np.pi))*x.lons-180.
 lats1d = (old_div(180.,np.pi))*x.lats
 
 ############
-# time step
-dt=dt_cfl # if we are in trouble, dt=1./(1./dtcfl + 1./dtthermal)
-
+# time steps
+dx=np.fabs((lons[1:-1,1:]-lons[1:-1,:-1])*np.cos(lats[1:-1,:-1])).min() * rsphere
+dy=np.fabs(x.lats[1:]-x.lats[:-1]).min() * rsphere
+dt_cfl = 0.5 / (1./dx + 1./dy) # basic CFL limit for light velocity
+print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
+dt=dt_cfl 
+dtout=0.5*rsphere**(1.5)/np.sqrt(mass1) # time step for output (we need to resolve the dynamic time scale)
+print("dtout = "+str(dtout)+"GM/c**3 = "+str(dtout*tscale)+"s")
 #######################################################
 ## initial conditions: ###
 # initial velocity field 
@@ -124,10 +127,10 @@ vortgNS = x.sph2grid(vortSpec) # rotation of the neutron star
 divg  = x.sph2grid(divSpec)
 
 # create (hyper)diffusion factor; normal diffusion corresponds to ndiss=4
-hyperdiff_fact = np.exp((old_div(-dt,efold))*(old_div(x.lap,np.abs(x.lap).max()))**(old_div(ndiss,2)))
-sigma_diff = hyperdiff_fact
 hyperdiff_expanded = old_div((old_div(x.lap,np.abs(x.lap).max()))**(old_div(ndiss,2)), efold)
-diss_diff = np.exp((old_div(-dt,efold_diss))*(old_div(x.lap,np.abs(x.lap).max()))**(old_div(ndiss,2))) # -- additional diffusion factor applied to energy dissipation (as there is high-frequency noise in dissipation function that we do not want to be introduced again through dissipation function)
+hyperdiff_fact = np.exp(-hyperdiff_expanded) # efold scales with dt
+sigma_diff = hyperdiff_fact
+diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss)
 # supposedly a stationary solution:
 sig=sig0*np.exp(0.5*(omega*rsphere*np.cos(lats))**2/csqinit)
 # *(np.cos(lats))**((omega*rsphere)**2/csqinit)+sigfloor
@@ -247,8 +250,8 @@ while(t<(tmax+t0)):
     denergydtSpec *= -1
     denergyg_adv = x.sph2grid(denergydtSpec) # for debugging
     # dissipation estimates:
-    dissvortSpec=vortSpec*(hyperdiff_expanded+old_div(1.,tfric)) #expanded exponential diffusion term
-    dissdivSpec=divSpec*(hyperdiff_expanded+old_div(1.,tfric)) # need to incorporate for omegaNS in the friction term
+    dissvortSpec=vortSpec*(hyperdiff_expanded/dt+old_div(1.,tfric)) #expanded exponential diffusion term
+    dissdivSpec=divSpec*(hyperdiff_expanded/dt+old_div(1.,tfric)) # need to incorporate for omegaNS in the friction term
     wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
     if(np.size(wnan)>0):
         dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
@@ -308,7 +311,7 @@ while(t<(tmax+t0)):
         print("accuracy (sph) "+str(np.abs(denergydtSpec-x.grid2sph(denergyg_adv-divg * pressg+dq+dsrc)).max()))
         print("accuracy (sph->grid) "+str(np.abs(x.sph2grid(denergydtSpec-x.grid2sph(denergyg_adv-divg * pressg+dq+dsrc))).max()))
         print("accuracy (grid->sph) "+str(np.abs(x.grid2sph(x.sph2grid(denergydtSpec)-(denergyg_adv-divg * pressg+dq+dsrc))).max()))
-        print("accuracy (grid, rms) "+str((x.sph2grid(denergydtSpec)-(denergyg_adv-divg * pressg+dq+dsrc)).std()))
+        print("accuracy (grid, rms) "+str((denergyg-denergyg1).std()))
         rr=input('//')
     #    dt_thermal=1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
     dt_thermal=old_div(0.5,(old_div(np.fabs(denergyg),energyg)).max())
@@ -332,9 +335,11 @@ while(t<(tmax+t0)):
         print("Q+ = "+str(qplus.flatten()[wtrouble-3:wtrouble+3]))
         rr=input()
     #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
-    dt=old_div(0.5,2.*np.sqrt(np.minimum(cssqmax,vsqmax))/dt_cfl+1./dt_thermal+1./dtout)
-#    else:
-#        dt=dt_cfl # maybe we can try increasing dt_cfl = dt0 /sqrt(csqmax)?
+    dt_accr=1./(sdotplus/sig).max()
+    dt=old_div(0.5,2.*np.sqrt(np.maximum(cssqmax,vsqmax))/dt_cfl+1./dt_thermal+1./dt_accr+1./dtout)
+    #    else:
+    #        dt=dt_cfl # maybe we can try increasing dt_cfl = dt0 /sqrt(csqmax)?
+
     # passive scalar evolution:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
@@ -354,17 +359,14 @@ while(t<(tmax+t0)):
 
     accflagSpec += daccflagdtSpec * dt
 
-    # implicit hyperdiffusion for vort and div
-    if(ifscalediffusion):
-        vortSpec *= hyperdiff_fact**(old_div(dt,dt_cfl))
-        divSpec *= hyperdiff_fact**(old_div(dt,dt_cfl))
-        sigSpec *= sigma_diff**(old_div(dt,dt_cfl))
-        energySpec *= sigma_diff**(old_div(dt,dt_cfl))
-    else:
-        vortSpec *= hyperdiff_fact
-        divSpec *= hyperdiff_fact
-        sigSpec *= sigma_diff
-        energySpec *= sigma_diff
+    hyperdiff_fact = np.exp(-hyperdiff_expanded)
+    sigma_diff = hyperdiff_fact
+    diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss)
+
+    vortSpec *= hyperdiff_fact
+    divSpec *= hyperdiff_fact
+    sigSpec *= sigma_diff
+    energySpec *= sigma_diff
       
     #    accflagSpec *= sigma_diff 
 
@@ -372,9 +374,10 @@ while(t<(tmax+t0)):
     #        print('t=%10.5f ms' % (t*1e3*tscale))
     if(ncycle % (old_div(outskip,10)) ==0 ): # make sure it's alive
         print('t=%10.5f ms' % (t*1e3*tscale))
-        print(" dt(CFL, sound) = "+str(dt_cfl*np.sqrt(cssqmax)))
-        print(" dt(CFL, adv) = "+str(dt_cfl*np.sqrt(vsqmax)))
+        print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
+        print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))
         print(" dt(thermal) = "+str(dt_thermal))
+        print(" dt(accr) = "+str(dt_accr))
         print("dt = "+str(dt))
         time2 = time.clock()
         print('simulation time = '+str(time2-time1)+'s')
