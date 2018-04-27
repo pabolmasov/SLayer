@@ -22,7 +22,7 @@ if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 512          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
 nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9
@@ -48,6 +48,7 @@ dx = old_div(rsphere,np.double(nlons))
 dt_cfl = dx*0.5 # CFL with c=1 is insufficient; we should probably also resolve the local thermal scale
 print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
 dtout=np.double(outskip)*dt_cfl # time step for output
+print("dtout = "+str(dtout)+"GM/c**3 = "+str(dtout*tscale)+"s")
 itmax  = np.int(np.ceil(tmax/dt_cfl))    # number of iterations   
 print("preparing to run for "+str(itmax)+"iterations, making "+str(np.int(np.floor(tmax/dtout)))+" outputs")
 # ii=raw_input("x")

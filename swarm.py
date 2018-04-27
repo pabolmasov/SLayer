@@ -63,7 +63,7 @@ from conf import dt_cfl, omega, rsphere, sig0, sigfloor, overkepler, tscale, dto
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import efold, ndiss, efold_diss
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
-from conf import itmax, outskip
+from conf import itmax, outskip, tmax
 from conf import ifplot
 from conf import sigplus, sigmax, latspread #source and sink terms
 from conf import incle, slon0
@@ -206,6 +206,7 @@ def sdotsink(sigma, sigmax):
 time1 = time.clock() # time loop
 
 nout=nrest ;  t=t0 ; tstore=t0 # starting counters
+ncycle=0
 
 while(t<(tmax+t0)):
 # ncycle in np.arange(itmax+1):
@@ -230,6 +231,7 @@ while(t<(tmax+t0)):
         ii=input("betanan")
     pressg=energyg / 3. / (1.-old_div(beta,2.))
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
+    vsqmax = (ug**2+vg**2).max()
     # vorticity flux
     tmpg1 = ug*vortg ;    tmpg2 = vg*vortg
     ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1 ,tmpg2 ) # all the nablas already contain an additional 1/R multiplier
@@ -330,7 +332,7 @@ while(t<(tmax+t0)):
         print("Q+ = "+str(qplus.flatten()[wtrouble-3:wtrouble+3]))
         rr=input()
     #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
-    dt=old_div(0.5,np.minimum(3.*np.sqrt(cssqmax),1.)/dt_cfl+1./dt_thermal+1./dtout)
+    dt=old_div(0.5,2.*np.sqrt(np.minimum(cssqmax,vsqmax))/dt_cfl+1./dt_thermal+1./dtout)
 #    else:
 #        dt=dt_cfl # maybe we can try increasing dt_cfl = dt0 /sqrt(csqmax)?
     # passive scalar evolution:
@@ -341,7 +343,7 @@ while(t<(tmax+t0)):
     daccflagdtSpec += x.grid2sph(daccflagdt)
     
     # at last, the time step
-    t += dt
+    t += dt ; ncycle+=1
     vortSpec += dvortdtSpec * dt
 
     divSpec += ddivdtSpec * dt
@@ -370,7 +372,8 @@ while(t<(tmax+t0)):
     #        print('t=%10.5f ms' % (t*1e3*tscale))
     if(ncycle % (old_div(outskip,10)) ==0 ): # make sure it's alive
         print('t=%10.5f ms' % (t*1e3*tscale))
-        print(" dt(CFL) = "+str(dt_cfl))
+        print(" dt(CFL, sound) = "+str(dt_cfl*np.sqrt(cssqmax)))
+        print(" dt(CFL, adv) = "+str(dt_cfl*np.sqrt(vsqmax)))
         print(" dt(thermal) = "+str(dt_thermal))
         print("dt = "+str(dt))
         time2 = time.clock()
