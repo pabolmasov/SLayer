@@ -231,7 +231,8 @@ while(t<(tmax+t0)):
         print("geff = "+str(geff[wbnan]))
         print("sig = "+str(sig[wbnan]))
         print("energy = "+str(energyg[wbnan]))
-        ii=input("betanan")
+        # ii=input("betanan")
+        sys.exit()
     pressg=energyg / 3. / (1.-old_div(beta,2.))
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
@@ -312,7 +313,8 @@ while(t<(tmax+t0)):
         print("accuracy (sph->grid) "+str(np.abs(x.sph2grid(denergydtSpec-x.grid2sph(denergyg_adv-divg * pressg+dq+dsrc))).max()))
         print("accuracy (grid->sph) "+str(np.abs(x.grid2sph(x.sph2grid(denergydtSpec)-(denergyg_adv-divg * pressg+dq+dsrc))).max()))
         print("accuracy (grid, rms) "+str((denergyg-denergyg1).std()))
-        rr=input('//')
+        # rr=input('//')
+        sys.exit()
     #    dt_thermal=1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
     dt_thermal=old_div(0.5,(old_div(np.fabs(denergyg),energyg)).max())
     wtrouble=(old_div(np.fabs(denergyg),energyg)).argmax()
@@ -333,7 +335,7 @@ while(t<(tmax+t0)):
         print("nearby points: ")
         print("E = "+str(energyg.flatten()[wtrouble-3:wtrouble+3]))
         print("Q+ = "+str(qplus.flatten()[wtrouble-3:wtrouble+3]))
-        rr=input()
+        sys.exit()
     #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
     dt_accr=1./(sdotplus/sig).max()
     dt=old_div(0.5,2.*np.sqrt(np.maximum(cssqmax,vsqmax))/dt_cfl+1./dt_thermal+1./dt_accr+1./dtout)

@@ -77,7 +77,7 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 100000. # efolding timescale at ntrunc for hyperdiffusion (in dt_cfl units)
+efold = 10000. # efolding timescale at ntrunc for hyperdiffusion (in dt_cfl units)
 efold_diss = 0.1*efold # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
 
