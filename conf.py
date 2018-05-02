@@ -22,7 +22,7 @@ if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 512          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
 nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9
@@ -36,7 +36,7 @@ rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 0.1                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = old_div(1.,rsphere**2)         # gravity
-sig0       = 1e6                   # own neutron star atmosphere scale
+sig0       = 1e8                   # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
 print("rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian")
 print("approximate cell size is dx ~ "+str(rsphere/np.double(nlons)))
@@ -59,7 +59,7 @@ tmax=10.*pspin/tscale # we are going to run the simulation for ten(s) of spin pe
 # ifiso = False # if we use isothermal EOS instead (obsolete)
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
-csqinit=1e-6 # initial speed of sound squared
+csqinit=1e-4 # initial speed of sound squared
 
 kappa = 0.35 # opacity, cm^2/g
 mu=0.6 # mean molecular weight
@@ -77,8 +77,8 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 10000. # efolding timescale at ntrunc for hyperdiffusion (in dt_cfl units)
-efold_diss = 0.1*efold # smoothing the dissipation term when used as a heat source
+efold = 1000. # efolding timescale at ntrunc for hyperdiffusion (in dt units)
+efold_diss = .1*efold # smoothing the dissipation term when used as a heat source
 ndiss = 4        # order for hyperdiffusion (4 is normal diffusion)
 
 ##################################################
@@ -93,7 +93,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 # source term
 sigplus = 1e10 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 sigmax    = 1.e8
-latspread = 0.1   # spread in radians
+latspread = 0.2   # spread in radians
 incle     = np.pi/6. # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
