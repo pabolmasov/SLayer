@@ -9,7 +9,7 @@ from spharmt import Spharmt
 
 from scipy.integrate import trapz
 
-from conf import ifplot, kappa
+from conf import ifplot, kappa, sigmascale
 
 if(ifplot):
     import matplotlib
@@ -89,16 +89,16 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     f.close() 
     tar*=tscale 
     # mass consistency:
-    mass_total *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
-    mass *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
-    newmass *= rsphere**2*NSmass**2*2.18082e-10 # 10^{20}g
+    mass_total *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
+    mass *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
+    newmass *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
     meanmass=mass_total.mean() ; stdmass=mass_total.std()
     print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
-    flux *= 14690.*rsphere**2*NSmass**2  # 10^37 erg/s apparent luminosity
-    kenergy *= rsphere**2*NSmass**2*19.6002e-5 # 10^{35} erg
-    kenergy_u *= rsphere**2*NSmass**2*19.6002e-5 # 10^{35} erg
-    kenergy_v *= rsphere**2*NSmass**2*19.6002e-5 # 10^{35} erg
-    thenergy *= rsphere**2*NSmass**2*19.6002e-5  # 10^{35} erg
+    flux *= 1.4690e12*rsphere**2*NSmass**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
+    kenergy *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
+    kenergy_u *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
+    kenergy_v *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
+    thenergy *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8)  # 10^{35} erg
     wnan=np.where(np.isnan(flux))
     if(np.size(wnan)>0):
         print(str(np.size(wnan))+" NaN points")

@@ -67,6 +67,7 @@ from conf import incle, slon0
 from conf import ifrestart, nrest, restartfile
 from conf import tfric
 from conf import iftwist, twistscale
+# from conf import sigmascale
 
 if(ifplot):
     from plots import visualize
@@ -280,7 +281,7 @@ while(t<(tmax+t0)):
     denergydtSpec += x.grid2sph(-divg * pressg+(qplus - qminus + qns)+(sdotplus*csqinit-energyg/sig*sdotminus) * 3. * (1.-old_div(beta,2.)))
     denergyg = x.sph2grid(denergydtSpec) # maybe we can optimize this?
     denergyg1= denergyg_adv-divg*pressg + (qplus - qminus + qns)+(sdotplus*csqinit-energyg/sig*sdotminus) * 3. * (1.-old_div(beta,2.))
-    energyslip=np.abs((denergyg-denergyg1)/(denergyg+denergyg1)).max()
+#    energyslip=np.abs((denergyg-denergyg1)/(denergyg+denergyg1)).max()
     energyslip=(np.abs((denergydtSpec-x.grid2sph(denergyg1)))/np.abs(denergydtSpec+x.grid2sph(denergyg1))).max()
     # problems with advective term?
     if(energyslip>1.):
@@ -306,7 +307,7 @@ while(t<(tmax+t0)):
     #    dt_thermal=1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
     dt_thermal=old_div(0.5,((np.abs(denergydtSpec)/np.abs(energySpec))).mean())
     wtrouble=(old_div(np.fabs(denergyg),energyg)).argmax()
-    if(dt_thermal <= 1e-10):
+    if(dt_thermal <= 1e-12):
         dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-old_div(beta,2.))
         print("E = "+str(energyg.flatten()[wtrouble]))
         print("sig = "+str(sig.flatten()[wtrouble]))
