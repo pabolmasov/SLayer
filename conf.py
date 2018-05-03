@@ -44,9 +44,9 @@ print("approximate cell size is dx ~ "+str(rsphere/np.double(nlons)))
 tmax=10.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
-csqinit=1e-6 # initial speed of sound squared
+csqinit=1e-4 # initial speed of sound squared
 
-kappa = 0.35/sigmascale # opacity, cm^2/g
+kappa = 0.35*sigmascale # opacity, inverse sigmascale
 mu=0.6 # mean molecular weight
 mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
@@ -63,7 +63,7 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 # Hyperdiffusion
 ##################################################
 efold = 1000. # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = .1*efold # smoothing the dissipation term when used as a heat source
+efold_diss = 1.*efold # smoothing the dissipation term when used as a heat source
 ndiss = 4      # order for hyperdiffusion (4 is normal diffusion)
 
 ##################################################

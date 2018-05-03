@@ -98,7 +98,7 @@ dy=np.fabs(x.lats[1:]-x.lats[:-1]).min() * rsphere
 dt_cfl = 0.5 / (1./dx + 1./dy) # basic CFL limit for light velocity
 print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
 dt=dt_cfl 
-dtout=0.25*rsphere**(1.5)/np.sqrt(mass1) # time step for output (we need to resolve the dynamic time scale)
+dtout=0.1*rsphere**(1.5)/np.sqrt(mass1) # time step for output (we need to resolve the dynamic time scale)
 print("dtout = "+str(dtout)+"GM/c**3 = "+str(dtout*tscale)+"s")
 #######################################################
 ## initial conditions: ###
@@ -304,8 +304,9 @@ while(t<(tmax+t0)):
         print("accuracy (grid, rms) "+str((denergyg-denergyg1).std()))
         # rr=input('//')
         sys.exit()
-    #    dt_thermal=1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
-    dt_thermal=old_div(0.5,((np.abs(denergydtSpec)/np.abs(energySpec))).mean())
+    dt_thermal=np.median(energyg)/np.fabs(denergyg).max()
+    # 1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
+    #    dt_thermal=old_div(0.5,((np.abs(denergydtSpec)/np.abs(energySpec))).mean())
     wtrouble=(old_div(np.fabs(denergyg),energyg)).argmax()
     if(dt_thermal <= 1e-12):
         dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-old_div(beta,2.))
