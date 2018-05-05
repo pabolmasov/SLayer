@@ -552,7 +552,7 @@ def reys(lons, lats, sig, ug,vg, energy, rsphere, outdir='out'):
 
 ########################################################################
 # post-processing of remotely produced light curves and spectra
-def pdsplot(infile="pdstots_diss"):
+def pdsplot(infile="out/pdstots_diss"):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
     freq1=lines[:,0] ; freq2=lines[:,1]
     fc=(freq1+freq2)/2. # center of frequency interval
@@ -568,4 +568,42 @@ def pdsplot(infile="pdstots_diss"):
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
     plt.close()
-    
+
+def dynsplot(infile="out/pds_diss"):
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    freq1=lines[:,1] ; freq2=lines[:,2] ;  t=lines[:,0] 
+    fc=(freq1+freq2)/2. # center of frequency interval
+    f=lines[:,3] ; df=lines[:,4] # replace df with quantiles!
+    tun=np.unique(t) ; fun=np.unique(freq1)
+    ntimes=np.size(tun) ;    nbins=np.size(fun)
+    print("ntimes = "+str(ntimes))
+    print("nbins = "+str(nbins))
+    t2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
+    binfreq2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
+    f2=np.reshape(f, [ntimes, nbins])
+    df2=np.reshape(df, [ntimes, nbins])
+    for kt in np.arange(ntimes-1):
+        t2[kt,:]=tun[kt]-(tun[kt+1]-tun[kt])/2.
+        binfreq2[kt,:-1]=fun[:]
+    f2tot=f2.sum(axis=1)
+    for kt in np.arange(ntimes):
+        f2[kt,:]/=f2tot[kt]
+    t2[ntimes-1,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])/2.
+    t2[ntimes,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])*3./2.
+    binfreq2[ntimes-1,:-1]=fun[:] ;   binfreq2[ntimes,:-1]=fun[:]
+    binfreq2[:,-1]=freq2.max()
+    w=np.isfinite(df2)&(df2>0.)
+    pmin=f2[w].min() ; pmax=f2[w].max()
+    print(binfreq2.min(),binfreq2.max())
+    plt.clf()
+    #  plt.contourf(t, fc, f2, cmap='jet')
+    plt.pcolormesh(t2, binfreq2, np.log(f2), cmap='jet', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    # plt.contourf(tcenter2, binfreqc2, np.log(pdsbin))
+    #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
+    #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
+    plt.ylim(freq2.min(), freq2.max())
+    plt.yscale('log')
+    plt.ylabel('$f$, Hz')
+    plt.xlabel('$t$, ms')
+    plt.savefig(infile+'.png')
+    plt.close()
