@@ -171,10 +171,6 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 def visualize(t, nout,
               lats, lons, 
               vortg, divg, ug, vg, sig, press, beta, accflag, dissipation,
-#              mass, energy,
-#              engy,
-#              hbump,
-#              rsphere,
               cf, outdir):
     energy= old_div(press, (3. * (1.-old_div(beta,2.))))# (ug**2+vg**2)/2.
     #prepare figure etc
@@ -354,7 +350,7 @@ def visualize(t, nout,
                          ug, vg, 
                          title1=r"$v_\varphi$", 
                          title2=r"$v_\theta$" )
-    axs[9].plot(latsDeg, 2.*cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
+    axs[9].plot(latsDeg, cf.omega*cf.rsphere*np.cos(lats), color='b', linewidth=1)
     axs[9].plot(latsDeg, cf.overkepler*cf.rsphere**(-0.5)*np.cos(lats), color='g', linewidth=1)
     axs[9].set_ylim(ug.min()+vg.min(), ug.max()+vg.max())
     axs[0].set_title('{:7.3f} ms'.format( t*cf.tscale*1e3) )
@@ -563,7 +559,7 @@ def pdsplot(infile="out/pdstots_diss"):
         plt.plot([freq1[kf], freq2[kf]], [f[kf], f[kf]], color='k')
         plt.plot([fc[kf], fc[kf]], [f[kf]-df[kf], f[kf]+df[kf]], color='k')
     plt.xlabel(r'$f$, Hz')
-    plt.ylabel(r'$L$, $10^{37}{\rm erg\,s^{-1}}$')
+    plt.ylabel(r'PDS, relative units')
     plt.xscale('log') ;    plt.yscale('log')
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
@@ -580,30 +576,34 @@ def dynsplot(infile="out/pds_diss"):
     print("nbins = "+str(nbins))
     t2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     binfreq2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
-    f2=np.reshape(f, [ntimes, nbins])
-    df2=np.reshape(df, [ntimes, nbins])
+    f2=np.transpose(np.reshape(f, [nbins, ntimes]))
+    df2=np.transpose(np.reshape(df, [nbins, ntimes]))
+    tc=np.transpose(np.reshape(t, [nbins, ntimes]))
+    fc=np.transpose(np.reshape(fc, [nbins, ntimes]))
     for kt in np.arange(ntimes-1):
         t2[kt,:]=tun[kt]-(tun[kt+1]-tun[kt])/2.
         binfreq2[kt,:-1]=fun[:]
-    f2tot=f2.sum(axis=1)
-    for kt in np.arange(ntimes):
-        f2[kt,:]/=f2tot[kt]
+    f2ma=ma.masked_invalid(f2)
+    f2tot=f2ma.sum(axis=1)
+#    for kt in np.arange(ntimes):
+#        f2ma[kt,:]/=f2tot[kt]
     t2[ntimes-1,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])/2.
     t2[ntimes,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])*3./2.
     binfreq2[ntimes-1,:-1]=fun[:] ;   binfreq2[ntimes,:-1]=fun[:]
     binfreq2[:,-1]=freq2.max()
     w=np.isfinite(df2)&(df2>0.)
-    pmin=f2[w].min() ; pmax=f2[w].max()
+    pmin=f2ma.min() ; pmax=f2ma.max()
     print(binfreq2.min(),binfreq2.max())
     plt.clf()
     #  plt.contourf(t, fc, f2, cmap='jet')
-    plt.pcolormesh(t2, binfreq2, np.log(f2), cmap='jet', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
-    # plt.contourf(tcenter2, binfreqc2, np.log(pdsbin))
+    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='jet', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    # plt.contourf(tc, fc, np.log(f2), cmap='jet')
+    #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
     #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
     plt.ylim(freq2.min(), freq2.max())
     plt.yscale('log')
     plt.ylabel('$f$, Hz')
-    plt.xlabel('$t$, ms')
+    plt.xlabel('$t$, s')
     plt.savefig(infile+'.png')
     plt.close()

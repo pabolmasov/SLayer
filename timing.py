@@ -139,7 +139,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.plot(tar, kenergy, color='b')
         plt.plot(tar, kenergy_v, color='b',  linestyle='dotted')
         plt.plot(tar, kenergy_u, color='b',  linestyle='dashed')
-        plt.plot(tar, np.exp(2.*tar*omega/tscale)*0.00003, color='g')
+        #        plt.plot(tar, np.exp(2.*tar*omega/tscale)*0.00003, color='g')
+        plt.ylim(thenergy.min()/2., kenergy.max()*1.5)
         plt.xlabel('$t$')
         plt.ylabel('energy, $10^{35}$erg')
         plt.yscale('log')
@@ -283,8 +284,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     for k in np.arange(nbins):
         for kt in np.arange(ntimes):
             fpds.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbin[kt,k])+' '+str(dpdsbin[kt,k])+" "+str(nbin[kt,k])+"\n")
-            fpdsn.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+' '+str(binfreq[k+1])+' '+str(pdsbinn[kt,k])+' '+str(dpdsbinn[kt,k])+" "+str(nbinn[kt,k])+"\n")
-            fpdsm.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+' '+str(binfreq[k+1])+' '+str(pdsbinm[kt,k])+' '+str(dpdsbinm[kt,k])+" "+str(nbin[kt,k])+"\n")
+            fpdsn.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinn[kt,k])+' '+str(dpdsbinn[kt,k])+" "+str(nbinn[kt,k])+"\n")
+            fpdsm.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinm[kt,k])+' '+str(dpdsbinm[kt,k])+" "+str(nbin[kt,k])+"\n")
     fpds.close() ;   fpdsm.close() ;   fpdsn.close()
     
 fluxest('out/run.hdf5', 1.5, 0., nbins=20)
