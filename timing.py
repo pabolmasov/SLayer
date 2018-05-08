@@ -83,7 +83,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
         kenergy_u[k]=trapz(((ug**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
         kenergy_v[k]=trapz((vg**2*sig).sum(axis=1), x=-clats1d)*dlons/2.
-        thenergy[k]=trapz(energy.sum(axis=1), x=-clats1d)*dlons/2.
+        thenergy[k]=trapz(energy.sum(axis=1), x=-clats1d)*dlons
         csqmap=press/sig*(4.+beta)/3.
         meancs[k]=np.sqrt(csqmap.mean())
     f.close() 
@@ -124,6 +124,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         fmc.write(str(tar[k])+' '+str(mass_total[k])+"\n")
         flc.flush() ; fmc.flush()
     flc.close() ; fmc.close() ; fec.close()
+    print("total energy changed from "+str(kenergy[0]+thenergy[0])+" to "+str(kenergy[-1]+thenergy[-1])+"\n")
 
     if(ifplot): # move to plots.py!
         plt.clf()
