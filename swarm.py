@@ -80,9 +80,9 @@ bmin=betamin ; bmax=1.-betamin ; nb=1000
 b = (bmax-bmin)*(old_div((np.arange(nb)+0.5),np.double(nb)))+bmin
 bx = b/(1.-b)**0.25
 b[0]=0. ; bx[0]=0.  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='cubic', bounds_error=False, fill_value=1.)
+betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
 # as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='cubic', bounds_error=False,fill_value=1.)
+betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value=1.)
 # as a function of energy
 ######################################
 
@@ -93,8 +93,8 @@ x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussia
 lons,lats = np.meshgrid(x.lons, x.lats)
 ############
 # time steps
-dx=np.fabs((lons[1:-1,1:]-lons[1:-1,:-1])*np.cos(lats[1:-1,:-1])).min() * rsphere
-dy=np.fabs(x.lats[1:]-x.lats[:-1]).min() * rsphere
+dx=np.fabs((lons[1:-1,1:]-lons[1:-1,:-1])*np.cos(lats[1:-1,:-1])).min()/2. * rsphere
+dy=np.fabs(x.lats[1:]-x.lats[:-1]).min()/2. * rsphere
 dt_cfl = 0.5 / (1./dx + 1./dy) # basic CFL limit for light velocity
 print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
 dt=dt_cfl 
@@ -118,9 +118,9 @@ divg  = x.sph2grid(divSpec)
 
 # create (hyper)diffusion factor; normal diffusion corresponds to ndiss=2 (x.lap is already nabla^2)
 hyperdiff_expanded = ((x.lap/np.abs(x.lap).max()))**(ndiss/2)/efold
-hyperdiff_fact = np.exp(-hyperdiff_expanded) # if efold scales with dt, this should work
+hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this should work
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
-diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss) # dissipation is artifitially smoother by a larger amount
+diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt) # dissipation is artifitially smoother by a larger amount
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
@@ -132,7 +132,6 @@ daccflagdtSpec = np.zeros(vortSpec.shape, np.complex)
 
 ###########################################################
 # restart module:
-
 if(ifrestart):
     vortg, divg, sig, energyg, accflag, t0 = f5io.restart(restartfile, nrest, conf)
 else:
@@ -171,11 +170,7 @@ def sdotsource(lats, lons, latspread):
     '''
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
-    
-    #    w=np.where(np.fabs(devcos)<(latspread*5.))
-    #    if(np.size(w)>0):
-    y=sigplus*np.exp(old_div(-(old_div(devcos,latspread))**2,2.))
-    #        y/=(2.*np.pi)**1.5*latspread
+    y=sigplus*np.exp(-0.5*(devcos/latspread)**2)
     return y, devcos
 
 def sdotsink(sigma, sigmax):
@@ -185,9 +180,15 @@ def sdotsink(sigma, sigmax):
     '''
     w=np.where(sigma>(old_div(sigmax,100.)))
     y=0.0*sigma
+    tff=1.
     if((sigmax>0.)&(np.size(w)>0)):
-        y[w]=1.0*sigma[w]*np.exp(sigma[w]/sigmax)
+        y[w]=sigma[w]/tff*np.exp(sigma[w]/sigmax)
     return y
+
+# source velocities:
+sdotplus, sina = sdotsource(lats, lons, latspread)
+omega_source=2.*overkepler/rsphere**1.5*sina
+ud,vd = x.getuv(x.grid2sph(omega_source),x.grid2sph(omega_source)*0.) # velocity components of the source
 
 # main loop
 time1 = time.clock() # time loop
@@ -204,10 +205,17 @@ while(t<(tmax+t0)):
     divg  = x.sph2grid(divSpec)
     energyg  = x.sph2grid(energySpec)
     ug,vg = x.getuv(vortSpec,divSpec) # velocity components
-    geff=-grav+old_div((ug**2+vg**2),rsphere) # effective gravity
-    geff=old_div((geff-np.fabs(geff)),2.) # only negative geff
-    sigpos=old_div((sig+np.fabs(sig)),2.) # we need to exclude negative sigma points from calculation
+    geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
+    geff=(geff-np.fabs(geff))/2. # only negative geff
+    sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation
     # there could be bias if many sigma<0 points appear
+    if((sig.min()<0.)|(energyg.min()<0.)):
+        print("sigmin = "+str(sig.min()))
+        print("pressmin = "+str(energyg.min()))
+        wpressmin=energyg.argmin()
+        print("beta[] = "+str(np.reshape(beta,np.size(beta))[wpressmin]))
+        f5.close()
+        sys.exit()
     beta = betasolve_e(cssqscale*sig/energyg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, energy, and geff
     wbnan=np.where(np.isnan(beta))
     if(np.size(wbnan)>0):
@@ -222,11 +230,11 @@ while(t<(tmax+t0)):
     vsqmax = (ug**2+vg**2).max()
     # vorticity flux
     tmpg1 = ug*vortg ;    tmpg2 = vg*vortg
-    ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1 ,tmpg2 ) # all the nablas already contain an additional 1/R multiplier
+    ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1, tmpg2 ) # all the nablas already contain an additional 1/R multiplier
     dvortdtSpec *= -1
     #    tmpg = x.sph2grid(ddivdtSpec)
     tmpg1 = ug*sig; tmpg2 = vg*sig
-    tmpSpec, dsigdtSpec = x.getVortDivSpec(tmpg1 ,tmpg2 ) # all the nablas should contain an additional 1/R multiplier
+    tmpSpec, dsigdtSpec = x.getVortDivSpec(tmpg1, tmpg2 ) # all the nablas should contain an additional 1/R multiplier
     dsigdtSpec *= -1
     # energy (pressure) flux:
     tmpg1 = ug*energyg; tmpg2 = vg*energyg
@@ -267,27 +275,40 @@ while(t<(tmax+t0)):
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
         
     # source terms in mass:
-    sdotplus, sina=sdotsource(lats, lons, latspread)
+    #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
     sdotminus=sdotsink(sig, sigmax)
     sdotSpec=x.grid2sph(sdotplus-sdotminus)
     dsigdtSpec += sdotSpec
 
     # source term in vorticity
+    domega=(omega_source-vortg) # difference in net vorticity
+    #    print("sina from "+str(sina.min())+" to "+str(sina.max()))
+    #    print("Dvort = "+str((sdotplus*domega).min())+".."+str((sdotplus*domega).max()))
+    #    print("vort = "+str((sdotplus*domega).min())+".."+str((sdotplus*domega).max()))
+    vortdot=sdotplus/sig*domega
+    divdot=-sdotplus/sig*divg
     if(tfric>0.):
-        vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*sina-vortg)+old_div((vortgNS-vortg),tfric) # +sdotminus/sig*vortg
-        divdot=-divg/tfric # friction term for divergence
-    else:
-        vortdot=sdotplus/sig*(2.*overkepler/rsphere**1.5*sina-vortg) # +sdotminus/sig*vortg
-        divdot=0.*divg
+        vortdot+=(vortgNS-vortg)/tfric # +sdotminus/sig*vortg
+        divdot+=-divg/tfric # friction term for divergence
        
     vortdotSpec=x.grid2sph(vortdot)
     divdotSpec=x.grid2sph(divdot)
     dvortdtSpec += vortdotSpec
     ddivdtSpec += divdotSpec
-    denergydtSpec += x.grid2sph(-divg * pressg+(qplus - qminus + qns)+(sdotplus*csqinit-energyg/sig*sdotminus) * 3. * (1.-old_div(beta,2.))) # sign of -divg*pressg
-    # dt_thermal=np.median(energyg)/np.fabs(denergyg).max()
+    csqinit_acc = (overkepler*latspread)**2/rsphere
+    beta_acc=1.0
+    denergydtSpec += x.grid2sph(-divg * pressg + (qplus - qminus + qns)
+                                +0.5*sdotplus*((vg-vd)**2+(ug-ud)**2) # initial dissipation
+                                #                                +(sdotplus-sdotminus)/sig*energyg)
+                                +(sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)-energyg*sdotminus)/sig ) 
+    denergyg=x.sph2grid(denergydtSpec)
+    # dt_thermal=1./np.abs(denergyg/energyg).max()
+    dt_thermal=np.median(energyg)/np.fabs(denergyg).max()
     # 1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
-    dt_thermal=old_div(0.5,((np.abs(denergydtSpec)/np.abs(energySpec))).mean())
+#    dt_thermal=old_div(0.5,((np.abs(denergydtSpec)/np.abs(energySpec))).mean())
+    #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
+    dt_accr=1./(np.abs(sdotplus/sig)).max()
+    dt=0.5/(np.sqrt(np.maximum(10.*cssqmax,30.*vsqmax))/dt_cfl+1./dt_thermal+5./dt_accr+1./dtout) # dt_accr may safely equal to inf, checked!
     if(dt <= 1e-6):
         dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-old_div(beta,2.))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
@@ -295,15 +316,13 @@ while(t<(tmax+t0)):
         print(" dt(thermal) = "+str(dt_thermal))
         print(" dt(accr) = "+str(dt_accr))
         print("dt = "+str(dt))
+        f5.close()
         sys.exit()
-    #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
-    dt_accr=sig.mean()/(sdotplus+sdotminus).max()
-    dt=0.5/(np.sqrt(np.maximum(cssqmax,30.*vsqmax))/dt_cfl+1./dt_thermal+5./dt_accr+1./dtout) # dt_accr may safely equal to inf, checked!
     # passive scalar evolution:
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
     daccflagdtSpec = -dacctmp # a*div(v) - div(a*v)
-    daccflagdt =  (1.-accflag) * (old_div(sdotplus,sig)) + accflag * divg 
+    daccflagdt =  (1.-accflag) * sdotplus/sig + accflag * divg 
     daccflagdtSpec += x.grid2sph(daccflagdt)
     
     # at last, the time step
@@ -351,7 +370,7 @@ while(t<(tmax+t0)):
         nout += 1
         
 #end of time cycle loop
-
+f5.close()
 time2 = time.clock()
 print(('CPU time = ',time2-time1))
 

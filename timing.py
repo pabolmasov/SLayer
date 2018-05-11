@@ -64,9 +64,11 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     nsize=np.size(keys)-1 # last key contains parameters
     print(str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2]))
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
+    newmass_total=np.zeros(nsize) 
     flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
     kenergy=np.zeros(nsize) ;  thenergy=np.zeros(nsize) ; meancs=np.zeros(nsize)
     kenergy_u=np.zeros(nsize) ;  kenergy_v=np.zeros(nsize)
+    angmoz_new=np.zeros(nsize)  ;  angmoz_old=np.zeros(nsize)
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
@@ -78,22 +80,28 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         print("entrance "+keys[k]+", dimensions "+str(np.shape(energy)))
         flux[k]=trapz((press*(1.-beta)/(sig*kappa+1.)*cosa).sum(axis=1), x=clats1d)*dlons
         mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
+        newmass_total[k]=trapz((accflag*sig).sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa).sum(axis=1), x=-clats1d)*dlons
         newmass[k]=trapz((accflag*sig*cosa).sum(axis=1), x=-clats1d)*dlons
         kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
         kenergy_u[k]=trapz(((ug**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
         kenergy_v[k]=trapz((vg**2*sig).sum(axis=1), x=-clats1d)*dlons/2.
         thenergy[k]=trapz(energy.sum(axis=1), x=-clats1d)*dlons
+        angmoz_new[k]=trapz((sig*ug*np.sin(lats)*accflag).sum(axis=1), x=-clats1d)*dlons
+        angmoz_old[k]=trapz((sig*ug*np.sin(lats)*(1.-accflag)).sum(axis=1), x=-clats1d)*dlons
         csqmap=press/sig*(4.+beta)/3.
         meancs[k]=np.sqrt(csqmap.mean())
     f.close() 
     tar*=tscale 
     # mass consistency:
     mass_total *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
+    newmass_total *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
     mass *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
     newmass *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
     meanmass=mass_total.mean() ; stdmass=mass_total.std()
     print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
+    angmoz_new *= rsphere**3*NSmass**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
+    angmoz_old *= rsphere**3*NSmass**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     flux *= 1.4690e12*rsphere**2*NSmass**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
     kenergy *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_u *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
@@ -129,11 +137,22 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     if(ifplot): # move to plots.py!
         plt.clf()
         plt.plot(tar, mass_total, color='k')
+        plt.plot(tar, newmass_total, color='k',linestyle='dotted')
         plt.plot(tar, mass, color='r')
         plt.plot(tar, newmass, color='g')
+        plt.xscale('log')
+        plt.yscale('log')
         plt.xlabel('$t$')
         plt.ylabel('mass, $10^{20}$g')
         plt.savefig('out/mcurve.eps')
+        plt.clf()
+        plt.plot()
+        plt.plot(tar, newmass_total/mass_total, color='k')
+        plt.xscale('log')
+        plt.xlabel('$t$')
+        plt.ylabel('mass fraction')
+        plt.savefig('out/mfraction.eps')
+        plt.clf()       
         plt.clf()
         plt.plot(tar, kenergy+thenergy, color='k')
         plt.plot(tar, thenergy, color='r')
@@ -156,7 +175,17 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.xlabel('$t$')
         plt.ylabel('flux, relative units')
         plt.savefig('out/lcurve.eps')
-
+        overkepler=0.09
+        plt.clf()
+        plt.plot(tar, angmoz_new, '.k')
+        plt.plot(tar, newmass_total/2.18082e-2*np.sqrt(rsphere)*NSmass*overkepler, 'b')
+        plt.plot(tar, angmoz_old, '.r')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel(r'$t$')
+        plt.ylabel(r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$')
+        plt.savefig('out/angmoz.eps')
+        
     flux-=md*tar+bd ; mass-=m*tar+b; newmass-=mn*tar+bn # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
     freq1=1./tspan*np.double(ntimes)/2. ; freq2=freq1*np.double(nsize)/np.double(ntimes)
