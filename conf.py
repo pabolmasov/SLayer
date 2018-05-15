@@ -16,7 +16,7 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=False
-nrest=320 # number of output entry for restart
+nrest=400 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -63,7 +63,7 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 # Hyperdiffusion
 ##################################################
 efold = 1e5 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1.*efold # smoothing the dissipation term when used as a heat source
+efold_diss = 1. # smoothing the dissipation term when used as a heat source
 ndiss = 2      # order for hyperdiffusion (4 is normal diffusion)
 
 ##################################################
@@ -77,7 +77,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 ##################################################
 # source term
 sigplus   = 0.01 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-sigmax    = 0.
+sigmax    = 1.
 latspread = 0.5   # spread in radians
 incle     = np.pi/2. # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians

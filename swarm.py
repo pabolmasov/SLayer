@@ -120,7 +120,7 @@ divg  = x.sph2grid(divSpec)
 hyperdiff_expanded = ((x.lap/np.abs(x.lap).max()))**(ndiss/2)/efold
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this should work
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
-diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt) # dissipation is artifitially smoother by a larger amount
+diss_diff = np.exp(-(x.lap/np.abs(x.lap).max())**(ndiss/2)/efold_diss) # dissipation is artifitially smoother by a larger amount
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
@@ -178,11 +178,11 @@ def sdotsink(sigma, sigmax):
     sink term in surface density
     sdotsink(sigma, sigmax)
     '''
-    w=np.where(sigma>(old_div(sigmax,100.)))
+    w=np.where(sigma>(sigmax/100.))
     y=0.0*sigma
     tff=1.
     if((sigmax>0.)&(np.size(w)>0)):
-        y[w]=sigma[w]/tff*np.exp(sigma[w]/sigmax)
+        y[w]=sigma[w]/tff*np.exp(-sigmax/sigma[w])
     return y
 
 # source velocities:
@@ -211,7 +211,7 @@ while(t<(tmax+t0)):
     # there could be bias if many sigma<0 points appear
     if((sig.min()<0.)|(energyg.min()<0.)):
         print("sigmin = "+str(sig.min()))
-        print("pressmin = "+str(energyg.min()))
+        print("energymin = "+str(energyg.min()))
         wpressmin=energyg.argmin()
         print("beta[] = "+str(np.reshape(beta,np.size(beta))[wpressmin]))
         f5.close()
@@ -255,9 +255,10 @@ while(t<(tmax+t0)):
     if(np.size(wnan)>0):
         dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
-    dissipation=(ug*dissug+vg*dissvg) # -v . dv/dt_diss
-    #    dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
-    dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
+    dissipation=(ug*dissug+vg*dissvg) # -v . dv/dt_diss # do we need a 0.5 multipier??
+    # dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
+    if(efold_diss>0.):
+        dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
     kenergy=0.5*(ug**2+vg**2) # kinetic energy per unit mass (merge this with baroclinic term?)
     tmpSpec = x.grid2sph(kenergy) # * hyperdiff_fact
     ddivdtSpec += -tmpSpec * x.lap
@@ -300,7 +301,10 @@ while(t<(tmax+t0)):
     denergydtSpec += x.grid2sph(-divg * pressg + (qplus - qminus + qns)
                                 +0.5*sdotplus*((vg-vd)**2+(ug-ud)**2) # initial dissipation
                                 #                                +(sdotplus-sdotminus)/sig*energyg)
-                                +(sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)-energyg*sdotminus)/sig ) 
+                                +(sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)-energyg*sdotminus/sig) )
+    # there are two additional source terms for E:
+    # 1) accreting matter is hot
+    # 2) half of the energy goes to heat when accretion spins up the material of the SL
     denergyg=x.sph2grid(denergydtSpec)
     # dt_thermal=1./np.abs(denergyg/energyg).max()
     dt_thermal=np.median(energyg)/np.fabs(denergyg).max()
@@ -335,12 +339,13 @@ while(t<(tmax+t0)):
 
     hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
     sigma_diff = hyperdiff_fact
-#    diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss*dt)
+    #    diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
 
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
     sigSpec *= sigma_diff
     energySpec *= sigma_diff
+    
     if(ncycle % (old_div(outskip,10)) ==0 ): # make sure it's alive
         print('t=%10.5f ms' % (t*1e3*tscale))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
