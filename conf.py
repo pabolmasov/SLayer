@@ -22,7 +22,7 @@ if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 128          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
 nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9
@@ -33,7 +33,7 @@ outskip= 10000 # how often do we output the snapshots (in dt_CFL)
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 10.                  # spin period, in seconds
+pspin      = 0.01                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 sigmascale = 1e8 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
@@ -76,10 +76,10 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus   = 0.01 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-sigmax    = 1.
+sigplus   = 0.00 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigmax    = 10.
 latspread = 0.5   # spread in radians
-incle     = np.pi/2. # inclination of initial rotation, radians
+incle     = np.pi/6. # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star
