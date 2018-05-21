@@ -284,8 +284,8 @@ def visualize(t, nout,
 
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
-                 np.log(old_div(sigpos,sig_init_base)),  
-                 np.log((old_div(sigpos,sig_init_base)).min()*0.9),  np.log((old_div(sigpos,sig_init_base)).max()*1.1),  
+                 np.log(sigpos),  
+                 np.log(sigpos.min()*0.9),  np.log(sigpos.max()*1.1),  
                  title=r'$\Sigma$')
 #    axs[4].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
     axs[4].contour(
@@ -303,14 +303,14 @@ def visualize(t, nout,
                          sigpos*accflag, 
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
-                         log=True)
+                         log=False)
     axs[5].plot(cf.sigmax, color='g', linestyle='dotted')
     #passive scalar
     visualizeMap(axs[6], 
                  lonsDeg, latsDeg, 
                  accflag, 
                  -0.1, 1.1,  
-                 title=r'Passive scalar')
+                 title=r'tracer')
 #    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')
     #dissipation
     visualizeMap(axs[7], 
@@ -606,4 +606,23 @@ def dynsplot(infile="out/pds_diss"):
     plt.ylabel('$f$, Hz')
     plt.xlabel('$t$, s')
     plt.savefig(infile+'.png')
+    plt.close()
+
+def tthplot(infile):
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    tar=lines[:,0] ; lats=lines[:,1] ; f=lines[:,2]
+    nt=np.size(np.unique(tar)) ; nth=np.size(np.unique(lats))
+    tar=np.reshape(tar, [nt, nth])
+    lats=np.reshape(lats, [nt, nth])
+    f=np.reshape(f, [nt, nth])
+    plt.clf()
+    fig=plt.figure()
+    plt.contourf(tar, lats, f, levels=np.exp(np.linspace(np.log(f).min(), np.log(f).max(), 30)))
+    plt.colorbar()
+    plt.xlabel('$t$')
+    plt.ylabel('latitude')
+    #    plt.xscale('log')
+    fig.set_size_inches(8, 4)
+    plt.savefig(infile+'_plot.png')
+    plt.savefig(infile+'_plot.eps')
     plt.close()
