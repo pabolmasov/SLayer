@@ -60,6 +60,7 @@ from conf import omega, rsphere, sig0, sigfloor, overkepler, tscale
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import efold, ndiss, efold_diss
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
+from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax
 from conf import ifplot
 from conf import sigplus, sigmax, latspread #source and sink terms
@@ -138,9 +139,14 @@ else:
     t0=0.
     nrest=0
     # supposedly a stationary solution:
-    sig=sig0*np.exp(0.5*(omega*rsphere*np.cos(lats))**2/csqinit)*(1.+hbump)
+    if(isothermal):
+        sig=sig0*np.exp(0.5*(omega*rsphere*np.cos(lats))**2/csqinit)
+        pressg = sig * csqinit
+    else:
+        sig=(sig0**(gammainit-1.)+0.5*(gammainit-1.)/gammainit*(omega*rsphere*np.cos(lats))**2/kinit)**(1./(gammainit-1.))
+        pressg=kinit*sig**gammainit
+    sig*=hbump+1.
     # in pressure, there should not be any strong bumps, as we do not want artificial shock waves
-    pressg = sig * csqinit / (1. + hbump)
     geff=-grav+old_div((ug**2+vg**2),rsphere)
     sigpos=old_div((sig+np.fabs(sig)),2.) # we need to exclude negative sigma points from calculation
     beta = betasolve_p(cssqscale*sig/pressg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, press, geff

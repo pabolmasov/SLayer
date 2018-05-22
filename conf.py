@@ -22,7 +22,7 @@ if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
 nlats  = int(old_div(nlons,2)) # for gaussian grid
 # dt=1e-9
@@ -33,7 +33,7 @@ outskip= 10000 # how often do we output the snapshots (in dt_CFL)
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 0.01                  # spin period, in seconds
+pspin      = 0.001                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 sigmascale = 1e8 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
@@ -45,6 +45,9 @@ tmax=10.*pspin/tscale # we are going to run the simulation for ten(s) of spin pe
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
 csqinit=1e-4 # initial speed of sound squared
+isothermal = False # if we use isothermal or polytropic initial conditions
+gammainit = 100. # artificially very stiff EOS, because we want density contrasts to be lower
+kinit = 1e-3 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
 
 kappa = 0.35*sigmascale # opacity, inverse sigmascale
 mu=0.6 # mean molecular weight
