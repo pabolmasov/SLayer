@@ -23,8 +23,8 @@ if(not(ifrestart)):
 ##################################################
 # grid, time step info
 nlons  = 128          # number of longitudes
-ntrunc = int(old_div(nlons,3)) # spectral truncation (to make it alias-free)
-nlats  = int(old_div(nlons,2)) # for gaussian grid
+ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
+nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
@@ -44,14 +44,15 @@ print("approximate cell size is dx ~ "+str(rsphere/np.double(nlons)))
 tmax=10.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
+energyfloor = sigfloor * csqmin
 csqinit=1e-4 # initial speed of sound squared
 isothermal = False # if we use isothermal or polytropic initial conditions
-gammainit = 100. # artificially very stiff EOS, because we want density contrasts to be lower
-kinit = 1e-3 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
+gammainit = 0. # artificially very stiff EOS, because we want density contrasts to be lower
+kinit = 1e-5 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
 
 kappa = 0.35*sigmascale # opacity, inverse sigmascale
 mu=0.6 # mean molecular weight
-mass1=1.0 # accretor mass
+mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
 cssqscale = 2.89591e-06 * sigmascale**0.25 / mu * mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
 # if csqmin>cssqscale, we are inevitably super-Eddington
@@ -65,9 +66,9 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 1e5 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
+efold = 1. # efolding timescale at ntrunc for hyperdiffusion (in dt units)
 efold_diss = 1. # smoothing the dissipation term when used as a heat source
-ndiss = 2      # order for hyperdiffusion (4 is normal diffusion)
+ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################
 #perturbation parameters
@@ -80,7 +81,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 ##################################################
 # source term
 sigplus   = 0.00 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-sigmax    = 10.
+sigmax    = 0.
 latspread = 0.5   # spread in radians
 incle     = np.pi/6. # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians

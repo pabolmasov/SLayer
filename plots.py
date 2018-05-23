@@ -279,13 +279,13 @@ def visualize(t, nout,
 #                      title=r"$(\nabla \cdot v)$")
     # sigma
     sigpos=old_div((sig+np.fabs(sig)),2.)+cf.sigfloor
-    sig_init_base = cf.sig0*np.exp(0.5*(cf.omega*cf.rsphere*np.cos(lats))**2/cf.csqinit)
+#    sig_init_base = cf.sig0*np.exp(0.5*(cf.omega*cf.rsphere*np.cos(lats))**2/cf.csqinit)
     # cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
 
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
-                 np.log(old_div(sigpos,sig_init_base)),  
-                 np.log((old_div(sigpos,sig_init_base)).min()*0.9),  np.log((old_div(sigpos,sig_init_base)).max()*1.1),  
+                 np.log(sigpos),  
+                 np.log(sigpos.min()*0.9),  np.log(sigpos.max()*1.1),  
                  title=r'$\Sigma$')
 #    axs[4].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
     axs[4].contour(
