@@ -62,7 +62,21 @@ def plotnth(filename, nstep):
     sig=data["sig"][:] ; energy=data["energy"][:] ; beta=data["beta"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
     f.close()
     
-    skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
+    # ascii output:
+    fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
+    step=3
+    nth,nphi=np.shape(lats)
+    fmap.write("# map with step = "+str(step)+"\n")
+    fmap.write("# t="+str(t)+"\n")
+    fmap.write("# format: lats lons sigma ug vg E diss accflag\n")
+    for kth in np.arange(0,nth, step):
+        for kphi in np.arange(0,nphi, step):
+            fmap.write(str(lats[kth,kphi])+" "+str(lons[kth,kphi])+" "+str(sig[kth,kphi])+" "
+                       +str(ug[kth,kphi])+" "+str(vg[kth,kphi])+" "
+                       +str(energy[kth,kphi])+" "+str(diss[kth,kphi])+" "
+                       +str(accflag[kth,kphi])+"\n")
+    fmap.flush()
+    fmap.close()
     if(ifplot):
         # velocity
         xx=ug ; yy=-vg
@@ -75,6 +89,7 @@ def plotnth(filename, nstep):
             #        yy[:,k]-=yymean[:]
         vv=np.sqrt(xx**2+yy**2)
         vvmax=vv.max()
+        skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
         plots.snapplot(lons, lats, sig, accflag, xx, yy, [skx,sky], outdir=outdir) # geographic maps
@@ -95,9 +110,6 @@ def plotnth(filename, nstep):
         frv=old_div(vg,np.sqrt(-hthick*geff)) # polar Froude/Mach
         plots.somemap(lons, lats, np.sqrt(frv**2), outdir+'/froude.eps')
         plots.somemap(lons, lats, np.log10(old_div(hthick,rsphere)), outdir+'/htor.eps')
-    # ascii output:
-    #    fmap=open(filename+'_map.dat', 'w')
-    
     
 def multireader(nmin, nmax, outdir='out'):
 

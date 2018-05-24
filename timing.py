@@ -93,8 +93,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         angmoz_old[k]=trapz((sig*ug*np.sin(lats)*(1.-accflag)).sum(axis=1), x=-clats1d)*dlons
         csqmap=press/sig*(4.+beta)/3. ;    meancs[k]=np.sqrt(csqmap.mean())
         maxdiss[k]=diss.max() ;     mindiss[k]=diss.min()
-        sigmaver[:,k]=(sig).mean(axis=1)/mass_total[k]
-        sigmaver_lon[:,k]=(sig).mean(axis=0)/mass_total[k]
+        sigmaver[:,k]=(sig).mean(axis=1)/sig.mean()
+        sigmaver_lon[:,k]=(sig).mean(axis=0)/sig.mean()
     f.close() 
     tar*=tscale 
     # mass consistency:
@@ -152,7 +152,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.savefig('out/tthplot.png')
         plt.clf()
         plt.contourf(tar, lons.mean(axis=0), sigmaver_lon, levels=np.exp(np.linspace(np.log(sigmaver_lon).min(), np.log(sigmaver_lon).max(), 30)))
+        ttmp=np.linspace(tar.min(), tar.max(), 1000)
         plt.colorbar()
+        plt.plot(ttmp,omega*ttmp/tscale % (2.*np.pi), ',k')
+        plt.plot(ttmp,0.9*rsphere**(-1.5)*ttmp/tscale % (2.*np.pi), ',w')
         plt.xlabel('$t$')
         plt.ylabel('longitude')
         plt.savefig('out/tphiplot.eps')
@@ -192,7 +195,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.plot(tar, kenergy_v, color='b',  linestyle='dotted')
         plt.plot(tar, kenergy_u, color='b',  linestyle='dashed')
         #        plt.plot(tar, np.exp(2.*tar*omega/tscale)*0.00003, color='g')
-        plt.ylim(thenergy.min()/2., kenergy.max()*1.5)
+        plt.ylim(thenergy.min()/2., (kenergy+thenergy).max()*1.5)
         plt.xlabel('$t$')
         plt.ylabel('energy, $10^{35}$erg')
         plt.yscale('log')
