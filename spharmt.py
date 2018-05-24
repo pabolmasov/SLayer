@@ -1,3 +1,6 @@
+from __future__ import division
+from builtins import object
+from past.utils import old_div
 import numpy as np
 import shtns
 
@@ -29,9 +32,9 @@ class Spharmt(object):
 		self.degree = self._shtns.l
 		self.lap = -self.degree*(self.degree+1.0).astype(np.complex)
 		self.invlap = np.zeros(self.lap.shape, self.lap.dtype)
-		self.invlap[1:] = 1./self.lap[1:]
+		self.invlap[1:] = old_div(1.,self.lap[1:])
 		self.rsphere = rsphere
-		self.lap = self.lap/rsphere**2
+		self.lap = old_div(self.lap,rsphere**2)
 		self.invlap = self.invlap*rsphere**2
 
 	def grid2sph(self,data):
@@ -44,7 +47,7 @@ class Spharmt(object):
 
 	def getuv(self,vortSpec,divSpec):
 		"""compute wind vector from spectral coeffs of vorticity and divergence"""
-		return self._shtns.synth((self.invlap/self.rsphere)*vortSpec, (self.invlap/self.rsphere)*divSpec)
+		return self._shtns.synth((old_div(self.invlap,self.rsphere))*vortSpec, (old_div(self.invlap,self.rsphere))*divSpec)
 
 	def getVortDivSpec(self,u,v):
 		"""compute spectral coeffs of vorticity and divergence from wind vector"""
@@ -55,6 +58,6 @@ class Spharmt(object):
 		"""compute gradient vector from spectral coeffs"""
 		vortSpec = np.zeros(divSpec.shape, dtype=np.complex)
 		u,v = self._shtns.synth(vortSpec,divSpec)
-		return u/self.rsphere, v/self.rsphere
+		return old_div(u,self.rsphere), old_div(v,self.rsphere)
 
 

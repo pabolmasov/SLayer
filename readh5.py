@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from builtins import str
+from past.utils import old_div
 import numpy as np
 import shtns
 import matplotlib.pyplot as plt
@@ -11,7 +15,7 @@ fname = 'out/run.hdf5'
 f5 = h5py.File(fname,'r')
 
 for name in f5:
-    print name
+    print(name)
 
 
 ##################################################
@@ -59,20 +63,20 @@ sig0       = params.attrs['sig0']
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(nlons,nlats,ntrunc,rsphere,gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
-lons1d = (180./np.pi)*x.lons-180.
-lats1d = (180./np.pi)*x.lats
-lonsDeg = (180./np.pi)*lons-180.
-latsDeg = (180./np.pi)*lats
+lons1d = (old_div(180.,np.pi))*x.lons-180.
+lats1d = (old_div(180.,np.pi))*x.lats
+lonsDeg = (old_div(180.,np.pi))*lons-180.
+latsDeg = (old_div(180.,np.pi))*lats
 
 
 
 # TODO: do we need to save these to0?
 hamp=0.5
-phi0 = np.pi/3.
-lon0=np.pi/3.
-alpha = 1./3.
-beta = 1./15.
-hbump = hamp*np.cos(lats)*np.exp(-((lons-lon0)/alpha)**2)*np.exp(-(phi0-lats)**2/beta)
+phi0 = old_div(np.pi,3.)
+lon0=old_div(np.pi,3.)
+alpha = old_div(1.,3.)
+beta = old_div(1.,15.)
+hbump = hamp*np.cos(lats)*np.exp(-(old_div((lons-lon0),alpha))**2)*np.exp(old_div(-(phi0-lats)**2,beta))
 sig_init = sig0*(np.exp(-(omega*rsphere/cs)**2/2.*(1.-np.cos(lats))) + hbump) # exact solution + perturbation
 
 
@@ -113,7 +117,7 @@ def visualizeMap(ax, data, vmin=0.0, vmax=1.0, title=""):
     """
     ax.cla()
 
-    print title, " min/max:", data.min(), data.max()
+    print(title, " min/max:", data.min(), data.max())
 
 
     #make fancy 
@@ -151,7 +155,7 @@ def visualizeMapVecs(ax, xx, yy, title=""):
 
     M = np.hypot(xx, yy)
 
-    print title, " min/max vec len: ", M.min(), M.max()
+    print(title, " min/max vec len: ", M.min(), M.max())
 
     vv=np.sqrt(xx**2+yy**2)
     vvmax=vv.max() # normalization
