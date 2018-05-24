@@ -15,8 +15,8 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=400 # number of output entry for restart
+ifrestart=True
+nrest=150 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -41,7 +41,7 @@ sig0       = 0.01                   # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
 print("rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian")
 print("approximate cell size is dx ~ "+str(rsphere/np.double(nlons)))
-tmax=10.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
+tmax=100.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
 energyfloor = sigfloor * csqmin
@@ -88,7 +88,7 @@ overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
 tfric=0.*pspin/tscale
 # depletion of the atmosphere:
-tdepl=0.*pspin/tscale
+tdepl=1.*pspin/tscale
 
 #####################################################
 # twist test

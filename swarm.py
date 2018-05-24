@@ -287,8 +287,6 @@ while(t<(tmax+t0)):
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
     dissipation=(ug*dissug+vg*dissvg) # -v . dv/dt_diss # do we need a 0.5 multipier??
     # dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
-    if(efold_diss>0.):
-        dissipation = x.sph2grid(x.grid2sph(dissipation)*diss_diff) # smoothing dissipation 
     kenergy=0.5*(ug**2+vg**2) # kinetic energy per unit mass (merge this with baroclinic term?)
     tmpSpec = x.grid2sph(kenergy) # * hyperdiff_fact
     ddivdtSpec += -tmpSpec * x.lap
@@ -307,7 +305,7 @@ while(t<(tmax+t0)):
         
     # source terms in mass:
     #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
-    sdotminus=sdotsink(sigpos, sigmax)
+    sdotminus=sdotsink(sigpos)
     sdotSpec=x.grid2sph((sdotplus-sdotminus)/sigpos)
     dsigdtSpec += sdotSpec
 
@@ -332,10 +330,13 @@ while(t<(tmax+t0)):
                         (qplus - qminus + qns) /energypos + \
                         0.5*sdotplus*((vg-vd)**2+(ug-ud)**2) /energypos  + \
                         sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.) / energypos  -sdotminus/sig
-    denergydtSpec += x.grid2sph( denergydtaddterms ) * hyperdiff_fact
+    if(efold_diss>0.):
+        denergydtSpec += x.grid2sph( denergydtaddterms ) *diss_diff
+    else:
+        denergydtSpec += x.grid2sph( denergydtaddterms )
     wdtspecnan=np.where(np.isnan(denergydtaddterms))
     #    print("dt = "+str(dt))
-    if(lenergyg.min()<-30.):
+    if(lenergyg.min()<-50.):
         print("l minimal energy "+str(lenergyg.min()))
         print("l maximal energy "+str(lenergyg.max()))
         print("the dangerous terms (without energy):\n")
@@ -409,7 +410,7 @@ while(t<(tmax+t0)):
         if(ifplot):
             visualize(t, nout,
                       lats, lons, 
-                      vortg, divg, ug, vg, sig, pressg, beta, accflag, qminus, qplus, 
+                      vortg, divg, ug, vg, sig, pressg, beta, accflag, qminus, qplus+qns, 
                       conf, f5io.outdir)
         else:
             print(" \n  writing data point number "+str(nout)+"\n\n")

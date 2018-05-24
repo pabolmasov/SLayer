@@ -81,7 +81,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         press = energy* 3. * (1.-old_div(beta,2.))
         tar[k]=data.attrs["t"]
         print("entrance "+keys[k]+", dimensions "+str(np.shape(energy)))
-        flux[k]=trapz((press*(1.-beta)/(sig*kappa+1.)*cosa).sum(axis=1), x=clats1d)*dlons
+        flux[k]=trapz((qminus*cosa).sum(axis=1), x=clats1d)*dlons
         mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
         newmass_total[k]=trapz((accflag*sig).sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa).sum(axis=1), x=-clats1d)*dlons
@@ -156,7 +156,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         ttmp=np.linspace(tar.min(), tar.max(), 1000)
         plt.colorbar()
         plt.plot(ttmp,omega*ttmp/tscale % (2.*np.pi), ',k')
-        plt.plot(ttmp,0.9*rsphere**(-1.5)*ttmp/tscale % (2.*np.pi), ',w')
+        if(cf.sigplus>0.):
+            plt.plot(ttmp,0.9*rsphere**(-1.5)*ttmp/tscale % (2.*np.pi), ',w')
         plt.xlabel('$t$')
         plt.ylabel('longitude')
         plt.savefig('out/tphiplot.eps')
@@ -230,7 +231,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     fsound=meancs/rsphere/2./np.pi/tscale*np.sqrt(2.)
 
     # binning:
-    binfreq=(old_div(freq2,freq1))**(old_div(np.arange(nbins+1),np.double(nbins)))*freq1
+    binfreq=(freq2/freq1)**((np.arange(nbins+1)/np.double(nbins)))*freq1
     binfreq[0]=0.
     binfreqc=old_div((binfreq[:-1]+binfreq[1:]),2.) ;   binfreqs=old_div((-binfreq[:-1]+binfreq[1:]),2.)
     pdsbin=np.zeros([ntimes, nbins]) ; pdsbinm=np.zeros([ntimes, nbins]) ; pdsbinn=np.zeros([ntimes, nbins])
@@ -242,12 +243,13 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     t2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     binfreq2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     t2[ntimes,:]=tar.max() ; binfreq2[ntimes,:]=binfreq
+    binflux=np.zeros(ntimes, dtype=np.double)
     for kt in np.arange(ntimes):
         tbegin=tar.min()+tspan*np.double(kt)/np.double(ntimes); tend=tar.min()+tspan*np.double(kt+1)/np.double(ntimes)
         tcenter[kt]=old_div((tbegin+tend),2.)   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
         wwindow=np.where((tar>=tbegin)&(tar<tend))
         wsize=np.size(wwindow)
-        fstd=flux.std()
+        fstd=flux.std() ; binflux[kt]=flux[wwindow].mean()
         if(fstd<=0.):
             fstd=1.
         fsp=np.fft.rfft(old_div(flux[wwindow],fstd)) ;   fspm=np.fft.rfft(old_div(mass[wwindow],mass.std()))
@@ -297,7 +299,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plt.ylabel('$f$, Hz')
         plt.xlabel('$t$, ms')
         plt.savefig('out/dynPDS.eps')
-
+        # TODO: make a Flux-nuQPO plot
+        
         # integral power density spectra
         plt.clf()
         plt.plot([omega/2./np.pi,omega/2./np.pi], [pdsbin_total.min(),pdsbin_total.max()], 'b')

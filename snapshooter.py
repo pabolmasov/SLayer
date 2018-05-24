@@ -16,22 +16,7 @@ Post-processing and various post-factum diagnostic outputs
 from conf import ifplot, rsphere
 
 if(ifplot):
-    import matplotlib
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    import pylab
-    from matplotlib import cm
-    from matplotlib.ticker import LinearLocator
-    from mpl_toolkits.mplot3d import Axes3D
     import plots
-
-    #proper LaTeX support and decent fonts in figures 
-    rc('font',**{'family':'serif','serif':['Times']})
-    rc('mathtext',fontset='cm')
-    rc('mathtext',rm='stix')
-    rc('text', usetex=True)
-    # #add amsmath to the preamble
-    matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 
 def keyshow(filename):
     '''
@@ -111,12 +96,13 @@ def plotnth(filename, nstep):
         plots.somemap(lons, lats, np.sqrt(frv**2), outdir+'/froude.eps')
         plots.somemap(lons, lats, np.log10(old_div(hthick,rsphere)), outdir+'/htor.eps')
     
-def multireader(nmin, nmax, outdir='out'):
+def multireader(nmin, nmax, infile):
 
+    outdir=os.path.dirname(infile)
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
     
     for k in np.arange(nmax-nmin)+nmin:
-        plotnth('firstrun/run.hdf5', k)
+        plotnth(infile, k)
         os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')

@@ -12,13 +12,17 @@ from scipy.integrate import trapz
 
 # font adjustment:
 import matplotlib
+from matplotlib import font_manager
 from matplotlib import rc
-rc('font',**{'family':'serif','serif':['Times']})
+rc('font',**{'family':'serif'})
 rc('mathtext',fontset='cm')
 rc('mathtext',rm='stix')
 rc('text', usetex=True)
 # #add amsmath to the preamble
 matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
+from matplotlib import interactive
+
+interactive(False)
 
 ##################################################
 
@@ -170,7 +174,7 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
 def visualize(t, nout,
               lats, lons, 
-              vortg, divg, ug, vg, sig, press, beta, accflag, qminus, qplus
+              vortg, divg, ug, vg, sig, press, beta, accflag, qminus, qplus,
               cf, outdir):
     energy= old_div(press, (3. * (1.-old_div(beta,2.))))# (ug**2+vg**2)/2.
     #prepare figure etc
@@ -305,7 +309,6 @@ def visualize(t, nout,
                          title1="$\Sigma$", 
                          title2="$\Sigma_0$",
                          log=True)
-    axs[5].plot(cf.sigmax, color='g', linestyle='dotted')
     #passive scalar
     visualizeMap(axs[6], 
                  lonsDeg, latsDeg, 
@@ -316,16 +319,17 @@ def visualize(t, nout,
     #Q^-
     visualizeMap(axs[7], 
                  lonsDeg, latsDeg, 
-                 qminus, 
-                 qminus.min(), qminus.max(),  
-                 title=r'Q^-')
+                 np.log(qminus), 
+                 np.log(qminus.min()), np.log(qminus.max()),  
+                 title=r'$\ln Q^\pm$')
     visualizePoles(axs[7], (angmox, angmoy, angmoz))
     axs[7].contour(
         lonsDeg,
         latsDeg,
-        qplus,
+        np.log(qplus),
         colors='w',
         linewidths=1,
+        levels=[np.log(qminus.min()), np.log(qminus.mean()), np.log(qminus.max())]
     )
     #velocities
     du=ug # -cf.omega*cf.rsphere*np.cos(lats)
@@ -367,6 +371,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks, outdir='out'):
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
     levs=(old_div(s1,s0))**(old_div(np.arange(nlev),np.double(nlev-1)))*s0
+    interactive(False)
 
     plt.clf()
     fig=plt.figure()
@@ -392,7 +397,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks, outdir='out'):
     # drawing poles:
     nlons=np.size(lons)
     tinyover=old_div(1.,np.double(nlons))
-    theta=lats
+    theta=90.-lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
