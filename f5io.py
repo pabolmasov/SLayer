@@ -68,7 +68,7 @@ def saveParams(f5, conf):
 #Save simulation snapshot
 def saveSim(f5, nout, t,
             vortg, divg, ug, vg, sig, energy, beta,
-            accflag, dissipation,
+            accflag, dissipation, qminus, qplus,
             conf):
     sarea=4.*np.pi/np.double(conf.nlons*conf.nlats)*conf.rsphere**2
     mass=sig.sum()*sarea
@@ -91,6 +91,8 @@ def saveSim(f5, nout, t,
     grp.create_dataset("beta",   data=beta)
     grp.create_dataset("accflag",   data=accflag)
     grp.create_dataset("diss",  data=dissipation)
+    grp.create_dataset("qplus",  data=qplus)
+    grp.create_dataset("qminus",  data=qminus)
 
     f5.flush()
 

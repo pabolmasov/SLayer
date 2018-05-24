@@ -409,14 +409,14 @@ while(t<(tmax+t0)):
         if(ifplot):
             visualize(t, nout,
                       lats, lons, 
-                      vortg, divg, ug, vg, sig, pressg, beta, accflag, dissipation, 
+                      vortg, divg, ug, vg, sig, pressg, beta, accflag, qminus, qplus, 
                       conf, f5io.outdir)
         else:
             print(" \n  writing data point number "+str(nout)+"\n\n")
         #file I/O
         f5io.saveSim(f5, nout, t,
                      vortg, divg, ug, vg, sig, energyg, beta,
-                     accflag, dissipation,
+                     accflag, dissipation, qplus, qminus,
                      conf)
         nout += 1
         sys.stdout.flush()

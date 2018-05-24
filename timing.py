@@ -76,7 +76,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
         ug=data["ug"][:] ;  vg=data["vg"][:]
         energy=data["energy"][:] ; beta=data["beta"][:]
-#        print np.shape(energy)
+        qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
+        #        print np.shape(energy)
         press = energy* 3. * (1.-old_div(beta,2.))
         tar[k]=data.attrs["t"]
         print("entrance "+keys[k]+", dimensions "+str(np.shape(energy)))

@@ -170,7 +170,7 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
 
 def visualize(t, nout,
               lats, lons, 
-              vortg, divg, ug, vg, sig, press, beta, accflag, dissipation,
+              vortg, divg, ug, vg, sig, press, beta, accflag, qminus, qplus
               cf, outdir):
     energy= old_div(press, (3. * (1.-old_div(beta,2.))))# (ug**2+vg**2)/2.
     #prepare figure etc
@@ -220,8 +220,10 @@ def visualize(t, nout,
     print("Sigma: "+str(sig.min())+" to "+str(sig.max()))
     print("Pi: "+str(press.min())+" to "+str(press.max()))
     print("accretion flag: "+str(accflag.min())+" to "+str(accflag.max()))
-    print("maximal dissipation "+str(dissipation.max()))
-    print("minimal dissipation "+str(dissipation.min()))
+    print("maximal Q^- "+str(qminus.max()))
+    print("minimal Q^- "+str(qminus.min()))
+    print("maximal Q^+ "+str(qplus.max()))
+    print("minimal Q^+ "+str(qplus.min()))
     print("total mass = "+str(mass))
     print("accreted mass = "+str(mass_acc))
     print("native mass = "+str(mass_native))
@@ -230,7 +232,6 @@ def visualize(t, nout,
     print("total energy = "+str(thenergy)+"(thermal) + "+str(kenergy)+"(kinetic)")
     print("net energy = "+str(old_div((thenergy+kenergy),mass)))
 
-    dismax=(dissipation*sig).max()
     cspos=old_div((old_div(press,sig)+np.fabs(old_div(press,sig))),2.)
     
     #vorticity
@@ -312,24 +313,20 @@ def visualize(t, nout,
                  -0.1, 1.1,  
                  title=r'Passive scalar')
 #    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')
-    #dissipation
+    #Q^-
     visualizeMap(axs[7], 
                  lonsDeg, latsDeg, 
-                 dissipation*sig, 
-                 (dissipation*sig).min(), (dissipation*sig).max(),  
-                 title=r'Dissipation')
+                 qminus, 
+                 qminus.min(), qminus.max(),  
+                 title=r'Q^-')
     visualizePoles(axs[7], (angmox, angmoy, angmoz))
-#    axs[7].plot([tanrat(angmox, angmoy)%np.pi*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
-#    axs[7].plot([-(tanrat(angmox, angmoy)%np.pi)*180./np.pi], [-np.arcsin(angmoz/vangmo)*180./np.pi], '.r')
-    '''
-    # passive scalar
-    visualizeSprofile(axs[7], 
-                      latsDeg,
-                      accflag,  
-                      title=r'Passive scalar', 
-                      log=False)
-    '''
-
+    axs[7].contour(
+        lonsDeg,
+        latsDeg,
+        qplus,
+        colors='w',
+        linewidths=1,
+    )
     #velocities
     du=ug # -cf.omega*cf.rsphere*np.cos(lats)
     dv=vg
