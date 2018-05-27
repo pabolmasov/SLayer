@@ -16,7 +16,7 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=True
-nrest=150 # number of output entry for restart
+nrest=410 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -56,7 +56,7 @@ mass1=1.4 # accretor mass
 # cssqscale = 1.90162e-06/mu/kappa**0.25 # = (4/7) (k/m_p c^2) (0.75 c^5/kappa/sigma_B /GM)^{1/4}
 cssqscale = 2.89591e-06 * sigmascale**0.25 / mu * mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
 # if csqmin>cssqscale, we are inevitably super-Eddington
-betamin=1e-8 # beta is solved for in the range betamin .. 1-betamin
+betamin=1e-10 # beta is solved for in the range betamin .. 1-betamin
 # there is a singularity near beta=1, not sure about beta=0
 
 print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
@@ -66,13 +66,13 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 0.1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 0. # smoothing the dissipation term when used as a heat source
+efold = .1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
+efold_diss = 1e-8 # smoothing the dissipation term when used as a heat source
 ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################
 #perturbation parameters
-bump_amp  = -0.15     # perturbation amplitude
+bump_amp  = -0.05     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
@@ -81,14 +81,14 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 ##################################################
 # source term
 sigplus   = 0.0 # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-latspread = 0.1   # spread in radians
+latspread = 0.8   # spread in radians
 incle     = latspread*0.1 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
-tfric=0.*pspin/tscale
+tfric=10.*pspin/tscale
 # depletion of the atmosphere:
-tdepl=1.*pspin/tscale
+tdepl=10.*pspin/tscale
 
 #####################################################
 # twist test

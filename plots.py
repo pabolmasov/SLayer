@@ -362,22 +362,28 @@ def visualize(t, nout,
 #    
 ##########################################################################    
 # post-factum visualizations from snapshooter:
-def snapplot(lons, lats, sig, accflag, vx, vy, sks, outdir='out'):
+def snapplot(lons, lats, sig, accflag, csq, vx, vy, sks, outdir='out'
+             ,latrange=None, lonrange=None):
     # longitudes, latitudes, density field, accretion flag, velocity fields, alias for velocity output
-    skx=sks[0] ; sky=sks[1]
+    if((latrange == None) | (lonrange == None)):
+        skx=sks[0] ; sky=sks[1]
+    else:
+        skx=2 ; sky=2
 
     wpoles=np.where(np.fabs(lats)<90.)
     s0=sig[wpoles].min() ; s1=sig[wpoles].max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
-    levs=(old_div(s1,s0))**(old_div(np.arange(nlev),np.double(nlev-1)))*s0
+    levs=np.log(np.linspace(s0,s1, nlev))
+    # (old_div(s1,s0))**(old_div(np.arange(nlev),np.double(nlev-1)))*s0
     interactive(False)
 
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, sig, cmap='jet',levels=levs)
+    plt.contourf(lons, lats, np.log(sig), cmap='plasma',levels=levs)
     plt.colorbar()
-    plt.contour(lons, lats, accflag, levels=[0.5], colors='w') #,levels=levs)
+    plt.contour(lons, lats, accflag, levels=[0.5], colors='w',linestyles='dotted') #,levels=levs)
+    plt.contour(lons, lats, csq, colors='w') #,levels=levs)
     plt.quiver(lons[::skx, ::sky],
         lats[::skx, ::sky],
         vx[::skx, ::sky], vy[::skx, ::sky],
@@ -387,7 +393,11 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks, outdir='out'):
         color='k',
         scale=20.0,
     )
-    plt.ylim(-85.,85.)
+    if((latrange == None) & (lonrange == None)):
+        plt.ylim(-85.,85.)
+    else:
+        plt.ylim(latrange[0], latrange[1])
+        plt.xlim(lonrange[0], lonrange[1])
     plt.xlabel('longitude')
     plt.ylabel('latitude')
     fig.set_size_inches(8, 5)
@@ -402,7 +412,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks, outdir='out'):
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
     tinyover=old_div(1.,np.double(nlons))
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, sig,cmap='jet',levels=levs)
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, np.log(sig),cmap='plasma',levels=levs)
     ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
     ax.set_rmax(90.)
@@ -416,7 +426,7 @@ def snapplot(lons, lats, sig, accflag, vx, vy, sks, outdir='out'):
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
 #    tinyover=0./np.double(nlons)
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, sig,cmap='jet',levels=levs)
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, np.log(sig),cmap='plasma',levels=levs)
     ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
     ax.set_rmax(90.)
@@ -434,7 +444,7 @@ def somemap(lons, lats, q, outname):
     print(outname+" somemap: "+str(nnan)+"NaN points out of "+str(np.size(q)))
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, q,cmap='jet') #,levels=levs)
+    plt.contourf(lons, lats, q,cmap='plasma') #,levels=levs)
     plt.colorbar()
     plt.xlabel('longitude')
     plt.ylabel('latitude')
@@ -469,8 +479,9 @@ def vortgraph(lats, lons, vort, div, sig, energy, omegaNS, lonrange=[0.,360.], o
     domedian=np.median(do,axis=1) ; csmedian=np.median((old_div(energy,sig)),axis=1)
     plt.clf()
     plt.plot(domedian, csmedian, color='k')
-    plt.scatter(do[w], (old_div(energy,sig))[w], c=lats[w]*np.pi/180., cmap='jet', s=(old_div((lons[w]-old_div((lon1+lon2),2.)),(lon2-lon1)))**2*100., marker='d', facecolors='none')
-#    plt.plot((vort+2.*omegaNS*np.cos(lats*np.pi/180.))[w], (energy/sig)[w], markerfacecolors='none', markeredgecolors=lats[w]*np.pi/180., cmap='jet', markersize=((lons[w]-(lon1+lon2)/2.)/(lon2-lon1))**2*50.)
+    plt.scatter(do[w], (energy/sig)[w], c=lats[w]*np.pi/180., cmap='plasma', s=(old_div((lons[w]-old_div((lon1+lon2),2.)),(lon2-lon1)))**2*100., marker='d', facecolors='none')
+    plt.colorbar()
+#    plt.plot((vort+2.*omegaNS*np.cos(lats*np.pi/180.))[w], (energy/sig)[w], markerfacecolors='none', markeredgecolors=lats[w]*np.pi/180., cmap='plasma', markersize=((lons[w]-(lon1+lon2)/2.)/(lon2-lon1))**2*50.)
     plt.xlabel(r'$\Delta\omega$')
     plt.ylabel(r'$E/\Sigma$')
     #    plt.xscale('log')
@@ -597,9 +608,9 @@ def dynsplot(infile="out/pds_diss"):
     pmin=f2ma.min() ; pmax=f2ma.max()
     print(binfreq2.min(),binfreq2.max())
     plt.clf()
-    #  plt.contourf(t, fc, f2, cmap='jet')
-    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='jet', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
-    # plt.contourf(tc, fc, np.log(f2), cmap='jet')
+    #  plt.contourf(t, fc, f2, cmap='plasma')
+    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='plasma', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    # plt.contourf(tc, fc, np.log(f2), cmap='plasma')
     #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
     #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
@@ -608,4 +619,5 @@ def dynsplot(infile="out/pds_diss"):
     plt.ylabel('$f$, Hz')
     plt.xlabel('$t$, s')
     plt.savefig(infile+'.png')
+    plt.savefig(infile+'.eps')
     plt.close()

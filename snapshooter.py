@@ -77,7 +77,7 @@ def plotnth(filename, nstep):
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
-        plots.snapplot(lons, lats, sig, accflag, xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        plots.snapplot(lons, lats, sig, accflag, energy/sig, xx, yy, [skx,sky], outdir=outdir, lonrange=[330.,360.], latrange=[10.,50.]) # geographic maps
 
         kappa=0.34
         geff=-grav+old_div((ug**2+vg**2),rsphere)
