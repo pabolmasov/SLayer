@@ -244,12 +244,13 @@ def visualize(t, nout,
                  vortg-2.*cf.omega*np.sin(lats), 
                  -vorm*1.1, vorm*1.1, 
                  title="$\Delta \omega$")
-    # pressure
+    # internal temperature
+    tbottom=50.59*((1.-beta)*energy*cf.sigmascale)**0.25
     visualizeMap(axs[1], 
                  lonsDeg, latsDeg, 
-                 cspos, 
-                 (cspos).min(), (cspos).max(), 
-                 title="$\Pi/\Sigma c^2$")
+                 tbottom, 
+                 tbottom.min(), tbottom.max(), 
+                 title="$T_{\rm bottom}$, keV")
     
     #    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
@@ -317,20 +318,13 @@ def visualize(t, nout,
                  title=r'Passive scalar')
 #    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')
     #Q^-
+    teff=(qminus*cf.sigmascale/mass1)**0.25*3.64 # effective temperature in keV
     visualizeMap(axs[7], 
                  lonsDeg, latsDeg, 
-                 np.log(qminus), 
-                 np.log(qminus.min()), np.log(qminus.max()),  
-                 title=r'$\ln Q^\pm$')
+                 teff, 
+                 teff.min(), teff.max(),  
+                 title=r'$T_{\rm eff}$, keV')
     visualizePoles(axs[7], (angmox, angmoy, angmoz))
-    axs[7].contour(
-        lonsDeg,
-        latsDeg,
-        np.log(qplus),
-        colors='w',
-        linewidths=1,
-        levels=[np.log(qminus.min()), np.log(qminus.mean()), np.log(qminus.max())]
-    )
     #velocities
     du=ug # -cf.omega*cf.rsphere*np.cos(lats)
     dv=vg
@@ -360,6 +354,7 @@ def visualize(t, nout,
     plt.close()
 ##########################################################################
 #    
+#
 ##########################################################################    
 # post-factum visualizations from snapshooter:
 def snapplot(lons, lats, sig, accflag, csq, vx, vy, sks, outdir='out'
@@ -450,113 +445,6 @@ def somemap(lons, lats, q, outname):
     plt.ylabel('latitude')
     fig.set_size_inches(8, 5)
     plt.savefig(outname)
-    plt.close()
-    
-# vorticity correlated with other quantities
-def vortgraph(lats, lons, vort, div, sig, energy, omegaNS, lonrange=[0.,360.], outdir='out'):
-    lon1=lonrange[0] ; lon2=lonrange[1]
-    w=np.where((lons>lon1)&(lons<lon2))
-    do=vort+2.*omegaNS*np.cos(lats*np.pi/180.)
-    plt.clf()
-    plt.scatter(vort, div, c=sig)
-    plt.colorbar()
-    plt.plot(2.*omegaNS*np.sin(lats*np.pi/180.), div, ',k')
-    plt.ylabel(r'$\delta$')
-    plt.xlabel(r'$\omega$')
-    plt.xlim(vort.min(), vort.max())
-    plt.ylim(div.min(), div.max())
-    plt.savefig(outdir+'/vortdiv.eps')
-    plt.savefig(outdir+'/vortdiv.png')
-    plt.close()
-    
-    plt.clf()
-    plt.plot(lats, vort, ',k')
-    plt.plot(lats, -2.*omegaNS*np.cos(lats*np.pi/180.),',r')
-    plt.ylabel(r'$\omega$')
-    plt.xlabel(r'$\theta$, deg')
-    plt.savefig(outdir+'/vortgraph.eps')
-    plt.close()
-    domedian=np.median(do,axis=1) ; csmedian=np.median((old_div(energy,sig)),axis=1)
-    plt.clf()
-    plt.plot(domedian, csmedian, color='k')
-    plt.scatter(do[w], (energy/sig)[w], c=lats[w]*np.pi/180., cmap='plasma', s=(old_div((lons[w]-old_div((lon1+lon2),2.)),(lon2-lon1)))**2*100., marker='d', facecolors='none')
-    plt.colorbar()
-#    plt.plot((vort+2.*omegaNS*np.cos(lats*np.pi/180.))[w], (energy/sig)[w], markerfacecolors='none', markeredgecolors=lats[w]*np.pi/180., cmap='plasma', markersize=((lons[w]-(lon1+lon2)/2.)/(lon2-lon1))**2*50.)
-    plt.xlabel(r'$\Delta\omega$')
-    plt.ylabel(r'$E/\Sigma$')
-    #    plt.xscale('log')
-    # plt.yscale('log')
-    plt.ylim(np.percentile((old_div(energy,sig))[w], 1.), np.percentile((old_div(energy,sig))[w], 99.9)*1.2)
-    plt.xlim(np.percentile(do[w], 1.)*1.1, np.percentile(do[w], 99.9)*1.1)
-    plt.savefig(outdir+'/vortcs.eps')
-    plt.close()
-
-def dissgraph(sig, energy, diss, vsq, accflag, outdir='out'):
-    w=np.where(accflag>0.75)
-    w0=np.where(accflag<0.25)
-    plt.clf()
-    plt.plot(sig, old_div(vsq,2.), '.g')
-    plt.plot(sig, old_div(energy,sig), '.k')
-    plt.plot(sig[w], old_div(energy[w],sig[w]), '.b')
-    plt.plot(sig[w0], old_div(energy[w0],sig[w0]), '.r')
-    plt.xlabel(r'$\Sigma$')
-    plt.ylabel(r'$E/\Sigma$')
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.ylim((old_div(energy,sig)).min(),(old_div(energy,sig)).max())
-    plt.savefig(outdir+'/effeos.eps')
-    plt.close()
-    plt.clf()
-    plt.plot(sig, diss, ',k')
-    plt.plot(sig[w], diss[w], ',b')
-    plt.plot(sig[w0], diss[w0], ',r')
-    plt.xlabel(r'$\Sigma$')
-    plt.ylabel(r'dissipation')
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.savefig(outdir+'/dissigma.eps')
-    plt.close()
-
-# Effective gravity and Eddington violation diagnostic plot
-def sgeffplot(sig, grav, geff, radgeff, outdir='out'):
-    plt.clf()
-    plt.plot(sig, radgeff+geff, ',k')
-    plt.plot(sig, geff, ',b')
-    plt.plot(sig, geff*0.-grav, color='r')
-    plt.xscale('log')
-    plt.xlabel(r'$\Sigma$, g\,cm$^{-2}$')
-    plt.ylabel(r'$g_{\rm eff}$, $c^4/GM$ units')
-    plt.savefig(outdir+'/sgeff.eps')
-    plt.close()
-
-# Reynolds stress plot (maybe we should make a time-averaged plot; think of it!)
-def reys(lons, lats, sig, ug,vg, energy, rsphere, outdir='out'):
-
-    omega=ug/np.cos(lats)/rsphere
-    # shear domega/dtheta:
-    nx, ny=np.shape(omega)
-    omegamean=omega.mean(axis=1)
-    dodthmean = old_div((omegamean[1:]-omegamean[:-1]),(lats[1:,0]-lats[:-1,0]))
-#    dodthmean = dodth.mean(axis=1) / (omega[1:,:]+omega[:-1,:]).mean(axis=1)
-    omegamean=old_div((omegamean[1:]+omegamean[:-1]),2.)
-    energymean = old_div((energy[1:,:]+energy[:-1,:]).mean(axis=1),2.)
-    dug=ug ; dvg=vg
-    for kx in np.arange(nx):
-        dug[kx,:]=ug[kx,:]-ug[kx,:].mean()
-        dvg[kx,:]=vg[kx,:]-vg[kx,:].mean()
-    rxy = sig * dug * dvg
-    rxy0 = sig * ug * vg
-#    rxy0mean = (rxy0[1:,:]+rxy0[:-1,:]).mean(axis=1)/2.
-    rxymean = old_div((rxy[1:,:]+rxy[:-1,:]).mean(axis=1),2.)
-    latsmidpoint=old_div((lats[1:,0]+lats[:-1,0]),2.)
-    plt.clf()
-    plt.plot(latsmidpoint, rxymean, color='k')
-#    plt.plot(latsmidpoint, rxy0mean, color='r')
-    plt.plot(latsmidpoint, energymean*dodthmean/omegamean, '.b')
-    plt.xlabel(r'latitude, degrees')
-    plt.ylabel(r'stress')
-#    plt.ylim([rxymean.min(), rxymean.max()])
-    plt.savefig(outdir+'/rxy.eps')
     plt.close()
 
 ########################################################################

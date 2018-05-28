@@ -10,7 +10,7 @@ from spharmt import Spharmt
 
 from scipy.integrate import trapz
 
-from conf import ifplot, kappa, sigmascale, sigplus
+from conf import ifplot, kappa, sigmascale, sigplus, mass1
 
 if(ifplot):
     import matplotlib
@@ -26,6 +26,8 @@ if(ifplot):
     # #add amsmath to the preamble
     matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 
+    import plots
+    
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
 def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
@@ -37,13 +39,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     nfilter
     """
     outdir=os.path.dirname(filename)
-    print("writing outpur in "+outdir)
+    print("writing output in "+outdir)
     f = h5py.File(filename,'r')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"]
     # NSmass=params.attrs["mass"]
     print(type(nlons))
-    NSmass=1.4
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
     lons1d = x.lons
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
@@ -102,19 +103,19 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     f.close() 
     tar*=tscale 
     # mass consistency:
-    mass_total *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
-    newmass_total *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
-    mass *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
-    newmass *= rsphere**2*NSmass**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
+    mass_total *= rsphere**2*mass1**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
+    newmass_total *= rsphere**2*mass1**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
+    mass *= rsphere**2*mass1**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
+    newmass *= rsphere**2*mass1**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
     meanmass=mass_total.mean() ; stdmass=mass_total.std()
     print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
-    angmoz_new *= rsphere**3*NSmass**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
-    angmoz_old *= rsphere**3*NSmass**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
-    flux *= 1.4690e12*rsphere**2*NSmass**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
-    kenergy *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
-    kenergy_u *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
-    kenergy_v *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
-    thenergy *= rsphere**2*NSmass**2*19.6002e3*(sigmascale/1e8)  # 10^{35} erg
+    angmoz_new *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
+    angmoz_old *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
+    flux *= 1.4690e12*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
+    kenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
+    kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
+    kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
+    thenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8)  # 10^{35} erg
     wnan=np.where(np.isnan(flux))
     if(np.size(wnan)>0):
         print(str(np.size(wnan))+" NaN points")
@@ -226,7 +227,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         overkepler=0.09
         plt.clf()
         plt.plot(tar, angmoz_new, '.k')
-        plt.plot(tar, newmass_total/2.18082e-2*np.sqrt(rsphere)*NSmass*overkepler, 'b')
+        plt.plot(tar, newmass_total/2.18082e-2*np.sqrt(rsphere)*mass1*overkepler, 'b')
         plt.plot(tar, angmoz_old, '.r')
         plt.xscale('log')
         plt.yscale('log')
@@ -317,11 +318,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         
         # integral power density spectra
         plt.clf()
-        plt.plot([omega/2./np.pi,omega/2./np.pi], [pdsbin_total.min(),pdsbin_total.max()], 'b')
-        plt.plot([fsound, fsound], [pdsbin_total.min(),pdsbin_total.max()], 'g')
-        plt.plot([fsound*2., fsound*2.], [pdsbin_total.min(),pdsbin_total.max()], 'g', linestyle='dotted')
+        plt.plot([omega/2./np.pi,omega/2./np.pi], [pmin,pmax], 'b')
+        plt.plot([fsound, fsound], [pmin,pmax], 'g')
+        plt.plot([fsound*2., fsound*2.], [pmin,pmax], 'g', linestyle='dotted')
         plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
-        plt.plot([3.*omega/2./np.pi,4.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
+        plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
+        plt.plot([4.*omega/2./np.pi,4.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
         plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pmin,pmax], 'm')
         plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='k') #, fmt='.') # we need asymmetric error bars, otherwise they are incorrectly shown
         plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='r') #, fmt='.')
@@ -387,5 +389,56 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
             fpdsn.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinn[kt,k])+' '+str(dpdsbinn[kt,k])+" "+str(nbinn[kt,k])+"\n")
             fpdsm.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinm[kt,k])+' '+str(dpdsbinm[kt,k])+" "+str(nbin[kt,k])+"\n")
     fpds.close() ;   fpdsm.close() ;   fpdsn.close()
-    
-fluxest('out/runcombine.hdf5', np.pi/2., 1., nbins=30)
+
+####################################################################################################
+def meanmaps(filename, n1, n2):
+    '''
+    makes time(frame)-averaged pictures from hdf5 file filename, frames n1 to n2
+    '''
+    outdir=os.path.dirname(filename)
+    print("writing output in "+outdir)
+    f = h5py.File(filename,'r')
+    params=f["params"]
+    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"]
+    # NSmass=params.attrs["mass"]
+    print(type(nlons))
+    x = Spharmt(int(nlons),int(nlats),int(nlons/3.),rsphere,gridtype='gaussian')
+    lons1d = x.lons
+    clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
+    lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
+    #    print(np.shape(lons))
+    sigmean=np.zeros([nlats, nlons], dtype=np.double)
+    energymean=np.zeros([nlats, nlons], dtype=np.double)
+    ugmean=np.zeros([nlats, nlons], dtype=np.double) ;   vgmean=np.zeros([nlats, nlons], dtype=np.double)
+    ugdisp=np.zeros([nlats, nlons], dtype=np.double) ;   vgdisp=np.zeros([nlats, nlons], dtype=np.double)
+    uvcorr=np.zeros([nlats, nlons], dtype=np.double)
+    qmmean=np.zeros([nlats, nlons], dtype=np.double) ; qpmean=np.zeros([nlats, nlons], dtype=np.double)
+    keys=list(f.keys())
+    for k in np.arange(n2-n1)+n1:
+        print("reading data entry "+keys[k])
+        data=f[keys[k]]
+        sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
+        ug=data["ug"][:] ;  vg=data["vg"][:]
+        energy=data["energy"][:] ; beta=data["beta"][:]
+        qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
+        sigmean+=sig ; energymean+=energy ; ugmean+=ug ; vgmean+=vg ; ugdisp+=ug**2 ; vgdisp+=vg**2
+        qmmean+=qminus ; qpmean+=qplus
+    f.close()
+    sigmean/=np.double(n2-n1) ; energymean/=np.double(n2-n1) ; ugmean/=np.double(n2-n1); vgmean/=np.double(n2-n1)
+    qmmean/=np.double(n2-n1) ; qpmean/=np.double(n2-n1)
+    ugdisp=(ugdisp/np.double(n2-n1)-ugmean**2) ; vgdisp=(vgdisp/np.double(n2-n1)-vgmean**2)
+    uvcorr=uvcorr/np.double(n2-n1)-ugmean*vgmean
+
+    # ascii output:
+    fout=open(outdir+'/meanmap.dat', 'w')
+    for kx in np.arange(nlons):
+        for ky in np.arange(nlats):
+            fout.write(str(lons[ky,kx])+" "+str(lats[ky,kx])+" "+str(sigmean[ky,kx])+" "+str(energymean[ky,kx])+" "+str(ugmean[ky,kx])+" "+str(vgmean[ky,kx])+" "+str(ugdisp[ky,kx])+" "+str(vgdisp[ky,kx])+" "+str(uvcorr[ky,kx])+"\n")
+    fout.close()
+    if(ifplot):
+        plots.somemap(lons, lats, sigmean, outdir+"/mean_sigma.png")
+        plots.somemap(lons, lats, energymean, outdir+"/mean_energy.png")
+        plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
+
+# fluxest('out/run.hdf5', np.pi/2., 0., nbins=50)
+meanmaps('out/runOLD.hdf5', 0, 1500)

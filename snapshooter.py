@@ -28,7 +28,8 @@ def keyshow(filename):
 
 def plotnth(filename, nstep):
     '''
-    plot a given time step of a given data file. To list the available nsteps (integer values), use keyshow(filename) 
+    plot a given time step of a given data file. To list the available nsteps (integer values), use keyshow(filename).
+    If "ifplot" is off, makes an ascii map instead (useful for remote calculations)
     '''
     global rsphere
     outdir=os.path.dirname(filename)
@@ -77,25 +78,9 @@ def plotnth(filename, nstep):
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
-        plots.snapplot(lons, lats, sig, accflag, energy/sig, xx, yy, [skx,sky], outdir=outdir, lonrange=[330.,360.], latrange=[10.,50.]) # geographic maps
+        plots.snapplot(lons, lats, sig, accflag, energy/sig, xx, yy, [skx,sky], outdir=outdir) # geographic maps
 
-        kappa=0.34
-        geff=-grav+old_div((ug**2+vg**2),rsphere)
-        radgeff=sig*diss*kappa
-        plots.sgeffplot(sig, grav, geff, radgeff, outdir=outdir) # Eddington violation plot
-        plots.vortgraph(lats, lons, vortg, divg, sig, energy, omegaNS, lonrange=[0.,360.], outdir=outdir)
-        plots.dissgraph(sig, energy, diss, vg**2+(ug)**2, accflag, outdir=outdir)
-        # we need a vorticity-divergence graph
-        # Reynolds's stress (I know the Pythonic way to pronounce thiss!)
-        #    plots.reys(lons, lats, sig, ug, vg, energy,rsphere)
-
-        # thicknesses and Froude number:
-        hthick=-5./geff*energy/sig/3./(1.-old_div(beta,2.))
-        fru=old_div(ug,np.sqrt(-hthick*geff)) # azimuthal Froude/Mach
-        frv=old_div(vg,np.sqrt(-hthick*geff)) # polar Froude/Mach
-        plots.somemap(lons, lats, np.sqrt(frv**2), outdir+'/froude.eps')
-        plots.somemap(lons, lats, np.log10(old_div(hthick,rsphere)), outdir+'/htor.eps')
-    
+# multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):
 
     outdir=os.path.dirname(infile)

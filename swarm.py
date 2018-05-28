@@ -438,4 +438,4 @@ f5.close()
 time2 = time.clock()
 print(('CPU time = ',time2-time1))
 
-# ffmpeg -f image2 -r 15 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
+# ffmpeg -f image2 -r 35 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
