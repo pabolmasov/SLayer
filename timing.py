@@ -10,22 +10,9 @@ from spharmt import Spharmt
 
 from scipy.integrate import trapz
 
-from conf import ifplot, kappa, sigmascale, sigplus, mass1
+from conf import ifplot, kappa, sigmascale, sigplus, mass1, omega, overkepler
 
 if(ifplot):
-    import matplotlib
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    import pylab
-
-    #proper LaTeX support and decent fonts in figures 
-    rc('font',**{'family':'serif','serif':['Times']})
-    rc('mathtext',fontset='cm')
-    rc('mathtext',rm='stix')
-    rc('text', usetex=True)
-    # #add amsmath to the preamble
-    matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
-
     import plots
     
 # calculates the light curve and the power density spectrum
@@ -37,6 +24,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     nbins -- number of bins in spectral space for PDS averaging
     ntimes -- number of temporal intervals for PDS calculation (for dynamic spectral analysis)
     nfilter
+    TODO: variables from conf.py and stored in the hdf5 file blend together; ideally, we should get without refences to conf.py 
     """
     outdir=os.path.dirname(filename)
     print("writing output in "+outdir)
@@ -44,7 +32,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"]
     # NSmass=params.attrs["mass"]
-    print(type(nlons))
+#    print(type(nlons))
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
     lons1d = x.lons
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
@@ -69,12 +57,15 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     print(str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2]))
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
     newmass_total=np.zeros(nsize) 
-    flux=np.zeros(nsize)  ;  mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
+    flux=np.zeros(nsize)  ;  lumtot=np.zeros(nsize)
+    mass=np.zeros(nsize) ;  tar=np.zeros(nsize) ; newmass=np.zeros(nsize)
     kenergy=np.zeros(nsize) ;  thenergy=np.zeros(nsize) ; meancs=np.zeros(nsize)
     kenergy_u=np.zeros(nsize) ;  kenergy_v=np.zeros(nsize)
     angmoz_new=np.zeros(nsize)  ;  angmoz_old=np.zeros(nsize)
     maxdiss=np.zeros(nsize) ;    mindiss=np.zeros(nsize)
     sigmaver=np.zeros([nlats, nsize])  ;   sigmaver_lon=np.zeros([nlons, nsize])
+    tbottom=np.zeros(nsize) ; teff=np.zeros(nsize)
+    tbottommax=np.zeros(nsize) ; tbottommin=np.zeros(nsize)
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
@@ -85,7 +76,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         press = energy* 3. * (1.-beta/2.)
         tar[k]=data.attrs["t"]
         print("entrance "+keys[k]+", dimensions "+str(np.shape(energy)))
-        flux[k]=trapz((qminus*cosa).sum(axis=1), x=clats1d)*dlons
+        flux[k]=trapz((qminus*cosa).sum(axis=1), x=-clats1d)*dlons
+        lumtot[k]=trapz(qminus.sum(axis=1), x=-clats1d)*dlons
         mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
         newmass_total[k]=trapz((accflag*sig).sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa).sum(axis=1), x=-clats1d)*dlons
@@ -97,6 +89,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         angmoz_new[k]=trapz((sig*ug*np.sin(lats)*accflag).sum(axis=1), x=-clats1d)*dlons
         angmoz_old[k]=trapz((sig*ug*np.sin(lats)*(1.-accflag)).sum(axis=1), x=-clats1d)*dlons
         csqmap=press/sig*(4.+beta)/3. ;    meancs[k]=np.sqrt(csqmap.mean())
+        tbottom[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).mean()
+        tbottommin[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).min()
+        tbottommax[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).max()
+        teff[k]=(qminus.mean()*sigmascale/mass1)**0.25*3.64
         maxdiss[k]=diss.max() ;     mindiss[k]=diss.min()
         sigmaver[:,k]=(sig).mean(axis=1)/sig.mean()
         sigmaver_lon[:,k]=(sig).mean(axis=0)/sig.mean()
@@ -112,6 +108,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     angmoz_new *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     angmoz_old *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     flux *= 1.4690e12*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
+    lumtot *= 1.4690e12*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s total luminosity
     kenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
@@ -126,116 +123,46 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     md,bd =  np.polyfit(tar, flux, 1) # for dissipation
 
     # ascii output:
-    flc=open(outdir+'/lcurve.dat', 'w')
-    fmc=open(outdir+'/mcurve.dat', 'w')    
-    fec=open(outdir+'/ecurve.dat', 'w')
+    flc=open(outdir+'/lcurve'+str(lat0)+'.dat', 'w')
+    fmc=open(outdir+'/mcurve'+str(lat0)+'.dat', 'w')    
+    fec=open(outdir+'/ecurve'+str(lat0)+'.dat', 'w')
     fdc=open(outdir+'/dcurve.dat', 'w')
     flc.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
     fec.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
     fmc.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
-    flc.write("#   time, s     effective luminosity, 10^37erg/s    one-sided mass, 10^20 g\n")
+    flc.write("#   time, s     effective luminosity, 10^37erg/s    total luminosity, 10^37 erg/s\n")
+    fmc.write("#   time, s     effective mass, 10^20g    total mass, 10^20g \n")
     fec.write("#   time, s     kinetic energy, 10^35erg    thermal energy, 10^35 erg  kinetic energy along phi, 10^35 erg  kinetic energy along theta, 10^35erg \n")
     fdc.write("#   time, s     maximal neg. dissipation    maximal dissipation \n")
     
     for k in np.arange(nsize):
-        flc.write(str(tar[k])+' '+str(flux[k])+' '+str(mass[k])+"\n") 
+        flc.write(str(tar[k])+' '+str(flux[k])+' '+str(lumtot[k])+"\n") 
         fec.write(str(tar[k])+' '+str(kenergy[k])+' '+str(thenergy[k])+' '+str(kenergy_u[k])+' '+str(kenergy_v[k])+"\n")
-        fmc.write(str(tar[k])+' '+str(mass_total[k])+"\n")
+        fmc.write(str(tar[k])+' '+str(mass[k])+' '+str(mass_total[k])+"\n")
         fdc.write(str(tar[k])+' '+str(maxdiss[k])+' '+str(-mindiss[k])+"\n")
         flc.flush() ; fmc.flush()
     flc.close() ; fmc.close() ; fec.close() ;  fdc.close()
     print("total energy changed from "+str(kenergy[0]+thenergy[0])+" to "+str(kenergy[-1]+thenergy[-1])+"\n")
 
     if(ifplot): # move to plots.py!
-        # theta-t plot:
-        plt.clf()
-        plt.contourf(tar, lats.mean(axis=1), sigmaver, levels=np.exp(np.linspace(np.log(sigmaver).min(), np.log(sigmaver).max(), 30)))
-        plt.colorbar()
-        plt.xlabel('$t$')
-        plt.ylabel('latitude')
-        plt.savefig(outdir+'/tthplot.eps')
-        plt.savefig(outdir+'/tthplot.png')
-        plt.clf()
-        fig=plt.figure()
-        plt.contourf(tar, lons.mean(axis=0), sigmaver_lon, levels=np.exp(np.linspace(np.log(sigmaver_lon).min(), np.log(sigmaver_lon).max(), 30)))
-        ttmp=np.linspace(tar.min(), tar.max(), 1000)
-        plt.colorbar()
-        plt.plot(ttmp,omega*ttmp/tscale % (2.*np.pi), ',k')
+        plots.timangle(tar, lats, lons, np.log(sigmaver), np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega)
+        plots.sometimes(tar, [maxdiss, -mindiss], col=['k', 'r'], prefix=outdir+'/disslimits', title='dissipation limits')
         if(sigplus>0.):
-            plt.plot(ttmp,0.9*rsphere**(-1.5)*ttmp/tscale % (2.*np.pi), ',w')
-        plt.ylim(0.,2.*np.pi)
-        plt.xlabel('$t$')
-        plt.ylabel('longitude')
-        fig.set_size_inches(8, 4)
-        plt.savefig(outdir+'/tphiplot.eps')
-        plt.savefig(outdir+'/tphiplot.png')
-        plt.close()
-        plt.clf()
-        plt.plot(tar, maxdiss, color='k')
-        plt.plot(tar, -mindiss, color='r')
-        #        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlabel('$t$')
-        plt.ylabel('dissipation limits')
-        plt.savefig(outdir+'/disslimits.eps')
-        plt.savefig(outdir+'/disslimits.png')
-        
-        plt.clf()
-        plt.plot(tar, mass_total, color='k')
-        plt.plot(tar, newmass_total, color='k',linestyle='dotted')
-        plt.plot(tar, mass, color='r')
-        plt.plot(tar, newmass, color='g')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlabel('$t$')
-        plt.ylabel('mass, $10^{20}$g')
-        plt.savefig(outdir+'/mcurve.eps')
-        plt.savefig(outdir+'/mcurve.png')
-        plt.clf()
-        plt.plot()
-        plt.plot(tar, newmass_total/mass_total, color='k')
-        plt.xscale('log')
-        plt.xlabel('$t$')
-        plt.ylabel('mass fraction')
-        plt.savefig(outdir+'/mfraction.eps')
-        plt.savefig(outdir+'/mfraction.png')
-        plt.clf()       
-        plt.clf()
-        plt.plot(tar, kenergy+thenergy, color='k')
-        plt.plot(tar, thenergy, color='r')
-        plt.plot(tar, kenergy, color='b')
-        plt.plot(tar, kenergy_v, color='b',  linestyle='dotted')
-        plt.plot(tar, kenergy_u, color='b',  linestyle='dashed')
-        #        plt.plot(tar, np.exp(2.*tar*omega/tscale)*0.00003, color='g')
-        plt.ylim(thenergy.min()/2., (kenergy+thenergy).max()*1.5)
-        plt.xlabel('$t$')
-        plt.ylabel('energy, $10^{35}$erg')
-        plt.yscale('log')
-        plt.savefig(outdir+'/ecurve.eps')
-        plt.savefig(outdir+'/ecurve.png')
-        plt.clf()
-        plt.plot(tar, old_div((flux-flux.min()),(flux.max()-flux.min())), color='k')
-        plt.plot(tar, old_div((mass-mass.min()),(mass.max()-mass.min())), color='r')
-        plt.plot(tar, old_div((newmass-newmass.min()),(newmass.max()-newmass.min())), color='g')
-        plt.plot(tar, old_div((tar*m+b-mass.min()),(mass.max()-mass.min())), color='r', linestyle='dashed')
-        plt.plot(tar, old_div((tar*mn+bn-newmass.min()),(newmass.max()-newmass.min())), color='g', linestyle='dashed')
-        plt.plot(tar, old_div((tar*md+bd-flux.min()),(flux.max()-flux.min())), color='k', linestyle='dashed')
-        plt.xlabel('$t$')
-        plt.ylabel('flux, relative units')
-        plt.savefig(outdir+'/lcurve.eps')
-        plt.savefig(outdir+'/lcurve.png')
-        overkepler=0.09
-        plt.clf()
-        plt.plot(tar, angmoz_new, '.k')
-        plt.plot(tar, newmass_total/2.18082e-2*np.sqrt(rsphere)*mass1*overkepler, 'b')
-        plt.plot(tar, angmoz_old, '.r')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlabel(r'$t$')
-        plt.ylabel(r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$')
-        plt.savefig(outdir+'/angmoz.eps')
-        plt.savefig(outdir+'/angmoz.png')
-        
+            plots.sometimes(tar, [mass_total, newmass_total, mass, newmass], col=['k', 'k', 'r', 'g']
+                            , linest=['solid', 'dotted', 'solid', 'solid']
+                            , prefix=outdir+'/m', title=r'mass, $10^{20}$g')
+            plots.sometimes(tar, [newmass_total/mass_total], title='mass fraction', prefix=outdir+'/mfraction')
+        plots.sometimes(tar, [kenergy+thenergy, thenergy, kenergy, kenergy_v, kenergy_u]
+                        , col=['k', 'r', 'b', 'b', 'b'], linest=['solid', 'solid', 'solid', 'dotted', 'dashed']
+                        , title=r'energy, $10^{35}$erg', prefix=outdir+'/e')
+        plots.sometimes(tar, [flux, lumtot], col=['k', 'r'], title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
+        plots.sometimes(tar, [angmoz_new, newmass_total/2.18082e-2*np.sqrt(rsphere)*mass1*overkepler, angmoz_old]
+                       , col=['k', 'b', 'r'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
+                       , prefix=outdir+'/angmoz')
+        plots.sometimes(tar, [tbottom, teff, tbottommin, tbottommax], col=['k', 'r', 'k', 'k']
+                        , linest=['solid', 'solid', 'dotted', 'dotted'], title='$T$, keV', prefix=outdir+'/t')
+        print("Teff = "+str(teff))
+    rawflux=flux
     flux-=md*tar+bd ; mass-=m*tar+b; newmass-=mn*tar+bn # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
     freq1=1./tspan*np.double(ntimes)/2. ; freq2=freq1*np.double(nsize)/np.double(ntimes)
@@ -256,11 +183,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     t2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     binfreq2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     t2[ntimes,:]=tar.max() ; binfreq2[ntimes,:]=binfreq
-    binflux=np.zeros(ntimes, dtype=np.double)
+    binflux=np.zeros(ntimes, dtype=np.double) ;   binstd=np.zeros(ntimes, dtype=np.double)
     for kt in np.arange(ntimes):
         tbegin=tar.min()+tspan*np.double(kt)/np.double(ntimes); tend=tar.min()+tspan*np.double(kt+1)/np.double(ntimes)
         tcenter[kt]=old_div((tbegin+tend),2.)   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
         wwindow=np.where((tar>=tbegin)&(tar<tend))
+        binflux[kt]=rawflux[wwindow].mean()   ;     binstd[kt]=rawflux[wwindow].std()
         wsize=np.size(wwindow)
         fstd=flux.std() ; binflux[kt]=flux[wwindow].mean()
         if(fstd<=0.):
@@ -294,53 +222,17 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         dpdsbin_total[kb]=pds[freqrange].std()   ;     dpdsbinm_total[kb]=pdsm[freqrange].std()
         dpdsbinn_total[kb]=pdsn[freqrange].std()
 
-#    print(pds)
-    if(ifplot):
-        omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
-        omega/=tscale
-        wfin=np.where(np.isfinite(pdsbin_total))
-        print(omega, omegadisk)
-        print("pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max()))
-        pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
-        # colour plot:
-        plt.clf()
-        plt.pcolormesh(t2, binfreq2, np.log(pdsbin), cmap='jet',vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
-        # plt.contourf(tcenter2, binfreqc2, np.log(pdsbin))
-        plt.plot([tar.min(), tar.max()],[omega/2./np.pi,omega/2./np.pi], 'r')
-        plt.plot([tar.min(), tar.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
-        plt.yscale('log')
-        plt.ylabel('$f$, Hz')
-        plt.xlabel('$t$, ms')
-        plt.savefig(outdir+'/dynPDS.eps')
-        plt.savefig(outdir+'/dynPDS.eps')
-        plt.close()
-        # TODO: make a Flux-nuQPO plot
-        
-        # integral power density spectra
-        plt.clf()
-        plt.plot([omega/2./np.pi,omega/2./np.pi], [pmin,pmax], 'b')
-        plt.plot([fsound, fsound], [pmin,pmax], 'g')
-        plt.plot([fsound*2., fsound*2.], [pmin,pmax], 'g', linestyle='dotted')
-        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
-        plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
-        plt.plot([4.*omega/2./np.pi,4.*omega/2./np.pi], [pmin,pmax], 'b', linestyle='dotted')
-        plt.plot([omegadisk/2./np.pi,omegadisk/2./np.pi], [pmin,pmax], 'm')
-        plt.errorbar(binfreqc, pdsbin_total, yerr=dpdsbin_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='k') #, fmt='.') # we need asymmetric error bars, otherwise they are incorrectly shown
-        plt.errorbar(binfreqc, pdsbinm_total, yerr=dpdsbinm_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='r') #, fmt='.')
-        plt.errorbar(binfreqc, pdsbinn_total, yerr=dpdsbinn_total, xerr=binfreqs-freq1/2.*(np.arange(nbins)<=0.), color='g') #, fmt='.')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlim(old_div(1.,tspan), old_div(np.double(nsize),tspan))
-        plt.ylim(pmin*0.5, pmax*2.)
-        plt.xlabel('$f$, Hz')
-        plt.ylabel('PDS, relative units')
-        plt.savefig(outdir+'/PDS.eps')
-        plt.savefig(outdir+'/PDS.png')
-        plt.close()
+    # we will need mean fluxes for vdKlis's plots:
+    fbinfluxes=open(outdir+'/binflux.dat', 'w')
+    fbinfluxes.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
+    fbinfluxes.write("#  time -- mean flux -- flux std\n")
+    for k in np.arange(ntimes):
+        fbinfluxes.write(str(tcenter[k])+" "+str(binflux[k])+" "+str(binstd[k])+"\n")
+    fbinfluxes.close()
     # ascii output, total:
-    fpdstots=open('out/pdstots_diss.dat', 'w')
-    fpdstots_mass=open('out/pdstots_mass.dat', 'w')
-    fpdstots_newmass=open('out/pdstots_newmass.dat', 'w')
+    fpdstots=open(outdir+'/pdstots_diss.dat', 'w')
+    fpdstots_mass=open(outdir+'/pdstots_mass.dat', 'w')
+    fpdstots_newmass=open(outdir+'/pdstots_newmass.dat', 'w')
     fpdstots.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
     fpdstots.write("# flux variability \n")
     fpdstots_mass.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
@@ -352,7 +244,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         fpdstots_mass.write(str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinm_total[k])+' '+str(dpdsbinm_total[k])+"\n")
         fpdstots_newmass.write(str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinn_total[k])+' '+str(dpdsbinn_total[k])+"\n")
     fpdstots.close() ;   fpdstots_mass.close() ;   fpdstots_newmass.close()
-
+    os.system('cp '+outdir+'/pdstots_diss.dat '+outdir+'/pdstots_diss'+str(lat0)+'.dat')
+    os.system('cp '+outdir+'/pdstots_mass.dat '+outdir+'/pdstots_mass'+str(lat0)+'.dat')
     # ascii output, t-th/phi diagrams
     ftth=open('out/tth.dat', 'w')
     ftphi=open('out/tphi.dat', 'w')
@@ -389,6 +282,19 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
             fpdsn.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinn[kt,k])+' '+str(dpdsbinn[kt,k])+" "+str(nbinn[kt,k])+"\n")
             fpdsm.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinm[kt,k])+' '+str(dpdsbinm[kt,k])+" "+str(nbin[kt,k])+"\n")
     fpds.close() ;   fpdsm.close() ;   fpdsn.close()
+
+    if(ifplot):
+        omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
+        omega/=tscale
+        wfin=np.where(np.isfinite(pdsbin_total))
+        print(omega, omegadisk)
+        print("pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max()))
+        pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
+        # colour plot:
+        plots.dynsplot(infile=outdir+"/pds_diss", omega=omega)
+        plots.dynsplot(infile=outdir+"/pds_mass", omega=omega)
+        plots.pdsplot(infile=outdir+"/pdstots_diss", omega=omega)
+        plots.pdsplot(infile=outdir+"/pdstots_mass", omega=omega)
 
 ####################################################################################################
 def meanmaps(filename, n1, n2):
@@ -439,6 +345,7 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, sigmean, outdir+"/mean_sigma.png")
         plots.somemap(lons, lats, energymean, outdir+"/mean_energy.png")
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
-
-# fluxest('out/run.hdf5', np.pi/2., 0., nbins=50)
-meanmaps('out/runOLD.hdf5', 0, 1500)
+        plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
+       
+fluxest('out/run.hdf5', np.pi/2., 0.)
+# meanmaps('out/runcombine.hdf5', 1000, 5000)

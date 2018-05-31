@@ -9,6 +9,7 @@ import scipy.ndimage as spin
 import matplotlib.pyplot as plt
 import numpy.ma as ma
 from scipy.integrate import trapz
+import os.path
 
 # font adjustment:
 import matplotlib
@@ -164,14 +165,7 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
         scale=8.0,
     )
 
-    #ax.scatter(
-    #        lonsDeg[::sk, ::sk],
-    #        latsDeg[::sk, ::sk],
-    #        color='k',
-    #        s=5,
-    #          )
-
-
+# main real-time visualization routine:
 def visualize(t, nout,
               lats, lons, 
               vortg, divg, ug, vg, sig, press, beta, accflag, qminus, qplus,
@@ -187,8 +181,8 @@ def visualize(t, nout,
     for row in [0,1,2,3,4]:
         axs.append( plt.subplot(gs[row, 0:5]) )
         axs.append( plt.subplot(gs[row, 6:10]) )
-        lonsDeg = (old_div(180.,np.pi))*lons-180.
-        latsDeg = (old_div(180.,np.pi))*lats
+        lonsDeg = 180./np.pi*lons-180.
+        latsDeg = 180./np.pi*lats
 
     nlons=np.size(lons) ; nlats=np.size(lats)
     lats1d=np.unique(lats)
@@ -245,12 +239,12 @@ def visualize(t, nout,
                  -vorm*1.1, vorm*1.1, 
                  title="$\Delta \omega$")
     # internal temperature
-    tbottom=50.59*((1.-beta)*energy*cf.sigmascale)**0.25
+    tbottom=50.59*((1.-beta)*energy*cf.sigmascale/cf.mass1)**0.25
     visualizeMap(axs[1], 
                  lonsDeg, latsDeg, 
                  tbottom, 
                  tbottom.min(), tbottom.max(), 
-                 title="$T_{\rm bottom}$, keV")
+                 title=r'$T_{\rm bottom}$, keV')
     
     #    axs[0].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
 
@@ -315,10 +309,10 @@ def visualize(t, nout,
                  lonsDeg, latsDeg, 
                  accflag, 
                  -0.1, 1.1,  
-                 title=r'Passive scalar')
+                 title=r'tracer')
 #    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')
     #Q^-
-    teff=(qminus*cf.sigmascale/mass1)**0.25*3.64 # effective temperature in keV
+    teff=(qminus*cf.sigmascale/cf.mass1)**0.25*3.64 # effective temperature in keV
     visualizeMap(axs[7], 
                  lonsDeg, latsDeg, 
                  teff, 
@@ -356,8 +350,8 @@ def visualize(t, nout,
 #    
 #
 ##########################################################################    
-# post-factum visualizations from snapshooter:
-def snapplot(lons, lats, sig, accflag, csq, vx, vy, sks, outdir='out'
+# post-factum visualizations for snapshooter:
+def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
              ,latrange=None, lonrange=None):
     # longitudes, latitudes, density field, accretion flag, velocity fields, alias for velocity output
     if((latrange == None) | (lonrange == None)):
@@ -366,19 +360,19 @@ def snapplot(lons, lats, sig, accflag, csq, vx, vy, sks, outdir='out'
         skx=2 ; sky=2
 
     wpoles=np.where(np.fabs(lats)<90.)
-    s0=sig[wpoles].min() ; s1=sig[wpoles].max()
+    s0=tb[wpoles].min() ; s1=tb[wpoles].max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
-    levs=np.log(np.linspace(s0,s1, nlev))
-    # (old_div(s1,s0))**(old_div(np.arange(nlev),np.double(nlev-1)))*s0
+    levs=(s1-s0)*(np.arange(nlev)/np.double(nlev-1))+s0
     interactive(False)
 
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, np.log(sig), cmap='plasma',levels=levs)
+    plt.pcolormesh(lons, lats, tb, cmap='plasma') # ,levels=levs)
     plt.colorbar()
-    plt.contour(lons, lats, accflag, levels=[0.5], colors='w',linestyles='dotted') #,levels=levs)
-    plt.contour(lons, lats, csq, colors='w') #,levels=levs)
+    if(accflag.max()>1e-3):
+        plt.contour(lons, lats, accflag, levels=[0.5], colors='w',linestyles='dotted') #,levels=levs)
+#    plt.contour(lons, lats, sig, colors='w') #,levels=levs)
     plt.quiver(lons[::skx, ::sky],
         lats[::skx, ::sky],
         vx[::skx, ::sky], vy[::skx, ::sky],
@@ -401,17 +395,18 @@ def snapplot(lons, lats, sig, accflag, csq, vx, vy, sks, outdir='out'
     plt.close()
     # drawing poles:
     nlons=np.size(lons)
-    tinyover=old_div(1.,np.double(nlons))
+    tinyover=1./np.double(nlons)
     theta=90.-lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
     tinyover=old_div(1.,np.double(nlons))
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, np.log(sig),cmap='plasma',levels=levs)
-    ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
+    ax.pcolormesh(lons*np.pi/180.*(tinyover+1.), theta, tb,cmap='plasma') #,levels=levs)
+#    if(accflag.max()>1e-3):
+#        ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
     ax.set_rmax(90.)
-    plt.title('N') #, t='+str(nstep))
+    plt.title('  N') #, t='+str(nstep))
     plt.tight_layout()
     fig.set_size_inches(4, 4)
     plt.savefig(outdir+'/northpole.eps')
@@ -421,17 +416,31 @@ def snapplot(lons, lats, sig, accflag, csq, vx, vy, sks, outdir='out'
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
 #    tinyover=0./np.double(nlons)
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, np.log(sig),cmap='plasma',levels=levs)
-    ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(tinyover+1.)-theta, tb,cmap='plasma' ,levels=levs)
+#    if(accflag.max()>1e-3):
+#        ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
     ax.set_rmax(90.)
     plt.tight_layout(pad=2)
     fig.set_size_inches(4, 4)
-    plt.title('S') #, t='+str(nstep))
+    plt.title('  S') #, t='+str(nstep))
     plt.savefig(outdir+'/southpole.eps')
     plt.savefig(outdir+'/southpole.png')
     plt.close()
-
+# post-factum visualizations from the ascii output of snapplot:
+def postmaps(infile):
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    lats=lines[:,0] ;   lons=lines[:,1] ; sigma=lines[:,2] ; energy=lines[:,5]
+    ug=lines[:,3] ; vg=lines[:,4] ; diss=lines[:,6] ; accflag=lines[:,7]
+    nlats=np.size(np.unique(lats)) ;   nlons=np.size(np.unique(lons))
+    lats=np.reshape(lats,[nlats, nlons]) ;   lons=np.reshape(lons,[nlats, nlons])
+    sigma=np.reshape(sigma,[nlats, nlons]) ;   energy=np.reshape(energy,[nlats, nlons])
+    ug=np.reshape(ug,[nlats, nlons]) ;   vg=np.reshape(vg,[nlats, nlons])
+    diss=np.reshape(diss,[nlats, nlons]) ;   accflag=np.reshape(accflag,[nlats, nlons])
+    #    print(lats[0,:].std())
+    vv=np.sqrt(ug**2+vg**2)
+    snapplot(lons, lats, sigma, accflag, energy/sigma, ug/vv.mean()*100., -vg/vv.mean()*100., [2,2], outdir=os.path.dirname(infile))
+    
 # general framework for a post-processed map of some quantity q
 def somemap(lons, lats, q, outname):
     wnan=np.where(np.isnan(q))
@@ -446,27 +455,84 @@ def somemap(lons, lats, q, outname):
     fig.set_size_inches(8, 5)
     plt.savefig(outname)
     plt.close()
-
+# general 1D-plot of several quantities as functions of time
+def sometimes(tar, qlist, col=None, linest=None, prefix='out/', title=''):
+    nq=np.shape(qlist)[0]
+    if(col == None):
+        col=np.repeat('k', nq)
+    if(linest == None):
+        linest=np.repeat('solid', nq)
+#    print("sometimes: "+str(np.size(qlist))+", "+str(np.size(col))+", "+str(np.size(linest)))
+    plt.clf()
+    for k in np.arange(nq):
+        plt.plot(tar, qlist[k], color=col[k], linestyle=linest[k])
+    plt.yscale('log')
+    plt.xlabel('$t$, s')
+    plt.ylabel(title)
+    plt.savefig(prefix+'curves.eps')
+    plt.savefig(prefix+'curves.png')
+    plt.close()
+    
 ########################################################################
 # post-processing of remotely produced light curves and spectra
-def pdsplot(infile="out/pdstots_diss"):
+def pdsplot(infile="out/pdstots_diss", omega=None):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
     freq1=lines[:,0] ; freq2=lines[:,1]
     fc=(freq1+freq2)/2. # center of frequency interval
     f=lines[:,2] ; df=lines[:,3] # replace df with quantiles!
     nf=np.size(f)
+    wfin=np.where(np.isfinite(f))
+    fmin=f[wfin].min() ; fmax=f[wfin].max()
     plt.clf()
+    if(omega != None):
+        plt.plot([omega/2./np.pi,omega/2./np.pi], [fmin,fmax], 'b')
+        plt.plot([omega/2./np.pi*0.5,omega/2./np.pi*0.5], [fmin,fmax], 'g', linestyle='dotted')
+        plt.plot([omega/2./np.pi*1.5,omega/2./np.pi*1.5], [fmin,fmax], 'g', linestyle='dotted')
+        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
+        plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
+        plt.plot([4.*omega/2./np.pi,4.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
     for kf in np.arange(nf):
         plt.plot([freq1[kf], freq2[kf]], [f[kf], f[kf]], color='k')
         plt.plot([fc[kf], fc[kf]], [f[kf]-df[kf], f[kf]+df[kf]], color='k')
+        
     plt.xlabel(r'$f$, Hz')
     plt.ylabel(r'PDS, relative units')
     plt.xscale('log') ;    plt.yscale('log')
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
     plt.close()
-
-def dynsplot(infile="out/pds_diss"):
+#
+def twopdss(file1, file2):
+    '''
+    plots a difference between two PDSs with identical frequency grid
+    file2 > file1
+    '''
+    lines = np.loadtxt(file1+".dat", comments="#", delimiter=" ", unpack=False)
+    freq1=lines[:,0] ; freq2=lines[:,1]  
+    fc=(freq1+freq2)/2. # center of frequency interval
+    f1=lines[:,2] ; df1=lines[:,3] ;  nf=np.size(f1) # replace df with quantiles!
+    lines = np.loadtxt(file2+".dat", comments="#", delimiter=" ", unpack=False)
+    f2=lines[:,2] ; df2=lines[:,3] # replace df with quantiles!
+    medrat=np.median((f2/f1)[np.isfinite(f2/f1)])
+    print("median ratio "+str(medrat))
+    plt.clf()
+    for kf in np.arange(nf):
+        plt.plot([freq1[kf], freq2[kf]], [f2[kf]-f1[kf]*medrat, f2[kf]-f1[kf]*medrat], color='k')
+        plt.plot([freq1[kf], freq2[kf]], [f1[kf], f1[kf]], color='r')
+        plt.plot([freq1[kf], freq2[kf]], [f2[kf], f2[kf]], color='g')
+        plt.plot([fc[kf], fc[kf]], [f2[kf]-f1[kf]*medrat-df1[kf]*medrat-df2[kf], f2[kf]-f1[kf]*medrat+df1[kf]*medrat+df2[kf]], color='k')
+    plt.xlabel(r'$f$, Hz')
+    plt.ylabel(r'$\Delta$PDS, relative units')
+    plt.xscale('log') ;    plt.yscale('log')
+    plt.savefig(file2+'_diff.png')
+    plt.savefig(file2+'_diff.eps')
+    plt.close()
+    
+#
+def dynsplot(infile="out/pds_diss", omega=None):
+    '''
+    plots dynamical spectrum using timing.py ascii output 
+    '''
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
     freq1=lines[:,1] ; freq2=lines[:,2] ;  t=lines[:,0] 
     fc=(freq1+freq2)/2. # center of frequency interval
@@ -502,6 +568,9 @@ def dynsplot(infile="out/pds_diss"):
     #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
     #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
+    if(omega != None):
+        plt.plot([t2.min(), t2.max()],[omega/2./np.pi,omega/2./np.pi], 'w')
+        plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
     plt.ylim(freq2.min(), freq2.max())
     plt.yscale('log')
     plt.ylabel('$f$, Hz')
@@ -509,3 +578,31 @@ def dynsplot(infile="out/pds_diss"):
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
     plt.close()
+
+#
+def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
+    '''
+    plots time+theta and time+phi 2D maps for quantity qth,qphi (first is a function of theta, second depends on phi)
+    '''
+    latsmean=lats.mean(axis=1)
+    lonsmean=lons.mean(axis=0)
+    plt.clf()
+    plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=np.linspace(qth.min(), qth.max(), 30))
+    plt.colorbar()
+    plt.xlabel('$t$')
+    plt.ylabel('latitude')
+    plt.savefig(prefix+'_tth.eps')
+    plt.savefig(prefix+'_tth.png')
+    plt.clf()
+    fig=plt.figure()
+    plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30))
+    if(omega != None):
+        plt.plot(tar, (omega*tar % (2.*np.pi))*180./np.pi, color='k')
+    plt.colorbar()
+    plt.ylim(0.,360.)
+    plt.xlabel('$t$')
+    plt.ylabel('longitude')
+    fig.set_size_inches(10, 4)
+    plt.savefig(prefix+'_tphi.eps')
+    plt.savefig(prefix+'_tphi.png')
+        

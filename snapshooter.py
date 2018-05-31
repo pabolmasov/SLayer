@@ -13,7 +13,7 @@ import h5py
 '''
 Post-processing and various post-factum diagnostic outputs
 '''
-from conf import ifplot, rsphere
+from conf import ifplot, rsphere, sigmascale, mass1
 
 if(ifplot):
     import plots
@@ -39,15 +39,16 @@ def plotnth(filename, nstep):
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
     lons1d = x.lons # (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
+    slats1d = np.cos(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, x.lats)
-    lons*=old_div(180.,np.pi) ; lats*=old_div(180.,np.pi)
+    lonsDeg=lons*180./np.pi ; latsDeg=lats*180./np.pi
     rsphere=params.attrs["rsphere"] ; grav=params.attrs["grav"] # ; kappa=params.attrs["kappa"]
     omegaNS=params.attrs["omega"]
     data=f["cycle_"+str(nstep).rjust(6, '0')]
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:] ; t=data.attrs["t"]
     sig=data["sig"][:] ; energy=data["energy"][:] ; beta=data["beta"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
     f.close()
-    
+    press=energy* 3. * (1.-beta/2.)
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
     step=3
@@ -78,7 +79,8 @@ def plotnth(filename, nstep):
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
-        plots.snapplot(lons, lats, sig, accflag, energy/sig, xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        tbottom=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
+        plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir) # geographic maps
 
 # multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):
