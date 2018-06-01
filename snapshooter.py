@@ -47,6 +47,7 @@ def plotnth(filename, nstep):
     data=f["cycle_"+str(nstep).rjust(6, '0')]
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:] ; t=data.attrs["t"]
     sig=data["sig"][:] ; energy=data["energy"][:] ; beta=data["beta"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
+    qminus=data["qminus"][:]
     f.close()
     press=energy* 3. * (1.-beta/2.)
     # ascii output:
@@ -80,7 +81,9 @@ def plotnth(filename, nstep):
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
         tbottom=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
-        plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
+        # plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
 
 # multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):

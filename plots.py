@@ -192,6 +192,8 @@ def visualize(t, nout,
     vorm=np.fabs(vortg-2.*cf.omega*np.sin(lats)).max()
 
     mdot=cf.sigplus * 4. * np.pi * np.sin(cf.latspread) * cf.rsphere**2 *np.sqrt(4.*np.pi)
+    if(cf.tturnon>0.):
+        mdot*=(1.-np.exp(-t/cf.tturnon))
     mdot_msunyr = mdot * 1.58649e-18 / cf.tscale
     mass=trapz(sig.mean(axis=1), x=clats)
     mass_acc=trapz((sig*accflag).mean(axis=1), x=clats)
@@ -363,7 +365,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     s0=tb[wpoles].min() ; s1=tb[wpoles].max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
-    levs=(s1-s0)*(np.arange(nlev)/np.double(nlev-1))+s0
+    levs=(s1-s0)*((np.arange(nlev)-0.5)/np.double(nlev-1))+s0
     interactive(False)
 
     plt.clf()
@@ -571,7 +573,7 @@ def dynsplot(infile="out/pds_diss", omega=None):
     if(omega != None):
         plt.plot([t2.min(), t2.max()],[omega/2./np.pi,omega/2./np.pi], 'w')
         plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
-    plt.ylim(freq2.min(), freq2.max())
+    plt.ylim(freq2.min(), freq2.max()/2.)
     plt.yscale('log')
     plt.ylabel('$f$, Hz')
     plt.xlabel('$t$, s')

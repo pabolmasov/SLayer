@@ -40,7 +40,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
     cosa=np.cos(lats)*np.cos(lat0)+np.sin(lats)*np.sin(lat0)*np.cos(lons-lon0)
     cosa=old_div((cosa+np.fabs(cosa)),2.) # only positive viewing angle
-#    cosa=np.double(cosa>0.8)
+    #    cosa=np.double(cosa>0.8)
     
     keys=list(f.keys())
     if(nfilter):
@@ -107,8 +107,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
     angmoz_new *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     angmoz_old *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
-    flux *= 1.4690e12*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
-    lumtot *= 1.4690e12*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s total luminosity
+    flux *= 196.002*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
+    lumtot *= 196.002*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s total luminosity
     kenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
@@ -144,9 +144,11 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     flc.close() ; fmc.close() ; fec.close() ;  fdc.close()
     print("total energy changed from "+str(kenergy[0]+thenergy[0])+" to "+str(kenergy[-1]+thenergy[-1])+"\n")
 
-    if(ifplot): # move to plots.py!
-        plots.timangle(tar, lats, lons, np.log(sigmaver), np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega)
-        plots.sometimes(tar, [maxdiss, -mindiss], col=['k', 'r'], prefix=outdir+'/disslimits', title='dissipation limits')
+    if(ifplot): 
+        plots.timangle(tar, lats, lons, np.log(sigmaver),
+                       np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega)
+        plots.sometimes(tar, [maxdiss, -mindiss], col=['k', 'r'],
+                        prefix=outdir+'/disslimits', title='dissipation limits')
         if(sigplus>0.):
             plots.sometimes(tar, [mass_total, newmass_total, mass, newmass], col=['k', 'k', 'r', 'g']
                             , linest=['solid', 'dotted', 'solid', 'solid']
@@ -155,13 +157,15 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plots.sometimes(tar, [kenergy+thenergy, thenergy, kenergy, kenergy_v, kenergy_u]
                         , col=['k', 'r', 'b', 'b', 'b'], linest=['solid', 'solid', 'solid', 'dotted', 'dashed']
                         , title=r'energy, $10^{35}$erg', prefix=outdir+'/e')
-        plots.sometimes(tar, [flux, lumtot], col=['k', 'r'], title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
+        plots.sometimes(tar, [flux, lumtot], col=['k', 'r'],
+                        title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
         plots.sometimes(tar, [angmoz_new, newmass_total/2.18082e-2*np.sqrt(rsphere)*mass1*overkepler, angmoz_old]
                        , col=['k', 'b', 'r'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
                        , prefix=outdir+'/angmoz')
         plots.sometimes(tar, [tbottom, teff, tbottommin, tbottommax], col=['k', 'r', 'k', 'k']
                         , linest=['solid', 'solid', 'dotted', 'dotted'], title='$T$, keV', prefix=outdir+'/t')
-        print("Teff = "+str(teff))
+        print("last Teff = "+str(teff[-1]))
+        print("last Tb = "+str(tbottom[-1]))
     rawflux=flux
     flux-=md*tar+bd ; mass-=m*tar+b; newmass-=mn*tar+bn # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()

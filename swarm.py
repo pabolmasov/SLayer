@@ -63,7 +63,7 @@ from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
 from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax
 from conf import ifplot
-from conf import sigplus, latspread, incle, slon0 #source term
+from conf import sigplus, latspread, incle, slon0, tturnon #source term
 from conf import ifrestart, nrest, restartfile # restart setup
 from conf import tfric, tdepl # interaction with the NS surface: friction and depletion times
 from conf import iftwist, twistscale # twist test parameters
@@ -176,7 +176,7 @@ f5io.saveParams(f5, conf)
     
 ##################################################
 # source/sink term
-def sdotsource(lats, lons, latspread):
+def sdotsource(lats, lons, latspread, t):
     '''
     source term for surface density:
     lats -- latitudes, radians
@@ -187,6 +187,8 @@ def sdotsource(lats, lons, latspread):
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
     y=sigplus*np.exp(-0.5*(devcos/latspread)**2)
+    if(tturnon>0.):
+        y*=(1.-np.exp(-t/tturnon)) # smooth turn-on
     return y, devcos
 
 def sdotsink(sigma):
@@ -201,7 +203,7 @@ def sdotsink(sigma):
         return sigma*0.
 
 # source velocities:
-sdotplus, sina = sdotsource(lats, lons, latspread)
+sdotplus, sina = sdotsource(lats, lons, latspread, 0.)
 omega_source=2.*overkepler/rsphere**1.5*sina
 ud,vd = x.getuv(x.grid2sph(omega_source),x.grid2sph(omega_source)*0.) # velocity components of the source
 
@@ -310,6 +312,7 @@ while(t<(tmax+t0)):
     # source terms in mass:
     #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
     sdotminus=sdotsink(sigpos)
+    sdotplus, sina = sdotsource(lats, lons, latspread, t)
     sdotSpec=x.grid2sph((sdotplus-sdotminus)/sigpos)
     dsigdtSpec += sdotSpec
 
@@ -428,7 +431,7 @@ while(t<(tmax+t0)):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      vortg, divg, ug, vg, sig, energyg, beta,
-                     accflag, dissipation, qplus, qminus,
+                     accflag, dissipation, qminus, qplus,
                      conf)
         nout += 1
         sys.stdout.flush()
@@ -438,4 +441,4 @@ f5.close()
 time2 = time.clock()
 print(('CPU time = ',time2-time1))
 
-# ffmpeg -f image2 -r 35 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
+# ffmpeg -f image2 -r 15 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
