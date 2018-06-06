@@ -64,8 +64,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     angmoz_new=np.zeros(nsize)  ;  angmoz_old=np.zeros(nsize)
     maxdiss=np.zeros(nsize) ;    mindiss=np.zeros(nsize)
     sigmaver=np.zeros([nlats, nsize])  ;   sigmaver_lon=np.zeros([nlons, nsize])
+    omeaver=np.zeros([nlats, nsize])  ;   omeaver_lon=np.zeros([nlons, nsize])
     tbottom=np.zeros(nsize) ; teff=np.zeros(nsize)
     tbottommax=np.zeros(nsize) ; tbottommin=np.zeros(nsize)
+    omegamean=np.zeros(nsize)
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
@@ -95,7 +97,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         teff[k]=(qminus.mean()*sigmascale/mass1)**0.25*3.64
         maxdiss[k]=diss.max() ;     mindiss[k]=diss.min()
         sigmaver[:,k]=(sig).mean(axis=1)/sig.mean()
+        omeaver[:,k]=(sig*ug/np.sin(lats)).mean(axis=1)/sig.mean() /rsphere
+        omeaver_lon[:,k]=(sig*ug/np.sin(lats)).mean(axis=0)/sig.mean() /rsphere
         sigmaver_lon[:,k]=(sig).mean(axis=0)/sig.mean()
+        omegamean[k]=trapz((ug/np.sin(lats)*sig).sum(axis=1), x=-clats1d)*dlons / mass_total[k] /rsphere
     f.close() 
     tar*=tscale 
     # mass consistency:
@@ -113,6 +118,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     thenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8)  # 10^{35} erg
+    omegamean/=tscale ; omeaver/=tscale ; omeaver_lon/=tscale
     wnan=np.where(np.isnan(flux))
     if(np.size(wnan)>0):
         print(str(np.size(wnan))+" NaN points")
@@ -147,8 +153,13 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     if(ifplot): 
         plots.timangle(tar, lats, lons, np.log(sigmaver),
                        np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega)
+        plots.timangle(tar, lats, lons, np.log(omeaver),
+                       np.log(omeaver_lon), prefix=outdir+'/ome')
         plots.sometimes(tar, [maxdiss, -mindiss], col=['k', 'r'],
                         prefix=outdir+'/disslimits', title='dissipation limits')
+        omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
+        plots.sometimes(tar, [omegamean/(2.*np.pi), tar*0.+omega/tscale/(2.*np.pi), tar*0.+omegadisk/(2.*np.pi)], col=['k', 'r', 'b'],
+                        prefix=outdir+'/omega', title=r'$\omega$')
         if(sigplus>0.):
             plots.sometimes(tar, [mass_total, newmass_total, mass, newmass], col=['k', 'k', 'r', 'g']
                             , linest=['solid', 'dotted', 'solid', 'solid']
@@ -166,6 +177,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
                         , linest=['solid', 'solid', 'dotted', 'dotted'], title='$T$, keV', prefix=outdir+'/t')
         print("last Teff = "+str(teff[-1]))
         print("last Tb = "+str(tbottom[-1]))
+
     rawflux=flux
     flux-=md*tar+bd ; mass-=m*tar+b; newmass-=mn*tar+bn # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
@@ -175,9 +187,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     fsound=meancs/rsphere/2./np.pi/tscale*np.sqrt(2.)
 
     # binning:
-    binfreq=(freq2/freq1)**((np.arange(nbins+1)/np.double(nbins)))*freq1
+    binfreq=(freq2-freq1)*((np.arange(nbins+1)/np.double(nbins)))+freq1
+    # (freq2/freq1)**((np.arange(nbins+1)/np.double(nbins)))*freq1
     binfreq[0]=0.
-    binfreqc=old_div((binfreq[:-1]+binfreq[1:]),2.) ;   binfreqs=old_div((-binfreq[:-1]+binfreq[1:]),2.)
+    binfreqc=(binfreq[:-1]+binfreq[1:])/2. ;   binfreqs=(-binfreq[:-1]+binfreq[1:])/2.
     pdsbin=np.zeros([ntimes, nbins]) ; pdsbinm=np.zeros([ntimes, nbins]) ; pdsbinn=np.zeros([ntimes, nbins])
     dpdsbin=np.zeros([ntimes, nbins]) ; dpdsbinm=np.zeros([ntimes, nbins]) ; dpdsbinn=np.zeros([ntimes, nbins])
     nbin=np.zeros([ntimes, nbins]) ; nbinm=np.zeros([ntimes, nbins]) ; nbinn=np.zeros([ntimes, nbins])
@@ -190,17 +203,18 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     binflux=np.zeros(ntimes, dtype=np.double) ;   binstd=np.zeros(ntimes, dtype=np.double)
     for kt in np.arange(ntimes):
         tbegin=tar.min()+tspan*np.double(kt)/np.double(ntimes); tend=tar.min()+tspan*np.double(kt+1)/np.double(ntimes)
-        tcenter[kt]=old_div((tbegin+tend),2.)   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
+        tcenter[kt]=(tbegin+tend)/2.   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
         wwindow=np.where((tar>=tbegin)&(tar<tend))
         binflux[kt]=rawflux[wwindow].mean()   ;     binstd[kt]=rawflux[wwindow].std()
         wsize=np.size(wwindow)
         fstd=flux.std() ; binflux[kt]=flux[wwindow].mean()
         if(fstd<=0.):
             fstd=1.
-        fsp=np.fft.rfft(old_div(flux[wwindow],fstd)) ;   fspm=np.fft.rfft(old_div(mass[wwindow],mass.std()))
-        fspn=np.fft.rfft(old_div(newmass[wwindow],newmass.std()))
-        pds=np.abs(fsp)**2  ;   pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
-        freq = np.fft.fftfreq(wsize, old_div(tspan,np.double(nsize))) # frequency grid (different for all the time bins)
+        fsp=np.fft.rfft(flux[wwindow]/flux.std()) ;   fspm=np.fft.rfft(mass[wwindow]/mass.std())
+        fspn=np.fft.rfft(newmass[wwindow]/newmass.std())
+        freq = np.fft.rfftfreq(wsize, tspan/np.double(nsize)) # frequency grid (different for all the time bins)
+        pds=np.abs(fsp*freq)**2  ;   pdsm=np.abs(fspm*freq)**2 ;   pdsn=np.abs(fspn*freq)**2
+        
         print("frequencies from "+str(freq.min())+" to "+str(freq.max()))
         print("compare to "+str(binfreq[0])+" and "+str(binfreq[-1]))
 #        ii=raw_input('/')
@@ -216,10 +230,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     # let us also make a Fourier of the whole series:
     pdsbin_total=np.zeros([nbins]) ; pdsbinm_total=np.zeros([nbins]) ; pdsbinn_total=np.zeros([nbins])
     dpdsbin_total=np.zeros([nbins]) ; dpdsbinm_total=np.zeros([nbins]) ; dpdsbinn_total=np.zeros([nbins])
-    fsp=np.fft.rfft(old_div(flux,fstd)) ;  fspm=np.fft.rfft(old_div(mass,mass.std()))
-    fspn=np.fft.rfft(old_div(newmass,newmass.std()))
+    fsp=np.fft.rfft(flux/fstd) ;  fspm=np.fft.rfft(mass/mass.std())
+    fspn=np.fft.rfft(newmass/newmass.std())
     pds=np.abs(fsp)**2  ;  pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
-    freq = np.fft.fftfreq(nsize, old_div(tspan,np.double(nsize))) # frequency grid (total)
+    freq = np.fft.rfftfreq(nsize, tspan/np.double(nsize)) # frequency grid (total)
     for kb in np.arange(nbins):
         freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
         pdsbin_total[kb]=pds[freqrange].mean()   ;     pdsbinm_total[kb]=pdsm[freqrange].mean()   ;   pdsbinn_total[kb]=pdsn[freqrange].mean()
@@ -286,19 +300,20 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
             fpdsn.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinn[kt,k])+' '+str(dpdsbinn[kt,k])+" "+str(nbinn[kt,k])+"\n")
             fpdsm.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbinm[kt,k])+' '+str(dpdsbinm[kt,k])+" "+str(nbin[kt,k])+"\n")
     fpds.close() ;   fpdsm.close() ;   fpdsn.close()
-
+    
     if(ifplot):
-        omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
-        omega/=tscale
+#        omega/=tscale
         wfin=np.where(np.isfinite(pdsbin_total))
-        print(omega, omegadisk)
+#        print(omega, omegadisk)
         print("pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max()))
         pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
         # colour plot:
-        plots.dynsplot(infile=outdir+"/pds_diss", omega=omega)
-        plots.dynsplot(infile=outdir+"/pds_mass", omega=omega)
-        plots.pdsplot(infile=outdir+"/pdstots_diss", omega=omega)
-        plots.pdsplot(infile=outdir+"/pdstots_mass", omega=omega)
+        plots.dynsplot(infile=outdir+"/pds_diss")
+        plots.dynsplot(infile=outdir+"/pds_mass")
+        plots.dynsplot(infile=outdir+"/pds_newmass")
+        plots.pdsplot(infile=outdir+"/pdstots_diss")
+        plots.pdsplot(infile=outdir+"/pdstots_mass")
+        plots.pdsplot(infile=outdir+"/pdstots_newmass")
 
 ####################################################################################################
 def meanmaps(filename, n1, n2):
@@ -351,5 +366,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/run.hdf5', np.pi/2., 0.)
-# meanmaps('out/runcombine.hdf5', 1000, 5000)
+fluxest('D1/run.hdf5', np.pi/2., 0., ntimes=20, nbins=100, nlim=5000, nfilter=0)
+# meanmaps('out/run.hdf5', 1500, 3000)

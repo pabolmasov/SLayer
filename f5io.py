@@ -64,7 +64,6 @@ def saveParams(f5, conf):
 
     f5.flush()
 
-
 #Save simulation snapshot
 def saveSim(f5, nout, t,
             vortg, divg, ug, vg, sig, energy, beta,
@@ -79,8 +78,8 @@ def saveSim(f5, nout, t,
     scycle = str(nout).rjust(6, '0')
     grp = f5.create_group("cycle_"+scycle)
     grp.attrs['t']      = t      # time
-    grp.attrs['mass']   = mass   # total mass
-    grp.attrs['energy'] = totenergy # total mechanical energy
+    #    grp.attrs['mass']   = mass   # total mass
+    #    grp.attrs['energy'] = totenergy # total mechanical energy
 
     grp.create_dataset("vortg", data=vortg)
     grp.create_dataset("divg",  data=divg)

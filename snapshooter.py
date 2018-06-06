@@ -82,8 +82,8 @@ def plotnth(filename, nstep):
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
         tbottom=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
-        # plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir) # geographic maps
-        plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        # plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
 
 # multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):
@@ -96,9 +96,9 @@ def multireader(nmin, nmax, infile):
         os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
-        os.system('cp '+outdir+'/snapshot.eps '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.eps')
-        os.system('cp '+outdir+'/northpole.eps '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.eps')
-        os.system('cp '+outdir+'/southpole.eps '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.eps')
-        os.system('cp '+outdir+'/sgeff.eps '+outdir+'/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/snapshot.eps '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/northpole.eps '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/southpole.eps '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/sgeff.eps '+outdir+'/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
         print('shot'+str(k).rjust(ndigits, '0')+'.png')
         

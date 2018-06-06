@@ -124,7 +124,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
             data_masked,
             vmin=vmin,
             vmax=vmax,
-            cmap='plasma',
+            cmap='hot',
             )
     plt.colorbar(pc, ax=ax)
     #ax.axis('equal')
@@ -307,18 +307,13 @@ def visualize(t, nout,
                          title2="$\Sigma_0$",
                          log=True)
     #passive scalar
-    visualizeMap(axs[6], 
-                 lonsDeg, latsDeg, 
-                 accflag, 
-                 -0.1, 1.1,  
-                 title=r'tracer')
+    visualizeMap(axs[6], lonsDeg, latsDeg, 
+                 accflag, -0.1, 1.1, title=r'tracer')
 #    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')
     #Q^-
     teff=(qminus*cf.sigmascale/cf.mass1)**0.25*3.64 # effective temperature in keV
-    visualizeMap(axs[7], 
-                 lonsDeg, latsDeg, 
-                 teff, 
-                 teff.min(), teff.max(),  
+    visualizeMap(axs[7], lonsDeg, latsDeg, 
+                 teff, teff.min(), teff.max(),  
                  title=r'$T_{\rm eff}$, keV')
     visualizePoles(axs[7], (angmox, angmoy, angmoz))
     #velocities
@@ -370,7 +365,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
 
     plt.clf()
     fig=plt.figure()
-    plt.pcolormesh(lons, lats, tb, cmap='plasma') # ,levels=levs)
+    plt.pcolormesh(lons, lats, tb, cmap='hot') # ,levels=levs)
     plt.colorbar()
     if(accflag.max()>1e-3):
         plt.contour(lons, lats, accflag, levels=[0.5], colors='w',linestyles='dotted') #,levels=levs)
@@ -403,11 +398,11 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
     tinyover=old_div(1.,np.double(nlons))
-    ax.pcolormesh(lons*np.pi/180.*(tinyover+1.), theta, tb,cmap='plasma') #,levels=levs)
+    ax.pcolormesh(lons*np.pi/180.*(tinyover+1.), theta, tb,cmap='hot') #,levels=levs)
 #    if(accflag.max()>1e-3):
 #        ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
-    ax.set_rmax(90.)
+    ax.set_rmax(70.)
     plt.title('  N') #, t='+str(nstep))
     plt.tight_layout()
     fig.set_size_inches(4, 4)
@@ -418,11 +413,11 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
 #    tinyover=0./np.double(nlons)
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(tinyover+1.)-theta, tb,cmap='plasma' ,levels=levs)
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(tinyover+1.)-theta, tb,cmap='hot' ,levels=levs)
 #    if(accflag.max()>1e-3):
 #        ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
-    ax.set_rmax(90.)
+    ax.set_rmax(70.)
     plt.tight_layout(pad=2)
     fig.set_size_inches(4, 4)
     plt.title('  S') #, t='+str(nstep))
@@ -450,7 +445,7 @@ def somemap(lons, lats, q, outname):
     print(outname+" somemap: "+str(nnan)+"NaN points out of "+str(np.size(q)))
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, q,cmap='plasma') #,levels=levs)
+    plt.contourf(lons, lats, q,cmap='hot') #,levels=levs)
     plt.colorbar()
     plt.xlabel('longitude')
     plt.ylabel('latitude')
@@ -564,9 +559,10 @@ def dynsplot(infile="out/pds_diss", omega=None):
     pmin=f2ma.min() ; pmax=f2ma.max()
     print(binfreq2.min(),binfreq2.max())
     plt.clf()
-    #  plt.contourf(t, fc, f2, cmap='plasma')
-    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='plasma', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
-    # plt.contourf(tc, fc, np.log(f2), cmap='plasma')
+    fig=plt.figure()
+    #  plt.contourf(t, fc, f2, cmap='hot')
+    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='hot', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    # plt.contourf(tc, fc, np.log(f2), cmap='hot')
     #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
     #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
@@ -575,8 +571,12 @@ def dynsplot(infile="out/pds_diss", omega=None):
         plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
     plt.ylim(freq2.min(), freq2.max()/2.)
     plt.yscale('log')
-    plt.ylabel('$f$, Hz')
-    plt.xlabel('$t$, s')
+    plt.ylabel('$f$, Hz', fontsize=20)
+    plt.xlabel('$t$, s', fontsize=20)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    fig.set_size_inches(8, 4)
+    fig.tight_layout()
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
     plt.close()
@@ -597,14 +597,17 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.savefig(prefix+'_tth.png')
     plt.clf()
     fig=plt.figure()
-    plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30))
+    plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30),cmap='hot')
     if(omega != None):
         plt.plot(tar, (omega*tar % (2.*np.pi))*180./np.pi, color='k')
     plt.colorbar()
     plt.ylim(0.,360.)
-    plt.xlabel('$t$')
-    plt.ylabel('longitude')
-    fig.set_size_inches(10, 4)
+    plt.xlabel('$t$', fontsize=20)
+    plt.ylabel('longitude', fontsize=20)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    fig.set_size_inches(8, 4)
+    fig.tight_layout()
     plt.savefig(prefix+'_tphi.eps')
     plt.savefig(prefix+'_tphi.png')
         
