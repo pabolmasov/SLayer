@@ -13,7 +13,7 @@ import h5py
 '''
 Post-processing and various post-factum diagnostic outputs
 '''
-from conf import ifplot, rsphere
+from conf import ifplot, rsphere, sigmascale, mass1
 
 if(ifplot):
     import plots
@@ -28,7 +28,8 @@ def keyshow(filename):
 
 def plotnth(filename, nstep):
     '''
-    plot a given time step of a given data file. To list the available nsteps (integer values), use keyshow(filename) 
+    plot a given time step of a given data file. To list the available nsteps (integer values), use keyshow(filename).
+    If "ifplot" is off, makes an ascii map instead (useful for remote calculations)
     '''
     global rsphere
     outdir=os.path.dirname(filename)
@@ -38,15 +39,17 @@ def plotnth(filename, nstep):
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
     lons1d = x.lons # (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
+    slats1d = np.cos(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, x.lats)
-    lons*=old_div(180.,np.pi) ; lats*=old_div(180.,np.pi)
+    lonsDeg=lons*180./np.pi ; latsDeg=lats*180./np.pi
     rsphere=params.attrs["rsphere"] ; grav=params.attrs["grav"] # ; kappa=params.attrs["kappa"]
     omegaNS=params.attrs["omega"]
     data=f["cycle_"+str(nstep).rjust(6, '0')]
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:] ; t=data.attrs["t"]
     sig=data["sig"][:] ; energy=data["energy"][:] ; beta=data["beta"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
+    qminus=data["qminus"][:]
     f.close()
-    
+    press=energy* 3. * (1.-beta/2.)
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
     step=3
@@ -77,25 +80,12 @@ def plotnth(filename, nstep):
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
-        plots.snapplot(lons, lats, sig, accflag, xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        tbottom=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
+        teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
+        plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        # plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
 
-        kappa=0.34
-        geff=-grav+old_div((ug**2+vg**2),rsphere)
-        radgeff=sig*diss*kappa
-        plots.sgeffplot(sig, grav, geff, radgeff, outdir=outdir) # Eddington violation plot
-        plots.vortgraph(lats, lons, vortg, divg, sig, energy, omegaNS, lonrange=[0.,360.], outdir=outdir)
-        plots.dissgraph(sig, energy, diss, vg**2+(ug)**2, accflag, outdir=outdir)
-        # we need a vorticity-divergence graph
-        # Reynolds's stress (I know the Pythonic way to pronounce thiss!)
-        #    plots.reys(lons, lats, sig, ug, vg, energy,rsphere)
-
-        # thicknesses and Froude number:
-        hthick=-5./geff*energy/sig/3./(1.-old_div(beta,2.))
-        fru=old_div(ug,np.sqrt(-hthick*geff)) # azimuthal Froude/Mach
-        frv=old_div(vg,np.sqrt(-hthick*geff)) # polar Froude/Mach
-        plots.somemap(lons, lats, np.sqrt(frv**2), outdir+'/froude.eps')
-        plots.somemap(lons, lats, np.log10(old_div(hthick,rsphere)), outdir+'/htor.eps')
-    
+# multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):
 
     outdir=os.path.dirname(infile)
@@ -106,9 +96,9 @@ def multireader(nmin, nmax, infile):
         os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
         os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
-        os.system('cp '+outdir+'/snapshot.eps '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.eps')
-        os.system('cp '+outdir+'/northpole.eps '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.eps')
-        os.system('cp '+outdir+'/southpole.eps '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.eps')
-        os.system('cp '+outdir+'/sgeff.eps '+outdir+'/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/snapshot.eps '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/northpole.eps '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/southpole.eps '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.eps')
+#        os.system('cp '+outdir+'/sgeff.eps '+outdir+'/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
         print('shot'+str(k).rjust(ndigits, '0')+'.png')
         

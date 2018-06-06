@@ -63,7 +63,7 @@ from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
 from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax
 from conf import ifplot
-from conf import sigplus, latspread, incle, slon0 #source term
+from conf import sigplus, latspread, incle, slon0, tturnon #source term
 from conf import ifrestart, nrest, restartfile # restart setup
 from conf import tfric, tdepl # interaction with the NS surface: friction and depletion times
 from conf import iftwist, twistscale # twist test parameters
@@ -176,7 +176,7 @@ f5io.saveParams(f5, conf)
     
 ##################################################
 # source/sink term
-def sdotsource(lats, lons, latspread):
+def sdotsource(lats, lons, latspread, t):
     '''
     source term for surface density:
     lats -- latitudes, radians
@@ -187,6 +187,8 @@ def sdotsource(lats, lons, latspread):
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
     y=sigplus*np.exp(-0.5*(devcos/latspread)**2)
+    if(tturnon>0.):
+        y*=(1.-np.exp(-t/tturnon)) # smooth turn-on
     return y, devcos
 
 def sdotsink(sigma):
@@ -201,7 +203,7 @@ def sdotsink(sigma):
         return sigma*0.
 
 # source velocities:
-sdotplus, sina = sdotsource(lats, lons, latspread)
+sdotplus, sina = sdotsource(lats, lons, latspread, 0.)
 omega_source=2.*overkepler/rsphere**1.5*sina
 ud,vd = x.getuv(x.grid2sph(omega_source),x.grid2sph(omega_source)*0.) # velocity components of the source
 
@@ -252,7 +254,7 @@ while(t<(tmax+t0)):
         # ii=input("betanan")
         f5.close()
         sys.exit()
-    pressg=energyg / 3. / (1.-beta/2.)
+    pressg=energypos / 3. / (1.-beta/2.)
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
     # vorticity flux
@@ -294,18 +296,23 @@ while(t<(tmax+t0)):
     # baroclinic terms in vorticity and divirgence:
     gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
     #  * hyperdiff_fact )
-    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig) # each nabla already has its rsphere
+    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sigpos,gradp2/sigpos) # each nabla already has its rsphere
     ddivdtSpec += -divpressbarSpec 
     dvortdtSpec += -vortpressbarSpec
 
     # energy sources and sinks:   
     qplus = sigpos * dissipation 
     qminus = (-geff) * sigpos / 3. / (1.+kappa*sigpos) * (1.-beta) 
+#    qminus = (-geff) / 3. /kappa*sigpos * (1.-beta)  # experimental
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
-        
+    # unphysically strong dissipation is just assumed to be compensated
+    #    qplus=np.minimum(qplus,qns*100.) 
+    #    qplus=np.maximum(qplus,-qns)
+    
     # source terms in mass:
     #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
     sdotminus=sdotsink(sigpos)
+    sdotplus, sina = sdotsource(lats, lons, latspread, t)
     sdotSpec=x.grid2sph((sdotplus-sdotminus)/sigpos)
     dsigdtSpec += sdotSpec
 
@@ -314,8 +321,8 @@ while(t<(tmax+t0)):
     #    print("sina from "+str(sina.min())+" to "+str(sina.max()))
     #    print("Dvort = "+str((sdotplus*domega).min())+".."+str((sdotplus*domega).max()))
     #    print("vort = "+str((sdotplus*domega).min())+".."+str((sdotplus*domega).max()))
-    vortdot=sdotplus/sig*domega
-    divdot=-sdotplus/sig*divg
+    vortdot=sdotplus/sigpos*domega
+    divdot=-sdotplus/sigpos*divg
     if(tfric>0.):
         vortdot+=(vortgNS-vortg)/tfric # +sdotminus/sig*vortg
         divdot+=-divg/tfric # friction term for divergence
@@ -326,44 +333,50 @@ while(t<(tmax+t0)):
     ddivdtSpec += divdotSpec
     csqinit_acc = (overkepler*latspread)**2/rsphere
     beta_acc=1.0
+    thermalterm=(qplus - qminus + qns ) / energypos 
+    
     denergydtaddterms = -divg / 3. /(1.-beta/2.) + \
-                        (qplus - qminus + qns) /energypos + \
                         0.5*sdotplus*((vg-vd)**2+(ug-ud)**2) /energypos  + \
-                        sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.) / energypos  -sdotminus/sig
+                        sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.) / energypos -\
+                        sdotminus/sig
     if(efold_diss>0.):
-        denergydtSpec += x.grid2sph( denergydtaddterms ) *diss_diff
+        denergydtSpec += x.grid2sph( thermalterm ) *diss_diff + x.grid2sph( denergydtaddterms) 
     else:
-        denergydtSpec += x.grid2sph( denergydtaddterms )
-    wdtspecnan=np.where(np.isnan(denergydtaddterms))
+        denergydtSpec += x.grid2sph( thermalterm+ denergydtaddterms )
     #    print("dt = "+str(dt))
-    if(lenergyg.min()<-50.):
+    if(lenergyg.min()<-100.):
+        wdtspecnan=np.where(lenergyg<-100.)
         print("l minimal energy "+str(lenergyg.min()))
         print("l maximal energy "+str(lenergyg.max()))
+        print("l minimal sigma "+str(lsig.min()))
+        print("l maximal sigma "+str(lsig.max()))
+        print("beta = "+str(beta[wdtspecnan]))
         print("the dangerous terms (without energy):\n")
         print((-divg * pressg)[wdtspecnan])
         print(((qplus - qminus + qns))[wdtspecnan])
         print((sdotplus*((vg-vd)**2+(ug-ud)**2))[wdtspecnan])
         print((sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)-sdotminus/sig * energyg)[wdtspecnan])
+        print("time from last output "+str(t-tstore+dtout))
         f5.close()
         sys.exit()
     # there are two additional source terms for E:
     # 1) accreting matter is hot
     # 2) half of the energy goes to heat when accretion spins up the material of the SL
-    denergyg=x.sph2grid(denergydtSpec*hyperdiff_fact)
+    denergyg=x.sph2grid(denergydtSpec)
     dt_thermal=1./np.abs(denergyg).max()
     #   dt_thermal=np.median(energyg)/np.fabs(denergyg).max()
     # dt_thermal=1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
     #    dt_thermal=1./((np.abs(denergydtSpec)/np.abs(energySpec))).mean()
     #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
     dt_accr=1./(np.abs(sdotplus)).max()
-#    dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+1./dt_thermal+5./dt_accr+1./dtout) # dt_accr may safely equal to inf, checked!
+    #    dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+100./dt_thermal+5./dt_accr+1./dtout) # dt_accr may safely equal to inf, checked!
     if(dt <= 1e-12):
-        dsrc=(sdotplus*csqmin-pressg/sig*sdotminus) * 3. * (1.-old_div(beta,2.))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
         print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))
         print(" dt(thermal) = "+str(dt_thermal))
         print(" dt(accr) = "+str(dt_accr))
         print("dt = "+str(dt))
+        print("time from last output "+str(t-tstore+dtout))
         f5.close()
         sys.exit()
     # passive scalar evolution:
@@ -394,6 +407,7 @@ while(t<(tmax+t0)):
     
     if(ncycle % (old_div(outskip,10)) ==0 ): # make sure it's alive
         print("lg(E) range "+str(lenergyg.min())+" to "+str(lenergyg.max()))
+        print("lg(Sigma) range "+str(lsig.min())+" to "+str(lsig.max()))
         print('t=%10.5f ms' % (t*1e3*tscale))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
         print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))
@@ -417,7 +431,7 @@ while(t<(tmax+t0)):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      vortg, divg, ug, vg, sig, energyg, beta,
-                     accflag, dissipation, qplus, qminus,
+                     accflag, dissipation, qminus, qplus,
                      conf)
         nout += 1
         sys.stdout.flush()
