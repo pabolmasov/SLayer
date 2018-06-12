@@ -27,7 +27,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     TODO: variables from conf.py and stored in the hdf5 file blend together; ideally, we should get without refences to conf.py 
     """
     outdir=os.path.dirname(filename)
-    print("writing output in "+outdir)
+    print("writing output to "+outdir)
     f = h5py.File(filename,'r')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"]
@@ -39,8 +39,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
     dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
     cosa=np.cos(lats)*np.cos(lat0)+np.sin(lats)*np.sin(lat0)*np.cos(lons-lon0)
-    cosa=old_div((cosa+np.fabs(cosa)),2.) # only positive viewing angle
-    #    cosa=np.double(cosa>0.8)
+    cosa=(cosa+np.fabs(cosa))/2. # viewing angle positive (visible) or zero (invisible side)
     
     keys=list(f.keys())
     if(nfilter):
@@ -52,7 +51,6 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         if(nlim):
             keys=keys[:nlim] # filtering out everything after nlim
 
-    #    keys=keys[4000:]
     nsize=np.size(keys)-1 # last key contains parameters
     print(str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2]))
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
@@ -112,8 +110,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
     angmoz_new *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     angmoz_old *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
-    flux *= 196.002*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s apparent luminosity
-    lumtot *= 196.002*rsphere**2*mass1**2*(sigmascale/1e8)  # 10^37 erg/s total luminosity
+    flux *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s apparent luminosity
+    lumtot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total luminosity
     kenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
@@ -182,9 +180,6 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     flux-=md*tar+bd ; mass-=m*tar+b; newmass-=mn*tar+bn # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
     freq1=1./tspan*np.double(ntimes)/2. ; freq2=freq1*np.double(nsize)/np.double(ntimes)
-    
-    # sound waves (dynamic eigenfrequency):
-    fsound=meancs/rsphere/2./np.pi/tscale*np.sqrt(2.)
 
     # binning:
     binfreq=(freq2-freq1)*((np.arange(nbins+1)/np.double(nbins)))+freq1
@@ -197,6 +192,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     # dynamical spectra:
     #    fsp=np.zeros([ntimes, nsize]) ;fspm=np.zeros([ntimes, nsize]) ; fspn=np.zeros([ntimes, nsize])
     tcenter=np.zeros(ntimes, dtype=np.double)
+    freqmax_diss=np.zeros(ntimes, dtype=np.double)
+    dfreqmax_diss=np.zeros(ntimes, dtype=np.double)
+    freqmax_mass=np.zeros(ntimes, dtype=np.double)
+    dfreqmax_mass=np.zeros(ntimes, dtype=np.double)
     t2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     binfreq2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     t2[ntimes,:]=tar.max() ; binfreq2[ntimes,:]=binfreq
@@ -207,31 +206,30 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         wwindow=np.where((tar>=tbegin)&(tar<tend))
         binflux[kt]=rawflux[wwindow].mean()   ;     binstd[kt]=rawflux[wwindow].std()
         wsize=np.size(wwindow)
-        fstd=flux.std() ; binflux[kt]=flux[wwindow].mean()
-        if(fstd<=0.):
-            fstd=1.
         fsp=np.fft.rfft(flux[wwindow]/flux.std()) ;   fspm=np.fft.rfft(mass[wwindow]/mass.std())
-        fspn=np.fft.rfft(newmass[wwindow]/newmass.std())
+        fspn=np.fft.rfft(newmass[wwindow]/mass.std()) # note we normalize for total mass variation; if sigplus===0, does not make sense but does not invoke errors
         freq = np.fft.rfftfreq(wsize, tspan/np.double(nsize)) # frequency grid (different for all the time bins)
         pds=np.abs(fsp*freq)**2  ;   pdsm=np.abs(fspm*freq)**2 ;   pdsn=np.abs(fspn*freq)**2
         
-        print("frequencies from "+str(freq.min())+" to "+str(freq.max()))
-        print("compare to "+str(binfreq[0])+" and "+str(binfreq[-1]))
-#        ii=raw_input('/')
         for kb in np.arange(nbins):
             freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
-#            if(np.size(freqrange)<=1):
-#                print "kb = "+str(kb)
-#                print "kt = "+str(kt)
             pdsbin[kt,kb]=pds[freqrange].mean()   ;     pdsbinm[kt,kb]=pdsm[freqrange].mean()   ;   pdsbinn[kt,kb]=pdsn[freqrange].mean()
             dpdsbin[kt,kb]=pds[freqrange].std()   ;     dpdsbinm[kt,kb]=pdsm[freqrange].std()   ;   dpdsbinn[kt,kb]=pdsn[freqrange].std()    
             nbin[kt,kb]=np.size(pds[freqrange]) ; nbinm[kt,kb]=np.size(pdsm[freqrange]) ; nbinn[kt,kb]=np.size(pdsn[freqrange])
-
+        # searching for the maximum in the PDS
+        ston = 10. # signal-to-noize ratio
+        kbmax=(pdsbin[kt,:]).argmax()
+        freqmax_diss[kt]=binfreqc[kbmax]
+        dfreqmax_diss[kt]=binfreqs[kbmax]
+        kbmax=(pdsbinm[kt,:]).argmax()
+        freqmax_mass[kt]=binfreqc[kbmax]
+        dfreqmax_mass[kt]=binfreqs[kbmax]
     # let us also make a Fourier of the whole series:
     pdsbin_total=np.zeros([nbins]) ; pdsbinm_total=np.zeros([nbins]) ; pdsbinn_total=np.zeros([nbins])
     dpdsbin_total=np.zeros([nbins]) ; dpdsbinm_total=np.zeros([nbins]) ; dpdsbinn_total=np.zeros([nbins])
-    fsp=np.fft.rfft(flux/fstd) ;  fspm=np.fft.rfft(mass/mass.std())
-    fspn=np.fft.rfft(newmass/newmass.std())
+    fsp=np.fft.rfft(flux/flux.std()) ;  fspm=np.fft.rfft(mass/mass.std())
+    fspn=np.fft.rfft(newmass/mass.std())
+        
     pds=np.abs(fsp)**2  ;  pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
     freq = np.fft.rfftfreq(nsize, tspan/np.double(nsize)) # frequency grid (total)
     for kb in np.arange(nbins):
@@ -241,12 +239,27 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         dpdsbinn_total[kb]=pdsn[freqrange].std()
 
     # we will need mean fluxes for vdKlis's plots:
-    fbinfluxes=open(outdir+'/binflux.dat', 'w')
+    fbinfluxes=open(outdir+'/diss_binflux.dat', 'w')
     fbinfluxes.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
     fbinfluxes.write("#  time -- mean flux -- flux std\n")
     for k in np.arange(ntimes):
         fbinfluxes.write(str(tcenter[k])+" "+str(binflux[k])+" "+str(binstd[k])+"\n")
     fbinfluxes.close()
+    os.system('cp '+outdir+'/diss_binflux.dat '+outdir+'/mass_binflux.dat')
+    # maximum in the dynamical spetcrum for vdKlis's plots:
+    ffmax_diss=open(outdir+'/diss_freqmax.dat', 'w')
+    ffmax_mass=open(outdir+'/mass_freqmax.dat', 'w')
+    ffmax_diss.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
+    ffmax_diss.write("#  time -- freqmax -- dfreqmax\n")
+    ffmax_mass.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
+    ffmax_mass.write("#  time -- freqmax -- dfreqmax\n")
+    for k in np.arange(ntimes):
+        if(np.isfinite(freqmax_diss[k])):
+            ffmax_diss.write(str(tcenter[k])+" "+str(freqmax_diss[k])+" "+str(dfreqmax_diss[k])+"\n")
+        if(np.isfinite(freqmax_mass[k])):
+            ffmax_mass.write(str(tcenter[k])+" "+str(freqmax_mass[k])+" "+str(dfreqmax_mass[k])+"\n")
+    ffmax_diss.close() ; ffmax_mass.close()
+    
     # ascii output, total:
     fpdstots=open(outdir+'/pdstots_diss.dat', 'w')
     fpdstots_mass=open(outdir+'/pdstots_mass.dat', 'w')
@@ -265,8 +278,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     os.system('cp '+outdir+'/pdstots_diss.dat '+outdir+'/pdstots_diss'+str(lat0)+'.dat')
     os.system('cp '+outdir+'/pdstots_mass.dat '+outdir+'/pdstots_mass'+str(lat0)+'.dat')
     # ascii output, t-th/phi diagrams
-    ftth=open('out/tth.dat', 'w')
-    ftphi=open('out/tphi.dat', 'w')
+    ftth=open(outdir+'/tth.dat', 'w')
+    ftphi=open(outdir+'/tphi.dat', 'w')
     # time -- theta -- <Sigma>, time is aliased
     ftth.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
     ftphi.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
@@ -281,9 +294,9 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
                 ftphi.write(str(tar[k])+" "+str(lons[0,kphi])+" "+str(sigmaver_lon[kphi, k])+"\n")
     ftth.close() ; ftphi.close()
     # ascii output, dynamical spectrum:
-    fpds=open('out/pds_diss.dat', 'w')
-    fpdsm=open('out/pds_mass.dat', 'w')
-    fpdsn=open('out/pds_newmass.dat', 'w')
+    fpds=open(outdir+'/pds_diss.dat', 'w')
+    fpdsm=open(outdir+'/pds_mass.dat', 'w')
+    fpdsn=open(outdir+'/pds_newmass.dat', 'w')
     # time -- frequency -- PDS
     fpds.write("#  generated by fluxest, lat0="+str(lat0)+"rad, lon0="+str(lon0)+"rad \n")
     fpds.write("# flux variability \n")
@@ -366,5 +379,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('D1/run.hdf5', np.pi/2., 0., ntimes=20, nbins=100, nlim=5000, nfilter=0)
-# meanmaps('out/run.hdf5', 1500, 3000)
+fluxest('out/run.hdf5', np.pi/2., 0., ntimes=10, nbins=10)
+# meanmaps('out/run.hdf5', 1000, 2000)
