@@ -349,7 +349,7 @@ def visualize(t, nout,
 ##########################################################################    
 # post-factum visualizations for snapshooter:
 def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
-             ,latrange=None, lonrange=None):
+             ,latrange=None, lonrange=None, t=None):
     # longitudes, latitudes, density field, accretion flag, velocity fields, alias for velocity output
     if((latrange == None) | (lonrange == None)):
         skx=sks[0] ; sky=sks[1]
@@ -363,6 +363,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     levs=(s1-s0)*((np.arange(nlev)-0.5)/np.double(nlev-1))+s0
     interactive(False)
 
+    # TODO: try cartographic projections?
     plt.clf()
     fig=plt.figure()
     plt.pcolormesh(lons, lats, tb, cmap='hot') # ,levels=levs)
@@ -379,13 +380,15 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
         color='k',
         scale=20.0,
     )
-    if((latrange == None) & (lonrange == None)):
-        plt.ylim(-85.,85.)
-    else:
-        plt.ylim(latrange[0], latrange[1])
-        plt.xlim(lonrange[0], lonrange[1])
+#    if((latrange == None) & (lonrange == None)):
+        #        plt.ylim(-85.,85.)
+#    else:
+#        plt.ylim(latrange[0], latrange[1])
+#        plt.xlim(lonrange[0], lonrange[1])
     plt.xlabel('longitude')
     plt.ylabel('latitude')
+    if t != None:
+        plt.title('$t={:8.3f}$ms'.format(t), loc='left')
     fig.set_size_inches(8, 5)
     plt.savefig(outdir+'/snapshot.png')
     plt.savefig(outdir+'/snapshot.eps')
@@ -398,13 +401,19 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
     tinyover=old_div(1.,np.double(nlons))
-    ax.pcolormesh(lons*np.pi/180.*(tinyover+1.), theta, tb,cmap='hot') #,levels=levs)
-#    if(accflag.max()>1e-3):
-#        ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, tb,cmap='hot',levels=levs)
+    #    if(accflag.max()>1e-3):
+    #        ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
+#    ax.grid(color='w')
     ax.set_rticks([30., 60.])
+    ax.grid(color='w')
     ax.set_rmax(70.)
-    plt.title('  N') #, t='+str(nstep))
-    plt.tight_layout()
+    if t != None:
+       # plt.title(r'North pole, $t={:8.3f}$ms'.format(t), loc='left') #, t='+str(nstep))
+        plt.text(90., 95.,r'North pole, $t={:8.3f}$ms'.format(t), fontsize=18)
+    else:
+        plt.title('North pole', loc='left')
+    plt.tight_layout(pad=3)
     fig.set_size_inches(4, 4)
     plt.savefig(outdir+'/northpole.eps')
     plt.savefig(outdir+'/northpole.png')
@@ -413,14 +422,19 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
 #    tinyover=0./np.double(nlons)
-    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(tinyover+1.)-theta, tb,cmap='hot' ,levels=levs)
+    ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(tinyover+1.)-theta, tb,cmap='hot', levels=levs) #,color='w')
 #    if(accflag.max()>1e-3):
 #        ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
     ax.set_rticks([30., 60.])
+    ax.grid(color='w')
     ax.set_rmax(70.)
-    plt.tight_layout(pad=2)
     fig.set_size_inches(4, 4)
-    plt.title('  S') #, t='+str(nstep))
+    if t != None:
+        # plt.title(r'South pole, $t={:8.3f}$ms'.format(t), loc='left')
+        plt.text(90., 95.,r'South pole, $t={:8.3f}$ms'.format(t), fontsize=18)
+    else:
+        plt.title('South pole', loc='left')
+    plt.tight_layout(pad=3)
     plt.savefig(outdir+'/southpole.eps')
     plt.savefig(outdir+'/southpole.png')
     plt.close()
@@ -581,15 +595,24 @@ def dynsplot(infile="out/pds_diss", omega=None):
     plt.savefig(infile+'.eps')
     plt.close()
 
-#
+# makes the t-phi and t-th plots for a selected pair of quantities
 def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     '''
     plots time+theta and time+phi 2D maps for quantity qth,qphi (first is a function of theta, second depends on phi)
     '''
-    latsmean=lats.mean(axis=1)
-    lonsmean=lons.mean(axis=0)
+    # input angle mesh may be 2d or 1d:
+    slats=np.shape(lats)
+    if(np.size(slats)>1):
+        latsmean=lats.mean(axis=1)
+    else:
+        latsmean=lats
+    slons=np.shape(lons)    
+    if(np.size(slons)>1):
+        lonsmean=lons.mean(axis=0)
+    else:
+        lonsmean=lons
     plt.clf()
-    plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=np.linspace(qth.min(), qth.max(), 30))
+    plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=np.linspace(qth.min(), qth.max(), 30), cmap='hot')
     plt.colorbar()
     plt.xlabel('$t$')
     plt.ylabel('latitude')
@@ -600,9 +623,9 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30),cmap='hot')
     if(omega != None):
         plt.plot(tar, (omega*tar % (2.*np.pi))*180./np.pi, color='k')
-    plt.colorbar()
+    #    plt.colorbar()
     plt.ylim(0.,360.)
-    plt.xlabel('$t$', fontsize=20)
+    plt.xlabel('$t$, s', fontsize=20)
     plt.ylabel('longitude', fontsize=20)
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
@@ -611,3 +634,56 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.savefig(prefix+'_tphi.eps')
     plt.savefig(prefix+'_tphi.png')
         
+# a wrapper for timangle
+def plot_timangle(prefix='out/'):
+    '''
+    plot for a timangle output
+    '''
+    lines1 = np.loadtxt(prefix+"tth.dat", comments="#", delimiter=" ", unpack=False)
+    t=lines1[:,0] ;  lats=lines1[:,1] ; flats=lines1[:,2]
+    lines2 = np.loadtxt(prefix+"tphi.dat", comments="#", delimiter=" ", unpack=False)
+    lons=lines2[:,1] ; flons=lines2[:,2]
+    #    outdir=os.path.dirname(prefix)
+    t=np.unique(t)  ; ulons=np.unique(lons) ; ulats=np.unique(lats)
+    flats=np.reshape(flats, [np.size(t), np.size(ulats)])
+    lats=np.reshape(lats, [np.size(t), np.size(ulats)])
+    flons=np.reshape(flons, [np.size(t), np.size(ulons)])
+    lons=np.reshape(lons, [np.size(t), np.size(ulons)])
+    #    print(lons[:,0])
+    timangle(t, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots')
+
+# vdKlis's plot: frequency as a function of flux
+def FFplot(prefix='out/'):
+    '''
+    makes a flux-frequency correlation plot 
+    '''
+    lines_freq = np.loadtxt(prefix+"freqmax.dat", comments="#", delimiter=" ", unpack=False)
+    time=lines_freq[:,0] ;  freq=lines_freq[:,1] ;  dfreq=lines_freq[:,2]
+    lines_flux = np.loadtxt(prefix+"binflux.dat", comments="#", delimiter=" ", unpack=False)
+    flux=lines_flux[:,1] ;  dflux=lines_flux[:,2]
+
+    plt.clf()
+    plt.errorbar(flux, freq, xerr=dflux, yerr=dfreq, fmt='.k')
+    plt.xscale('log')  ;   plt.yscale('log')
+    plt.xlabel(r'$L_{\rm obs}$, $10^{37}$erg\,s$^{-1}$')
+    plt.ylabel(r'$f_{\rm peak}$, Hz')
+    plt.savefig(prefix+'FFplot.eps')
+    plt.savefig(prefix+'FFplot.png')
+    plt.close()
+
+# plot of a saved ascii map produced by plotnth
+def plot_saved(infile):
+    '''
+    plots maps from a saved, aliased ascii map produced by plotnth (infile)
+    '''
+    
+    lines = np.loadtxt(infile, comments="#", delimiter=" ", unpack=False)
+    lats = lines[:,0] ; lons = lines[:,1] ; sig = lines[:,2]
+
+    ulons=np.unique(lons) ; ulats=np.unique(lats)
+    lons=np.reshape(lons, [np.size(ulats), np.size(ulons)])
+    lats=np.reshape(lats, [np.size(ulats), np.size(ulons)])
+    sig=np.reshape(sig, [np.size(ulats), np.size(ulons)])
+
+    somemap(lons, lats, sig, infile+"_sig.png")
+    

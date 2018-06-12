@@ -9,16 +9,20 @@ import scipy.interpolate as si
 import scipy.ndimage as nd
 from spharmt import Spharmt 
 
-outdir = "out" #default output directory
+# outdir = "out" #default output directory
 
 # combine several HDF5 files into one
-def HDFcombine(f5array):
+def HDFcombine(f5array, otheroutdir=None):
     n=np.size(f5array)
     if(n<=1):
         print("nothing to combine")
         exit()
     else:
         print("preparing to glue "+str(n)+" files")
+    if(otheroutdir == None):
+        outdir=os.path.dirname(f5array[0])
+    else:
+        outdir=otheroutdir
     fnew=h5py.File(outdir+'/runcombine.hdf5', "w")
     f = h5py.File(f5array[0],'r')
     #    params=f0['params']
