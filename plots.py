@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy.ma as ma
 from scipy.integrate import trapz
 import os.path
+import glob
 
 # font adjustment:
 import matplotlib
@@ -685,5 +686,22 @@ def plot_saved(infile):
     lats=np.reshape(lats, [np.size(ulats), np.size(ulons)])
     sig=np.reshape(sig, [np.size(ulats), np.size(ulons)])
 
-    somemap(lons, lats, sig, infile+"_sig.png")
+    somemap(lons, lats, np.log(sig), infile+"_sig.png")
+
+def multiplot_saved(prefix):
+
+    flist0 = np.sort(glob.glob(prefix+"[0-9].dat"))
+    flist1 = np.sort(glob.glob(prefix+"[0-9][0-9].dat"))
+    flist2 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9].dat"))
+    flist3 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9].dat"))
+    flist=np.concatenate((flist0, flist1, flist2, flist3))
+    print(flist)
+    nlist = np.size(flist)
+    outdir=os.path.dirname(prefix)
     
+    for k in np.arange(nlist):
+        plot_saved(flist[k])
+        print(outdir+'/sig{:05d}'.format(k)+".png")
+        os.system("mv "+flist[k]+"_sig.png"+" "+outdir+'/sig{:05d}'.format(k)+".png")
+
+        
