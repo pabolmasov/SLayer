@@ -15,14 +15,14 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=2014 # number of output entry for restart
+ifrestart=True
+nrest=1057 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 512          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -67,7 +67,7 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 # Hyperdiffusion
 ##################################################
 efold = 0.1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1e-8 # smoothing the dissipation term when used as a heat source
+efold_diss = 1e-6 # smoothing the dissipation term when used as a heat source
 ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################
@@ -80,15 +80,15 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus   = 1. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+sigplus   = 10. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.1   # spread in radians
-incle     = latspread*0.5 # inclination of initial rotation, radians
+incle     = latspread*0.1 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
-tfric=10.*pspin/tscale
+tfric=0.*pspin/tscale
 # depletion of the atmosphere:
-tdepl=10.*pspin/tscale
+tdepl=20.*pspin/tscale
 # smooth turning of the source
 tturnon=tdepl 
 
