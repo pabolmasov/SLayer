@@ -163,7 +163,7 @@ else:
 #    ii=input('s')
     # in pressure, there should not be any strong bumps, as we do not want artificial shock waves
     geff=-grav+old_div((ug**2+vg**2),rsphere)
-    sigpos=old_div((sig+np.fabs(sig)),2.) # we need to exclude negative sigma points from calculation
+    sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation
     beta = betasolve_p(cssqscale*sig/pressg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, press, geff
     energyg = pressg * 3. * (1.-beta/2.)
     accflag=hbump*0.
@@ -192,7 +192,7 @@ def sdotsource(lats, lons, latspread, t):
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
     y=sigplus*np.exp(-0.5*(devcos/latspread)**2)
-    if(tturnon>0.):
+    if((tturnon>0.) & (t>0.)):
         y*=(1.-np.exp(-t/tturnon)) # smooth turn-on
     return y, devcos
 
@@ -208,7 +208,7 @@ def sdotsink(sigma):
         return sigma*0.
 
 # source velocities:
-sdotplus, sina = sdotsource(lats, lons, latspread, 0.)
+sdotmax, sina = sdotsource(lats, lons, latspread, -1.)
 omega_source=2.*overkepler/rsphere**1.5*sina
 ud,vd = x.getuv(x.grid2sph(omega_source),x.grid2sph(omega_source)*0.) # velocity components of the source
 
@@ -222,7 +222,7 @@ ncycle=0
 # Timer for profiling
 timer = Timer(["total", "step", "io"], 
             ["init-grid", "beta", "fluxes", 
-             "diffusion","baroclinic", "source-terms", 
+             "diffusion","baroclinic", "source-terms",
              "passive-scalar", "time-step", "diffusion2"])
 timer.start("total")
 
@@ -232,8 +232,6 @@ timer.start("total")
 while(t<(tmax+t0)):
 # ncycle in np.arange(itmax+1):
     # get vort,u,v,sigma on grid
-
-
     ##################################################
     # initialize on grid
     timer.start_comp("init-grid")
@@ -252,8 +250,8 @@ while(t<(tmax+t0)):
 
     geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
     geff=(geff-np.fabs(geff))/2. # only negative geff
-    sigpos=(sig+np.fabs(sig))/2.+sigfloor # we need to exclude negative sigma points from calculation
-    energypos=(energyg+np.fabs(energyg))/2.+energyfloor
+    #    sigpos=(sig+np.fabs(sig))/2.+sigfloor # we need to exclude negative sigma points from calculation
+    #    energypos=(energyg+np.fabs(energyg))/2.+energyfloor
     # there could be bias if many sigma<0 points appear
     if((sig.min()<0.)|(energyg.min()<0.)):
         print("sigmin = "+str(sig.min()))
@@ -268,7 +266,7 @@ while(t<(tmax+t0)):
     # pressure ratio 
     timer.start_comp("beta")
 
-    beta = betasolve_e(cssqscale*sigpos/energypos*np.sqrt(np.sqrt(-geff*sig))) # beta as a function of sigma, energy, and geff
+    beta = betasolve_e(cssqscale*sig/energyg*np.sqrt(np.sqrt(-geff*sig))) # beta as a function of sigma, energy, and geff
     wbnan=np.where(np.isnan(beta))
 
     if(np.size(wbnan)>0):
@@ -286,7 +284,7 @@ while(t<(tmax+t0)):
         # ii=input("betanan")
         f5.close()
         sys.exit()
-    pressg=energypos / 3. / (1.-beta/2.)
+    pressg = energyg / 3. / (1.-beta/2.)
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
 
@@ -299,7 +297,7 @@ while(t<(tmax+t0)):
     ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1, tmpg2 ) # all the nablas already contain an additional 1/R multiplier
     dvortdtSpec *= -1
     #    tmpg = x.sph2grid(ddivdtSpec)
-    tmpg1 = ug*lsig; tmpg2 = vg*lsig
+    tmpg1 = ug*lsig;  tmpg2 = vg*lsig
     tmpSpec, dsigdtSpec = x.getVortDivSpec(tmpg1, tmpg2 ) # all the nablas should contain an additional 1/R multiplier
     dsigdtSpec *= -1.
     dsigdtSpec+=x.grid2sph((lsig-1.)*divg)
@@ -309,7 +307,7 @@ while(t<(tmax+t0)):
     #    wunbound=np.where(geff>=0.) # extreme case; we can be unbound due to pressure
     denergydtSpec *= -1.
     denergydtSpec += x.grid2sph((lenergyg-1.) * divg)
-    denergydtSpec0 = denergydtSpec
+    #    denergydtSpec0 = denergydtSpec
     #denergyg_adv = x.sph2grid(denergydtSpec) # for debugging
     
     timer.stop_comp("fluxes")
@@ -317,29 +315,29 @@ while(t<(tmax+t0)):
     # diffusion 
     timer.start_comp("diffusion")
     
-    hyperdiff_perdt=hyperdiff_expanded
+    #    hyperdiff_perdt=hyperdiff_expanded
     # dissipation estimates:
     if(tfric>0.):
-        dissvortSpec=vortSpec*(hyperdiff_perdt+old_div(1.,tfric)) #expanded exponential diffusion term
-        dissdivSpec=divSpec*(hyperdiff_perdt+old_div(1.,tfric)) # need to incorporate for omegaNS in the friction term
+        dissvortSpec=vortSpec*(hyperdiff_expanded+1./tfric) #expanded exponential diffusion term
+        dissdivSpec=divSpec*(hyperdiff_expanded+1./tfric) # need to incorporate for omegaNS in the friction term
     else:
-        dissvortSpec=vortSpec*hyperdiff_perdt #expanded exponential diffusion term
-        dissdivSpec=divSpec*hyperdiff_perdt # need to incorporate for omegaNS in the friction term
+        dissvortSpec=vortSpec*hyperdiff_expanded #expanded exponential diffusion term
+        dissdivSpec=divSpec*hyperdiff_expanded # need to incorporate for omegaNS in the friction term
         
-    wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
-    if(np.size(wnan)>0):
-        dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
+        #    wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
+        #    if(np.size(wnan)>0):
+        #        dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
-    dissipation=(ug*dissug+vg*dissvg) # -v . dv/dt_diss # do we need a 0.5 multipier??
+    dissipation=(ug*dissug+vg*dissvg) # -v . dv/dt_diss 
     # dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
     kenergy=0.5*(ug**2+vg**2) # kinetic energy per unit mass (merge this with baroclinic term?)
-    tmpSpec = x.grid2sph(kenergy) # * hyperdiff_fact
-    ddivdtSpec += -tmpSpec * x.lap
+    #    tmpSpec = x.grid2sph(kenergy) # * hyperdiff_fact
+    ddivdtSpec += - x.lap * x.grid2sph(kenergy)
 
     # energy sources and sinks:   
-    qplus = sigpos * dissipation 
-    qminus = (-geff) * sigpos / 3. / (1.+kappa*sigpos) * (1.-beta) 
-#    qminus = (-geff) / 3. /kappa*sigpos * (1.-beta)  # experimental
+    qplus = sig * dissipation 
+    qminus = (-geff) * sig / 3. / (1.+kappa*sig) * (1.-beta) 
+#    qminus = (-geff) / 3. /kappa*sig * (1.-beta)  # experimental
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
     # unphysically strong dissipation is just assumed to be compensated
     #    qplus=np.minimum(qplus,qns*100.) 
@@ -353,7 +351,7 @@ while(t<(tmax+t0)):
 
     gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
     #  * hyperdiff_fact )
-    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sigpos,gradp2/sigpos) # each nabla already has its rsphere
+    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig) # each nabla already has its rsphere
     ddivdtSpec += -divpressbarSpec 
     dvortdtSpec += -vortpressbarSpec
 
@@ -363,34 +361,30 @@ while(t<(tmax+t0)):
     timer.start_comp("source-terms")
 
     #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
-    sdotminus=sdotsink(sigpos)
-    sdotplus, sina = sdotsource(lats, lons, latspread, t)
-    sdotSpec=x.grid2sph((sdotplus-sdotminus)/sigpos)
+    #    sdotminus=sdotsink(sig)
+    #    sdotplus, sina = sdotsource(lats, lons, latspread, t)
+    sdotplus = sdotmax *(1.-np.exp(-t/tturnon))
+    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
     dsigdtSpec += sdotSpec
 
     # source term in vorticity
     domega=(omega_source-vortg) # difference in net vorticity
-    #    print("sina from "+str(sina.min())+" to "+str(sina.max()))
-    #    print("Dvort = "+str((sdotplus*domega).min())+".."+str((sdotplus*domega).max()))
-    #    print("vort = "+str((sdotplus*domega).min())+".."+str((sdotplus*domega).max()))
-    vortdot=sdotplus/sigpos*domega
-    divdot=-sdotplus/sigpos*divg
+    
+    vortdot=sdotplus/sig*domega
+    divdot=-sdotplus/sig*divg
     if(tfric>0.):
         vortdot+=(vortgNS-vortg)/tfric # +sdotminus/sig*vortg
         divdot+=-divg/tfric # friction term for divergence
        
-    vortdotSpec=x.grid2sph(vortdot)
-    divdotSpec=x.grid2sph(divdot)
-    dvortdtSpec += vortdotSpec
-    ddivdtSpec += divdotSpec
+    dvortdtSpec += x.grid2sph(vortdot)
+    ddivdtSpec += x.grid2sph(divdot)
     csqinit_acc = (overkepler*latspread)**2/rsphere
     beta_acc=1.0
-    thermalterm=(qplus - qminus + qns ) / energypos 
-    
+    thermalterm=(qplus - qminus + qns ) / energyg
+
     denergydtaddterms = -divg / 3. /(1.-beta/2.) + \
-                        0.5*sdotplus*((vg-vd)**2+(ug-ud)**2) /energypos  + \
-                        sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.) / energypos -\
-                        sdotminus/sig
+                        (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  + \
+                        sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)) / energyg - 1./tdepl                        
     if(efold_diss>0.):
         denergydtSpec += x.grid2sph( thermalterm ) *diss_diff + x.grid2sph( denergydtaddterms) 
     else:
@@ -418,11 +412,8 @@ while(t<(tmax+t0)):
 
     ##################################################
 
-    # there are two additional source terms for E:
-    # 1) accreting matter is hot
-    # 2) half of the energy goes to heat when accretion spins up the material of the SL
-    denergyg=x.sph2grid(denergydtSpec)
-    dt_thermal=1./np.abs(denergyg).max()
+    #    denergyg=x.sph2grid(denergydtSpec)
+    dt_thermal=1./np.abs(thermalterm).max()
     #   dt_thermal=np.median(energyg)/np.fabs(denergyg).max()
     # dt_thermal=1./(np.fabs(denergyg)/(energyg+dt_cfl*np.fabs(denergyg))).max()
     #    dt_thermal=1./((np.abs(denergydtSpec)/np.abs(energySpec))).mean()
@@ -483,7 +474,7 @@ while(t<(tmax+t0)):
     
     ##################################################
 
-    if(ncycle % (old_div(outskip,10)) ==0 ): # make sure it's alive
+    if(ncycle % (outskip/10) ==0 ): # make sure it's alive
         print("lg(E) range "+str(lenergyg.min())+" to "+str(lenergyg.max()))
         print("lg(Sigma) range "+str(lsig.min())+" to "+str(lsig.max()))
         print('t=%10.5f ms' % (t*1e3*tscale))
