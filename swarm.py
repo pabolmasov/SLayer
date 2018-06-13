@@ -32,6 +32,11 @@ from spharmt import Spharmt
 import f5io as f5io #module for file I/O
 import conf as conf #importing simulation setup module
 
+
+from timer import Timer
+
+
+
 ####################################
 # extra arguments (allow to run several slayers in parallel and write results to arbitrary output directories)
 f5io.outdir = 'out'
@@ -213,9 +218,26 @@ time1 = time.clock() # time loop
 nout=nrest ;  t=t0 ; tstore=t0 # starting counters
 ncycle=0
 
+
+# Timer for profiling
+timer = Timer(["total", "step", "io"], 
+            ["init-grid", "beta", "fluxes", 
+             "diffusion","baroclinic", "source-terms", 
+             "passive-scalar", "time-step", "diffusion2"])
+timer.start("total")
+
+
+
+
 while(t<(tmax+t0)):
 # ncycle in np.arange(itmax+1):
     # get vort,u,v,sigma on grid
+
+
+    ##################################################
+    # initialize on grid
+    timer.start_comp("init-grid")
+
     vortg = x.sph2grid(vortSpec)
     lsig  = x.sph2grid(sigSpec)
     sig=np.exp(lsig)
@@ -224,6 +246,10 @@ while(t<(tmax+t0)):
     lenergyg  = x.sph2grid(energySpec)
     energyg=np.exp(lenergyg)
     ug,vg = x.getuv(vortSpec,divSpec) # velocity components
+
+    timer.stop_comp("init-grid")
+    ##################################################
+
     geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
     geff=(geff-np.fabs(geff))/2. # only negative geff
     sigpos=(sig+np.fabs(sig))/2.+sigfloor # we need to exclude negative sigma points from calculation
@@ -237,8 +263,14 @@ while(t<(tmax+t0)):
         print("ncycle = "+str(ncycle))
         f5.close()
         sys.exit()
+
+    ##################################################
+    # pressure ratio 
+    timer.start_comp("beta")
+
     beta = betasolve_e(cssqscale*sigpos/energypos*np.sqrt(np.sqrt(-geff*sig))) # beta as a function of sigma, energy, and geff
     wbnan=np.where(np.isnan(beta))
+
     if(np.size(wbnan)>0):
         print("sigmin = "+str(sig.min()))
         print("energymin = "+str(energyg.min()))
@@ -257,6 +289,11 @@ while(t<(tmax+t0)):
     pressg=energypos / 3. / (1.-beta/2.)
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
+
+    timer.stop_comp("beta")
+    ##################################################
+    timer.start_comp("fluxes")
+
     # vorticity flux
     tmpg1 = ug*vortg ;    tmpg2 = vg*vortg
     ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1, tmpg2 ) # all the nablas already contain an additional 1/R multiplier
@@ -273,7 +310,13 @@ while(t<(tmax+t0)):
     denergydtSpec *= -1.
     denergydtSpec += x.grid2sph((lenergyg-1.) * divg)
     denergydtSpec0 = denergydtSpec
-    denergyg_adv = x.sph2grid(denergydtSpec) # for debugging
+    #denergyg_adv = x.sph2grid(denergydtSpec) # for debugging
+    
+    timer.stop_comp("fluxes")
+    ##################################################
+    # diffusion 
+    timer.start_comp("diffusion")
+    
     hyperdiff_perdt=hyperdiff_expanded
     # dissipation estimates:
     if(tfric>0.):
@@ -293,13 +336,6 @@ while(t<(tmax+t0)):
     tmpSpec = x.grid2sph(kenergy) # * hyperdiff_fact
     ddivdtSpec += -tmpSpec * x.lap
 
-    # baroclinic terms in vorticity and divirgence:
-    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
-    #  * hyperdiff_fact )
-    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sigpos,gradp2/sigpos) # each nabla already has its rsphere
-    ddivdtSpec += -divpressbarSpec 
-    dvortdtSpec += -vortpressbarSpec
-
     # energy sources and sinks:   
     qplus = sigpos * dissipation 
     qminus = (-geff) * sigpos / 3. / (1.+kappa*sigpos) * (1.-beta) 
@@ -309,7 +345,23 @@ while(t<(tmax+t0)):
     #    qplus=np.minimum(qplus,qns*100.) 
     #    qplus=np.maximum(qplus,-qns)
     
+
+    timer.stop_comp("diffusion")
+    ##################################################
+    # baroclinic terms in vorticity and divirgence:
+    timer.start_comp("baroclinic")
+
+    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
+    #  * hyperdiff_fact )
+    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sigpos,gradp2/sigpos) # each nabla already has its rsphere
+    ddivdtSpec += -divpressbarSpec 
+    dvortdtSpec += -vortpressbarSpec
+
+    timer.stop_comp("baroclinic")
+    ##################################################
     # source terms in mass:
+    timer.start_comp("source-terms")
+
     #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
     sdotminus=sdotsink(sigpos)
     sdotplus, sina = sdotsource(lats, lons, latspread, t)
@@ -344,6 +396,10 @@ while(t<(tmax+t0)):
     else:
         denergydtSpec += x.grid2sph( thermalterm+ denergydtaddterms )
     #    print("dt = "+str(dt))
+
+    timer.stop_comp("source-terms")
+    ##################################################
+    # crash branch
     if(lenergyg.min()<-100.):
         wdtspecnan=np.where(lenergyg<-100.)
         print("l minimal energy "+str(lenergyg.min()))
@@ -359,6 +415,9 @@ while(t<(tmax+t0)):
         print("time from last output "+str(t-tstore+dtout))
         f5.close()
         sys.exit()
+
+    ##################################################
+
     # there are two additional source terms for E:
     # 1) accreting matter is hot
     # 2) half of the energy goes to heat when accretion spins up the material of the SL
@@ -379,20 +438,33 @@ while(t<(tmax+t0)):
         print("time from last output "+str(t-tstore+dtout))
         f5.close()
         sys.exit()
+
+    ##################################################
     # passive scalar evolution:
+    timer.start_comp("passive-scalar")
+
     tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
     daccflagdtSpec = -dacctmp # a*div(v) - div(a*v)
     daccflagdt =  (1.-accflag) * sdotplus/sig + accflag * divg 
     daccflagdtSpec += x.grid2sph(daccflagdt)
     
+    timer.stop_comp("passive-scalar")
+    ##################################################
     # at last, the time step
+    timer.start_comp("time-step")
+
     t += dt ; ncycle+=1
     vortSpec += dvortdtSpec * dt
     divSpec += ddivdtSpec * dt
     sigSpec += dsigdtSpec * dt
     energySpec += denergydtSpec * dt
     accflagSpec += daccflagdtSpec * dt
+
+    timer.stop_comp("time-step")
+    ##################################################
+    #diffusion
+    timer.start_comp("diffusion2")
 
     hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
     sigma_diff = hyperdiff_fact
@@ -404,7 +476,13 @@ while(t<(tmax+t0)):
     sigSpec *= sigma_diff
     energySpec *= sigma_diff
     accflagSpec *= sigma_diff # do we need to smooth it?
+
+    timer.stop_comp("diffusion2")
+    ##################################################
+    timer.lap("step") 
     
+    ##################################################
+
     if(ncycle % (old_div(outskip,10)) ==0 ): # make sure it's alive
         print("lg(E) range "+str(lenergyg.min())+" to "+str(lenergyg.max()))
         print("lg(Sigma) range "+str(lsig.min())+" to "+str(lsig.max()))
@@ -418,8 +496,16 @@ while(t<(tmax+t0)):
         print('simulation time = '+str(time2-time1)+'s')
         print("about "+str(t/tmax*100.)+"% done") 
 
+
+
+    ##################################################
+    # I/O
+
     #plot & save
     if ( t >=  tstore):
+
+        timer.start("io")
+
         tstore=t+dtout
         if(ifplot):
             visualize(t, nout,
@@ -436,9 +522,25 @@ while(t<(tmax+t0)):
         nout += 1
         sys.stdout.flush()
         
+        timer.stop("io")
+
+        #print simulation run-time statistics
+        timer.stats("step")
+        timer.stats("io")
+        timer.comp_stats()
+
+        timer.start("step") #refresh lap counter (avoids IO profiling)
+        timer.purge_comps()
+
+
 #end of time cycle loop
 f5.close()
 time2 = time.clock()
 print(('CPU time = ',time2-time1))
 
 # ffmpeg -f image2 -r 15 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
+
+
+
+timer.stop("total")
+timer.stats("total")
