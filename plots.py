@@ -23,7 +23,7 @@ rc('text', usetex=True)
 matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 from matplotlib import interactive
 
-interactive(False)
+import glob
 
 ##################################################
 
@@ -456,16 +456,27 @@ def postmaps(infile):
 def somemap(lons, lats, q, outname):
     wnan=np.where(np.isnan(q))
     nnan=np.size(wnan)
+    nlevs=30
+    levs=np.linspace(q.min(), q.max(), nlevs)
     print(outname+" somemap: "+str(nnan)+"NaN points out of "+str(np.size(q)))
+    plt.ioff()
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, q,cmap='hot') #,levels=levs)
+    plt.contourf(lons, lats, q, cmap='hot',levels=levs)
     plt.colorbar()
     plt.xlabel('longitude')
     plt.ylabel('latitude')
     fig.set_size_inches(8, 5)
     plt.savefig(outname)
     plt.close()
+#
+def someplot(x, y, xname='', yname='', prefix='out/', title=''):
+    plt.clf()
+    plt.plot(x, y, ',k')
+    plt.xlabel(xname) ;   plt.ylabel(yname) ; plt.title(title)
+    plt.savefig(prefix+'plot.png')
+    plt.close()
+    
 # general 1D-plot of several quantities as functions of time
 def sometimes(tar, qlist, col=None, linest=None, prefix='out/', title=''):
     nq=np.shape(qlist)[0]
@@ -678,12 +689,38 @@ def plot_saved(infile):
     '''
     
     lines = np.loadtxt(infile, comments="#", delimiter=" ", unpack=False)
-    lats = lines[:,0] ; lons = lines[:,1] ; sig = lines[:,2]
-
+    lats = lines[:,0] ; lons = lines[:,1] ; sig = lines[:,2]; qminus = lines[:,8]
+    divg = lines[:,3] ; vortg = lines[:,4]
+    
     ulons=np.unique(lons) ; ulats=np.unique(lats)
     lons=np.reshape(lons, [np.size(ulats), np.size(ulons)])
     lats=np.reshape(lats, [np.size(ulats), np.size(ulons)])
     sig=np.reshape(sig, [np.size(ulats), np.size(ulons)])
+    qminus=np.reshape(qminus, [np.size(ulats), np.size(ulons)])
+    vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
 
-    somemap(lons, lats, sig, infile+"_sig.png")
+    somemap(lons, lats, np.log(sig), infile+"_sig.png")
+    somemap(lons, lats, qminus, infile+"_qminus.png")
+    somemap(lons, lats, vortg, infile+"_vort.png")
     
+def multiplot_saved(prefix, skip=0):
+
+    flist0 = np.sort(glob.glob(prefix+"[0-9].dat"))
+    flist1 = np.sort(glob.glob(prefix+"[0-9][0-9].dat"))
+    flist2 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9].dat"))
+    flist3 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9].dat"))
+    flist=np.concatenate((flist0, flist1, flist2, flist3))
+    print(flist)
+    nlist = np.size(flist)
+    outdir=os.path.dirname(prefix)
+    
+    for k in np.arange(nlist-skip)+skip:
+        plot_saved(flist[k])
+        print(outdir+'/sig{:05d}'.format(k)+".png")
+        os.system("mv "+flist[k]+"_sig.png"+" "+outdir+'/sig{:05d}'.format(k)+".png")
+        os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
+
+        
+# multiplot_saved('titania/out_twist/runcombine.hdf5_map', skip=7792)
+# multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
+# multiplot_saved('titania/out512/run.hdf5_map', skip=0)

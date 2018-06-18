@@ -79,9 +79,10 @@ if(ifplot):
 
 ############################
 # beta calibration
-bmin=betamin ; bmax=1.-betamin ; nb=1000
+bmin=betamin ; bmax=1.-betamin ; nb=10000
 # hard limits for stability; bmin\sim 1e-7 approximately corresponds to Coulomb coupling G\sim 1,
 # hence there is even certain physical meaning in bmin
+# "beta" part of the main loop is little-time-consuming independently of nb
 b = (bmax-bmin)*(old_div((np.arange(nb)+0.5),np.double(nb)))+bmin
 bx = b/(1.-b)**0.25
 b[0]=0. ; bx[0]=0.  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
@@ -125,7 +126,8 @@ hyperdiff_expanded = ((x.lap/np.abs(x.lap).max()))**(ndiss/2)/efold
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this should work
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 if(efold_diss>0.):
-    diss_diff = np.exp(-(x.lap/np.abs(x.lap).max())**(ndiss/2)*dt/efold_diss) # dissipation is artifitially smoother by a larger amount
+    diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
+#    diss_diff = np.exp(-(x.lap/np.abs(x.lap).max())**(ndiss/2)*dt/efold_diss) # dissipation is artifitially smoother by a larger amount
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
@@ -198,6 +200,7 @@ def sdotsource(lats, lons, latspread, t):
 
 def sdotsink(sigma):
     '''
+    NOT USED NOW!
     sink term in surface density
     sdotsink(sigma) 
     could be made more elaborate
@@ -218,15 +221,12 @@ time1 = time.clock() # time loop
 nout=nrest ;  t=t0 ; tstore=t0 # starting counters
 ncycle=0
 
-
 # Timer for profiling
 timer = Timer(["total", "step", "io"], 
             ["init-grid", "beta", "fluxes", 
              "diffusion","baroclinic", "source-terms",
              "passive-scalar", "time-step", "diffusion2"])
 timer.start("total")
-
-
 
 
 while(t<(tmax+t0)):
@@ -238,11 +238,11 @@ while(t<(tmax+t0)):
 
     vortg = x.sph2grid(vortSpec)
     lsig  = x.sph2grid(sigSpec)
-    sig=np.exp(lsig)
+    sig = np.exp(lsig)
     accflag = x.sph2grid(accflagSpec)
     divg  = x.sph2grid(divSpec)
     lenergyg  = x.sph2grid(energySpec)
-    energyg=np.exp(lenergyg)
+    energyg = np.exp(lenergyg)
     ug,vg = x.getuv(vortSpec,divSpec) # velocity components
 
     timer.stop_comp("init-grid")
@@ -293,23 +293,27 @@ while(t<(tmax+t0)):
     timer.start_comp("fluxes")
 
     # vorticity flux
-    tmpg1 = ug*vortg ;    tmpg2 = vg*vortg
-    ddivdtSpec, dvortdtSpec = x.getVortDivSpec(tmpg1, tmpg2 ) # all the nablas already contain an additional 1/R multiplier
-    dvortdtSpec *= -1
+    #    tmpg1 = ug*vortg ;    tmpg2 = vg*vortg
+    ddivdtSpec, dvortdtSpec = x.getVortDivSpec(ug*vortg, vg*vortg ) # all the nablas already contain an additional 1/R multiplier
+    dvortdtSpec *= -1.
+    #    kenergy = 0.5*(ug**2+vg**2) # kinetic energy per unit mass (merge this with baroclinic term?)
+    #    tmpSpec = x.grid2sph(kenergy) # * hyperdiff_fact
+    # divergence flux
+    ddivdtSpec += - x.lap * x.grid2sph(ug**2+vg**2) / 2.
     #    tmpg = x.sph2grid(ddivdtSpec)
-    tmpg1 = ug*lsig;  tmpg2 = vg*lsig
-    tmpSpec, dsigdtSpec = x.getVortDivSpec(tmpg1, tmpg2 ) # all the nablas should contain an additional 1/R multiplier
+    #    tmpg1 = ug*lsig;  tmpg2 = vg*lsig
+    tmpSpec, dsigdtSpec = x.getVortDivSpec(ug*lsig, vg*lsig ) # all the nablas should contain an additional 1/R multiplier
     dsigdtSpec *= -1.
-    dsigdtSpec+=x.grid2sph((lsig-1.)*divg)
+    dsigdtSpec+=x.grid2sph((lsig-1.) * divg)
     # energy (pressure) flux:
-    tmpg1 = ug*lenergyg; tmpg2 = vg*lenergyg
-    tmpSpec, denergydtSpec = x.getVortDivSpec(tmpg1, tmpg2) # all the nablas should contain an additional 1/R multiplier
+    #    tmpg1 = ug*lenergyg; tmpg2 = vg*lenergyg
+    tmpSpec, denergydtSpec = x.getVortDivSpec(ug*lenergyg, vg*lenergyg) # all the nablas should contain an additional 1/R multiplier
     #    wunbound=np.where(geff>=0.) # extreme case; we can be unbound due to pressure
     denergydtSpec *= -1.
     denergydtSpec += x.grid2sph((lenergyg-1.) * divg)
     #    denergydtSpec0 = denergydtSpec
     #denergyg_adv = x.sph2grid(denergydtSpec) # for debugging
-    
+
     timer.stop_comp("fluxes")
     ##################################################
     # diffusion 
@@ -328,29 +332,21 @@ while(t<(tmax+t0)):
         #    if(np.size(wnan)>0):
         #        dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
-    dissipation=(ug*dissug+vg*dissvg) # -v . dv/dt_diss 
+    dissipation = (ug*dissug+vg*dissvg) # -v . dv/dt_diss 
     # dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
-    kenergy=0.5*(ug**2+vg**2) # kinetic energy per unit mass (merge this with baroclinic term?)
-    #    tmpSpec = x.grid2sph(kenergy) # * hyperdiff_fact
-    ddivdtSpec += - x.lap * x.grid2sph(kenergy)
 
     # energy sources and sinks:   
     qplus = sig * dissipation 
     qminus = (-geff) * sig / 3. / (1.+kappa*sig) * (1.-beta) 
-#    qminus = (-geff) / 3. /kappa*sig * (1.-beta)  # experimental
+    # qminus = (-geff/kappa) / 3.  * (1.-beta)  # there is no much difference in performance
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
-    # unphysically strong dissipation is just assumed to be compensated
-    #    qplus=np.minimum(qplus,qns*100.) 
-    #    qplus=np.maximum(qplus,-qns)
-    
 
     timer.stop_comp("diffusion")
     ##################################################
     # baroclinic terms in vorticity and divirgence:
     timer.start_comp("baroclinic")
 
-    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  # ; grads1, grads2 = x.getGrad(sigSpec)
-    #  * hyperdiff_fact )
+    gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  
     vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig) # each nabla already has its rsphere
     ddivdtSpec += -divpressbarSpec 
     dvortdtSpec += -vortpressbarSpec
@@ -363,24 +359,24 @@ while(t<(tmax+t0)):
     #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
     #    sdotminus=sdotsink(sig)
     #    sdotplus, sina = sdotsource(lats, lons, latspread, t)
-    sdotplus = sdotmax *(1.-np.exp(-t/tturnon))
-    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
-    dsigdtSpec += sdotSpec
+    sdotplus = sdotmax * (1.-np.exp(-t/tturnon))
+    #    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
+    dsigdtSpec += x.grid2sph(sdotplus/sig-1./tdepl)
 
     # source term in vorticity
-    domega=(omega_source-vortg) # difference in net vorticity
+    #    domega=(omega_source-vortg) # difference in net vorticity
     
-    vortdot=sdotplus/sig*domega
-    divdot=-sdotplus/sig*divg
+    vortdot =  sdotplus/sig * (omega_source-vortg)
+    divdot  = -sdotplus/sig * divg
     if(tfric>0.):
         vortdot+=(vortgNS-vortg)/tfric # +sdotminus/sig*vortg
         divdot+=-divg/tfric # friction term for divergence
        
     dvortdtSpec += x.grid2sph(vortdot)
     ddivdtSpec += x.grid2sph(divdot)
-    csqinit_acc = (overkepler*latspread)**2/rsphere
-    beta_acc=1.0
-    thermalterm=(qplus - qminus + qns ) / energyg
+    csqinit_acc = (overkepler*latspread)**2 / rsphere
+    beta_acc = 1.0
+    thermalterm = (qplus - qminus + qns ) / energyg
 
     denergydtaddterms = -divg / 3. /(1.-beta/2.) + \
                         (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  + \
@@ -434,11 +430,11 @@ while(t<(tmax+t0)):
     # passive scalar evolution:
     timer.start_comp("passive-scalar")
 
-    tmpg1 = ug*accflag; tmpg2 = vg*accflag
-    tmpSpec, dacctmp = x.getVortDivSpec(tmpg1,tmpg2)
+    #    tmpg1 = ug*accflag; tmpg2 = vg*accflag
+    tmpSpec, dacctmp = x.getVortDivSpec(ug*accflag,vg*accflag)
     daccflagdtSpec = -dacctmp # a*div(v) - div(a*v)
-    daccflagdt =  (1.-accflag) * sdotplus/sig + accflag * divg 
-    daccflagdtSpec += x.grid2sph(daccflagdt)
+    #    daccflagdt =  (1.-accflag) * sdotplus/sig + accflag * divg 
+    daccflagdtSpec += x.grid2sph((1.-accflag) * sdotplus/sig + accflag * divg)
     
     timer.stop_comp("passive-scalar")
     ##################################################
@@ -459,8 +455,8 @@ while(t<(tmax+t0)):
 
     hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
     sigma_diff = hyperdiff_fact
-    if(efold_diss>0.):
-        diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
+    #   if(efold_diss>0.):
+    #      diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
 
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
@@ -508,7 +504,7 @@ while(t<(tmax+t0)):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      vortg, divg, ug, vg, sig, energyg, beta,
-                     accflag, dissipation, qminus, qplus,
+                     accflag, dissipation, qminus, qplus,sdotplus-sig/tdepl,
                      conf)
         nout += 1
         sys.stdout.flush()
@@ -530,8 +526,6 @@ time2 = time.clock()
 print(('CPU time = ',time2-time1))
 
 # ffmpeg -f image2 -r 15 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
-
-
 
 timer.stop("total")
 timer.stats("total")

@@ -52,16 +52,17 @@ def plotnth(filename, nstep):
     press=energy* 3. * (1.-beta/2.)
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
-    step=3
+    step=5
     nth,nphi=np.shape(lats)
     fmap.write("# map with step = "+str(step)+"\n")
     fmap.write("# t="+str(t)+"\n")
-    fmap.write("# format: lats lons sigma ug vg E diss accflag\n")
+    fmap.write("# format: lats lons sigma digv vortg ug vg E Q- accflag\n")
     for kth in np.arange(0,nth, step):
         for kphi in np.arange(0,nphi, step):
             fmap.write(str(lats[kth,kphi])+" "+str(lons[kth,kphi])+" "+str(sig[kth,kphi])+" "
+                       +str(divg[kth,kphi])+" "+str(vortg[kth,kphi])+" "
                        +str(ug[kth,kphi])+" "+str(vg[kth,kphi])+" "
-                       +str(energy[kth,kphi])+" "+str(diss[kth,kphi])+" "
+                       +str(energy[kth,kphi])+" "+str(qminus[kth,kphi])+" "
                        +str(accflag[kth,kphi])+"\n")
     fmap.flush()
     fmap.close()
@@ -84,7 +85,10 @@ def plotnth(filename, nstep):
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
         plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
         # plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
-
+        j=ug*rsphere*np.cos(lats)
+        plots.someplot(lats, j, xname='lats', yname='$j$', prefix=outdir+'/jacc')
+        plots.someplot(lats, np.log(press/sig)+np.log(j), xname='lats', yname=r'$\ln \Pi/\Sigma$',
+                 prefix=outdir+'/csq')
 # multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):
 
@@ -93,12 +97,8 @@ def multireader(nmin, nmax, infile):
     
     for k in np.arange(nmax-nmin)+nmin:
         plotnth(infile, k)
-        os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
-        os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
-        os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
-#        os.system('cp '+outdir+'/snapshot.eps '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.eps')
-#        os.system('cp '+outdir+'/northpole.eps '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.eps')
-#        os.system('cp '+outdir+'/southpole.eps '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.eps')
-#        os.system('cp '+outdir+'/sgeff.eps '+outdir+'/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
-        print('shot'+str(k).rjust(ndigits, '0')+'.png')
-        
+        if(ifplot):
+            os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
+        print('shot'+str(k).rjust(ndigits, '0'))
