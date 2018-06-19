@@ -83,12 +83,29 @@ def plotnth(filename, nstep):
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
         tbottom=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
-        plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
+        # vortg-2.*omegaNS*np.sin(lats)
+        plots.snapplot(lonsDeg, latsDeg, sig, accflag, teff, xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
         # plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
+        gamma=4./3.
         j=ug*rsphere*np.cos(lats)
-        plots.someplot(lats, j, xname='lats', yname='$j$', prefix=outdir+'/jacc')
-        plots.someplot(lats, np.log(press/sig)+np.log(j), xname='lats', yname=r'$\ln \Pi/\Sigma$',
-                 prefix=outdir+'/csq')
+        geff=1./rsphere**2-(ug**2+vg**2)/rsphere
+        s=np.log(press/sig)-(1.-1./gamma)*np.log(geff)
+        sgrad1, sgrad2 = x.getGrad(x.grid2sph(s))
+        jgrad1, jgrad2 = x.getGrad(x.grid2sph(j))
+        ograd1, ograd2 = x.getGrad(x.grid2sph(np.log(ug/rsphere/np.cos(lats))))
+        kappasq = -2.*ug*np.sin(lats)/np.cos(lats)**2*jgrad2
+        nsq = (ug/rsphere)**2*sgrad2
+        laminst=(2.*np.pi/np.abs(ograd2)).mean(axis=1)
+        dlaminst=(2.*np.pi/np.abs(ograd2)).std(axis=1)
+        rcircle=2.*np.pi*rsphere*np.cos(x.lats)
+        
+        plots.someplot(x.lats*180./np.pi, [laminst, rcircle],
+                       xname='latitude, deg', yname=r'$\lambda_{\rm KH}$', prefix=outdir+'/KH',
+                       fmt=['k.', 'r-'], title='$t = {:6.2f}$\,ms'.format( t*tscale*1e3))
+        plots.someplot(lats, [j], xname='lats', yname='$j$', prefix=outdir+'/jacc')
+        plots.someplot(lats, [kappasq + nsq, -(kappasq+nsq), kappasq, nsq], xname='lats',
+                       yname=r'$\varkappa^2+N^2$',
+                       prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])
 # multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):
 

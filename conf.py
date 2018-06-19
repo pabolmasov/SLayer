@@ -15,14 +15,14 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
+ifrestart=False
 nrest=705 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -36,13 +36,13 @@ rsphere    = 6.04606               # neutron star radius, GM/c**2 units
 pspin      = 0.003                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
-sigmascale = 1e8 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
-sig0       = 0.01                   # own neutron star atmosphere scale
+sigmascale = 1.e8 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
+sig0       = 0.01                  # own neutron star atmosphere scale
 sigfloor = 1e-5*sig0   # minimal initial surface density
 print("rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian")
 print("approximate cell size is dx ~ "+str(rsphere/np.double(nlons)))
 tmax=100.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
-csqmin=1e-6 # speed of sound squared (minimal or isothermal)
+csqmin=1e-7 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
 energyfloor = sigfloor * csqmin
 csqinit=1e-4 # initial speed of sound squared
@@ -67,12 +67,12 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 # Hyperdiffusion
 ##################################################
 efold = 0.1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1e-6 # smoothing the dissipation term when used as a heat source
+efold_diss = 1e-8 # smoothing the dissipation term when used as a heat source
 ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################
 #perturbation parameters
-bump_amp  = -0.05     # perturbation amplitude
+bump_amp  = -0.15     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
@@ -80,17 +80,21 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
+mdotfinal = 1e-9 # Msun/yr, intended mass accretion rate
+# sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.1   # spread in radians
+sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread)
+# 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
+print("conf: sigplus = "+str(sigplus))
 incle     = latspread*0.1 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
 tfric=0.*pspin/tscale
 # depletion of the atmosphere:
-tdepl=20.*pspin/tscale
+tdepl=0.*pspin/tscale
 # smooth turning of the source
-tturnon=tdepl 
+tturnon=100.*pspin/tscale
 
 #####################################################
 # twist test

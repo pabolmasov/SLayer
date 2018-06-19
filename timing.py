@@ -11,7 +11,7 @@ from spharmt import Spharmt
 from scipy.integrate import trapz
 
 # TODO: global parameters should be read from hdf5 rather than taken from conf
-from conf import ifplot 
+from conf import ifplot, mdotfinal
 
 if(ifplot):
     import plots
@@ -114,7 +114,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     newmass_total *= rsphere**2*mass1**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
     mass *= rsphere**2*mass1**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
     newmass *= rsphere**2*mass1**2*2.18082e-2*(sigmascale/1e8) # 10^{20}g
-    mdot *= rsphere**2*mass1**2*(sigmascale/1e8) * 1.58649e-18 / tscale # Msun/yr # check!
+    mdot *= rsphere**2*mass1**2*(sigmascale/1e8) * 0.00702374 # Msun/yr # check!
     meanmass=mass_total.mean() ; stdmass=mass_total.std()
     print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
     angmoz_new *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
@@ -160,33 +160,36 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     if(ifplot): 
         plots.timangle(tar, lats, lons, np.log(sigmaver),
                        np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega)
-        plots.timangle(tar, lats, lons, np.log(omeaver),
+        plots.timangle(tar, lats, lons, omeaver,
                        np.log(omeaver_lon), prefix=outdir+'/ome')
-        plots.sometimes(tar, [mdot], col=['k'], prefix=outdir+'/mdot',
+        plots.sometimes(tar, [mdot, mdot*0.+mdotfinal], fmt=['k.', 'r-'], prefix=outdir+'/mdot',
                         title='mass accretion rate')
-        plots.sometimes(tar, [maxdiss, -mindiss], col=['k', 'r'],
+        plots.sometimes(tar, [maxdiss, -mindiss], fmt=['k', 'r'],
                         prefix=outdir+'/disslimits', title='dissipation limits')
         omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
-        feq=tdepl*mdot/mass_total/tscale*1.58649e-06
-        omegaeq=(omega+omegadisk/feq)*(1.+feq)/(2.*np.pi)
-        print("omegaeq = "+str(omegaeq))
-        plots.sometimes(tar, [omegamean/(2.*np.pi), tar*0.+omega/tscale/(2.*np.pi), tar*0.+omegadisk/(2.*np.pi), omegaeq], col=['k', 'r', 'b', 'g'],
+        feq=(tdepl*tscale)*mdot/mass_total*630322
+        omegaeq=(omega/tscale+omegadisk/feq)*(1.+feq)/(2.*np.pi)
+        print("feq = "+str(feq))
+        plots.sometimes(tar, [omegamean/(2.*np.pi), tar*0.+omega/tscale/(2.*np.pi), tar*0.+omegadisk/(2.*np.pi), omegaeq], fmt=['k', 'r', 'b', 'g'],
                         prefix=outdir+'/omega', title=r'frequency')
         if(sigplus>0.):
-            plots.sometimes(tar, [mass_total, newmass_total, mass, newmass], col=['k', 'k', 'r', 'g']
-                            , linest=['solid', 'dotted', 'solid', 'solid']
+            plots.sometimes(tar, [mass_total, newmass_total, mass, newmass], fmt=['k-', 'k:', 'r-', 'g-']
+                       #     , linest=['solid', 'dotted', 'solid', 'solid']
                             , prefix=outdir+'/m', title=r'mass, $10^{20}$g')
             plots.sometimes(tar, [newmass_total/mass_total], title='mass fraction', prefix=outdir+'/mfraction')
         plots.sometimes(tar, [kenergy+thenergy, thenergy, kenergy, kenergy_v, kenergy_u]
-                        , col=['k', 'r', 'b', 'b', 'b'], linest=['solid', 'solid', 'solid', 'dotted', 'dashed']
+                        , fmt=['k-', 'r-', 'b-', 'b:', 'b--']
+                        #, linest=['solid', 'solid', 'solid', 'dotted', 'dashed']
                         , title=r'energy, $10^{35}$erg', prefix=outdir+'/e')
-        plots.sometimes(tar, [flux, lumtot, heattot], col=['k', 'r', 'r'], linest=['solid', 'solid', 'dashed']
+        plots.sometimes(tar, [flux, lumtot, heattot], fmt=['k-', 'r-', 'r--'] 
+                        #           , linest=['solid', 'solid', 'dashed']
                         , title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
         plots.sometimes(tar, [angmoz_new, newmass_total/2.18082e-2*np.sqrt(rsphere)*mass1*overkepler, angmoz_old]
-                       , col=['k', 'b', 'r'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
+                       , fmt=['k', 'b', 'r'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
                        , prefix=outdir+'/angmoz')
-        plots.sometimes(tar, [tbottom, teff, tbottommin, tbottommax], col=['k', 'r', 'k', 'k']
-                        , linest=['solid', 'solid', 'dotted', 'dotted'], title='$T$, keV', prefix=outdir+'/t')
+        plots.sometimes(tar, [tbottom, teff, tbottommin, tbottommax], fmt=['k-', 'r-', 'k:', 'k:']
+                        # , linest=['solid', 'solid', 'dotted', 'dotted']
+                        , title='$T$, keV', prefix=outdir+'/t')
         print("last Teff = "+str(teff[-1]))
         print("last Tb = "+str(tbottom[-1]))
 

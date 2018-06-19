@@ -359,10 +359,17 @@ while(t<(tmax+t0)):
     #     sdotplus, sina=sdotsource(lats, lons, latspread) # sufficient to calculate once!
     #    sdotminus=sdotsink(sig)
     #    sdotplus, sina = sdotsource(lats, lons, latspread, t)
-    sdotplus = sdotmax * (1.-np.exp(-t/tturnon))
+    if(tturnon>0.):
+        sdotplus = sdotmax * (1.-np.exp(-t/tturnon))
+    else:
+        sdotplus = sdotmax
     #    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
-    dsigdtSpec += x.grid2sph(sdotplus/sig-1./tdepl)
+    if(tdepl>0.):
+        lsdot = sdotplus/sig-1./tdepl
+    else:
+        lsdot = sdotplus/sig
 
+    dsigdtSpec += x.grid2sph(lsdot)
     # source term in vorticity
     #    domega=(omega_source-vortg) # difference in net vorticity
     
@@ -380,7 +387,9 @@ while(t<(tmax+t0)):
 
     denergydtaddterms = -divg / 3. /(1.-beta/2.) + \
                         (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  + \
-                        sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)) / energyg - 1./tdepl                        
+                        sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)) / energyg
+    if(tdepl>0.):
+        denergydtaddterms -= 1./tdepl                        
     if(efold_diss>0.):
         denergydtSpec += x.grid2sph( thermalterm ) *diss_diff + x.grid2sph( denergydtaddterms) 
     else:
@@ -401,7 +410,7 @@ while(t<(tmax+t0)):
         print((-divg * pressg)[wdtspecnan])
         print(((qplus - qminus + qns))[wdtspecnan])
         print((sdotplus*((vg-vd)**2+(ug-ud)**2))[wdtspecnan])
-        print((sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)-sdotminus/sig * energyg)[wdtspecnan])
+#        print((sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)-1./tdepl * energyg)[wdtspecnan])
         print("time from last output "+str(t-tstore+dtout))
         f5.close()
         sys.exit()
@@ -504,7 +513,7 @@ while(t<(tmax+t0)):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      vortg, divg, ug, vg, sig, energyg, beta,
-                     accflag, dissipation, qminus, qplus,sdotplus-sig/tdepl,
+                     accflag, dissipation, qminus, qplus, lsdot*sig,
                      conf)
         nout += 1
         sys.stdout.flush()

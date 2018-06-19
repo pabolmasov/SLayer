@@ -9,8 +9,6 @@ import scipy.interpolate as si
 import scipy.ndimage as nd
 from spharmt import Spharmt 
 
-# outdir = "out" #default output directory
-
 # combine several HDF5 files into one
 def HDFcombine(f5array, otheroutdir=None):
     n=np.size(f5array)
@@ -52,18 +50,23 @@ def saveParams(f5, conf):
     grp0 = f5.create_group("params")
     
     grp0.attrs['nlons']      = conf.nlons
-    grp0.attrs['ntrunc']     = conf.ntrunc
     grp0.attrs['nlats']      = conf.nlats
+    grp0.attrs['ntrunc']     = conf.ntrunc
     grp0.attrs['tscale']     = conf.tscale
 #    grp0.attrs['dt_cfl']     = conf.dt_cfl
 #    grp0.attrs['itmax']      = conf.itmax
     grp0.attrs['rsphere']    = conf.rsphere
     grp0.attrs['pspin']      = conf.pspin
-    grp0.attrs['omega']      = conf.omega
+    grp0.attrs['omega']      = conf.omega # a bit redundant, omega = 2.*np.pi/pspin*tscale
+    grp0.attrs['sigmascale']       = conf.sigmascale
     grp0.attrs['overkepler'] = conf.overkepler
     grp0.attrs['grav']       = conf.grav
     grp0.attrs['sig0']       = conf.sig0
+    grp0.attrs['sigplus']       = conf.sigplus
+    grp0.attrs['latspread']       = conf.latspread
     grp0.attrs['csqmin']         = conf.csqmin
+    grp0.attrs['tfric']         = conf.tfric
+    grp0.attrs['tdepl']         = conf.tdepl
     grp0.attrs['NSmass']         = conf.mass1
 
     f5.flush()
@@ -71,18 +74,30 @@ def saveParams(f5, conf):
 #Save simulation snapshot
 def saveSim(f5, nout, t,
             vortg, divg, ug, vg, sig, energy, beta,
-            accflag, dissipation, qminus, qplus,
+            accflag, dissipation, qminus, qplus, sdot,
             conf):
-    sarea=4.*np.pi/np.double(conf.nlons*conf.nlats)*conf.rsphere**2
-    mass=sig.sum()*sarea
-    #        mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-    #        mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
-    totenergy=(sig*energy+old_div((ug**2+vg**2),2.)).sum()*sarea
+    x = Spharmt(int(conf.nlons),int(conf.nlats),int(old_div(conf.nlons,3)),conf.rsphere,gridtype='gaussian')
+    lons1d = x.lons
+    clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
+    dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(conf.nlats))
+    mass=np.trapz(sig.sum(axis=1), x=-clats1d)*dlons
+    mass_acc=np.trapz((sig*accflag).sum(axis=1), x=-clats1d)*dlons
+    mass_native=np.trapz((sig*(1.-accflag)).sum(axis=1), x=-clats1d)*dlons
+    lumtot=np.trapz(qminus.sum(axis=1), x=-clats1d)*dlons
+    heattot=np.trapz(qplus.sum(axis=1), x=-clats1d)*dlons
+    mdot=np.trapz(sdot.sum(axis=1), x=-clats1d)*dlons
+    #    totenergy=(sig*energy+old_div((ug**2+vg**2),2.)).sum()*sarea
 
     scycle = str(nout).rjust(6, '0')
     grp = f5.create_group("cycle_"+scycle)
     grp.attrs['t']      = t      # time
-    #    grp.attrs['mass']   = mass   # total mass
+    grp.attrs['mass']   = mass   # total mass
+    grp.attrs['newmass']   = mass_acc   # accreted mass
+    grp.attrs['oldmass']   = mass_native   # native mass
+    grp.attrs['lumtot']   = lumtot   # total luminosity
+    grp.attrs['heattot']   = heattot   # total energy released
+    grp.attrs['mdot']   = mdot   # total mass accreted/lost
+    print("f5io: mdot = "+str(mdot*conf.rsphere**2*conf.mass1**2*(conf.sigmascale/1e8) * 0.00702374))
     #    grp.attrs['energy'] = totenergy # total mechanical energy
 
     grp.create_dataset("vortg", data=vortg)
