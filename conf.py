@@ -29,24 +29,23 @@ nlats  = int(nlons/2) # for gaussian grid #
 
 tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
 # itmax  = 10000000    # number of iterations
-outskip= 10000 # how often do we output the snapshots (in dt_CFL)
+outskip= 1000 # how often do we make a simple log output
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 0.003                  # spin period, in seconds
+pspin      = 0.03                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
-sigmascale = 1.e8 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
-sig0       = 0.01                  # own neutron star atmosphere scale
-sigfloor = 1e-5*sig0   # minimal initial surface density
-print("rotation is about "+str(omega*np.sqrt(rsphere))+"Keplerian")
-print("approximate cell size is dx ~ "+str(rsphere/np.double(nlons)))
-tmax=100.*pspin/tscale # we are going to run the simulation for ten(s) of spin periods
-csqmin=1e-7 # speed of sound squared (minimal or isothermal)
+sigmascale = 1.e4 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
+sig0       = 1./sigmascale             # own neutron star atmosphere scale
+print("rotation is about "+str(omega*np.sqrt(rsphere**3))+"Keplerian")
+dt_cfl_factor = 0.5 #  Courant-Friedrichs-Levy's multiplier (<~1) for the time step
+dt_out_factor = 0.5 # output step, in dynamical times
+tmax=100.*pspin/tscale # we are going to run the simulation for some multiple of spin periods
+csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
-energyfloor = sigfloor * csqmin
 csqinit=1e-4 # initial speed of sound squared
-isothermal = False # if we use isothermal or polytropic initial conditions
+isothermal = True # if we use isothermal or polytropic initial conditions
 gammainit = 0. # artificially very stiff EOS, because we want density contrasts to be lower
 kinit = 1e-6 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
 
@@ -66,8 +65,8 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 0.1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1e-8 # smoothing the dissipation term when used as a heat source
+efold = 1. # efolding timescale at ntrunc for hyperdiffusion (in dt units)
+efold_diss = 0.01 # smoothing the dissipation term when used as a heat source
 ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################
@@ -83,7 +82,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 mdotfinal = 1e-9 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.1   # spread in radians
-sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread)
+sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
 incle     = latspread*0.1 # inclination of initial rotation, radians
@@ -93,8 +92,8 @@ overkepler = 0.9     # source term rotation with respect to Kepler
 tfric=0.*pspin/tscale
 # depletion of the atmosphere:
 tdepl=0.*pspin/tscale
-# smooth turning of the source
-tturnon=100.*pspin/tscale
+# turning on the source smoothly
+tturnon=10.*pspin/tscale
 
 #####################################################
 # twist test

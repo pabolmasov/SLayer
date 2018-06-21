@@ -63,6 +63,7 @@ def saveParams(f5, conf):
     grp0.attrs['grav']       = conf.grav
     grp0.attrs['sig0']       = conf.sig0
     grp0.attrs['sigplus']       = conf.sigplus
+    grp0.attrs['mdotfinal']       = conf.mdotfinal
     grp0.attrs['latspread']       = conf.latspread
     grp0.attrs['csqmin']         = conf.csqmin
     grp0.attrs['tfric']         = conf.tfric

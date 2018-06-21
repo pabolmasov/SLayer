@@ -56,30 +56,32 @@ fp.close()
 if not os.path.exists(f5io.outdir):
     os.makedirs(f5io.outdir)
 
+print('output directory '+str(f5io.outdir))
 f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 
 #import simulation parameters to global scope
-from conf import nlons, nlats
-from conf import grav, rsphere, mass1
-from conf import omega, rsphere, sig0, sigfloor, energyfloor, overkepler, tscale
+from conf import nlons, nlats # dimensions of the simulation area
+from conf import grav, rsphere, mass1 # gravity, radius of the star, mass of the star (solar)
+from conf import omega, sig0, overkepler, tscale # star rotation frequency, initial density level, deviation from Kepler for the falling matter
+from conf import dt_cfl_factor, dt_out_factor # scaling for the time steps
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
-from conf import efold, ndiss, efold_diss
-from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # EOS parameters
+from conf import efold, ndiss, efold_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
+from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # physical parameters 
 from conf import isothermal, gammainit, kinit # initial EOS
-from conf import outskip, tmax
-from conf import ifplot
-from conf import sigplus, latspread, incle, slon0, tturnon #source term
+from conf import outskip, tmax # frequency of diagnostic outputs, maximal time
+from conf import ifplot # if we make plots
+from conf import sigplus, latspread, incle, slon0, tturnon # source term
 from conf import ifrestart, nrest, restartfile # restart setup
 from conf import tfric, tdepl # interaction with the NS surface: friction and depletion times
 from conf import iftwist, twistscale # twist test parameters
-# from conf import sigmascale
+# from conf import sigmascale # not used directly
 
 if(ifplot):
     from plots import visualize
 
 ############################
 # beta calibration
-bmin=betamin ; bmax=1.-betamin ; nb=10000
+bmin=betamin ; bmax=1.-betamin ; nb=1000
 # hard limits for stability; bmin\sim 1e-7 approximately corresponds to Coulomb coupling G\sim 1,
 # hence there is even certain physical meaning in bmin
 # "beta" part of the main loop is little-time-consuming independently of nb
@@ -100,20 +102,18 @@ lons,lats = np.meshgrid(x.lons, x.lats)
 # time steps
 dx=np.fabs((lons[1:-1,1:]-lons[1:-1,:-1])*np.cos(lats[1:-1,:-1])).min()/2. * rsphere
 dy=np.fabs(x.lats[1:]-x.lats[:-1]).min()/2. * rsphere
-dt_cfl = 0.5 / (1./dx + 1./dy) # basic CFL limit for light velocity
+dt_cfl = dt_cfl_factor / (1./dx + 1./dy) # basic CFL limit for light velocity
 print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
 dt=dt_cfl 
-dtout=0.25*rsphere**(1.5)/np.sqrt(mass1) # time step for output (we need to resolve the dynamic time scale)
-print("dtout = "+str(dtout)+"GM/c**3 = "+str(dtout*tscale)+"s")
+dt_out=dt_out_factor*rsphere**(1.5)/np.sqrt(mass1) # time step for output (we need to resolve the dynamic time scale)
+print("dt_out = "+str(dt_out)+"GM/c**3 = "+str(dt_out*tscale)+"s")
 #######################################################
 ## initial conditions: ###
 # initial velocity field  (pure rotation)
 ug = omega*np.cos(lats)*rsphere
 vg = 0.00*omega*np.sin(lats)*np.cos(lons)
 if(iftwist):
-    ug *= (lats/twistscale) / np.sqrt(1.+(lats/twistscale)**2)
-# density perturbation
-hbump = bump_amp*np.exp(-((lons-bump_lon0)/bump_dlon)**2/2.)*np.exp(-((lats-bump_lat0)/bump_dlat)**2/2.)
+    ug *= (lats/twistscale) / np.sqrt(1.+(lats/twistscale)**2) # twisted sphere test
 
 # initial vorticity, divergence in spectral space
 vortSpec, divSpec = x.getVortDivSpec(ug,vg) 
@@ -127,13 +127,12 @@ hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this 
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 if(efold_diss>0.):
     diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
-#    diss_diff = np.exp(-(x.lap/np.abs(x.lap).max())**(ndiss/2)*dt/efold_diss) # dissipation is artifitially smoother by a larger amount
+#    diss_diff = np.exp(-(x.lap/np.abs(x.lap).max())**(ndiss/2)*dt/efold_diss) # dissipation is artifitially smoothed by a larger amount
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
 dvortdtSpec = np.zeros(vortSpec.shape, np.complex)
 dsigdtSpec  = np.zeros(vortSpec.shape, np.complex)
-# dpressdtSpec  = np.zeros(vortSpec.shape, np.complex)
 denergydtSpec  = np.zeros(vortSpec.shape, np.complex)
 daccflagdtSpec = np.zeros(vortSpec.shape, np.complex)
 
@@ -145,33 +144,35 @@ else:
     t0=0.
     nrest=0
     # supposedly a stationary solution:
-    if(isothermal):
+    if(isothermal): # works fine if rotation is very slow; otherwise, the contrast in density between the poles and the equator
         sig=sig0*np.exp(-0.5*(omega*rsphere*np.sin(lats))**2/csqinit)
         pressg = sig * csqinit
     else:
-        if(gammainit == 0.):
+        if(gammainit == 0.): # constant-Sigma solution; poles are very cold in this solution, but the contrasts in density are minimal
             print("sigma=const")
             sig=np.cos(lats)*0.+sig0
             pressg=sig*(csqinit+0.5*(omega*rsphere*np.cos(lats))**2)
             #            ii=input("/")
-        else:
+        else: # free gammainit "polytropic" relation \Pi \propto \Sigma^\Gammainit
             sig=(sig0**(gammainit-1.)+0.5*(gammainit-1.)/gammainit*(omega*rsphere*np.cos(lats))**2/kinit)**(1./(gammainit-1.))
             pressg=kinit*sig**gammainit
+    # density perturbation
+    hbump = bump_amp*np.exp(-((lons-bump_lon0)/bump_dlon)**2/2.)*np.exp(-((lats-bump_lat0)/bump_dlat)**2/2.)
     sig*=hbump+1.
     print("sigma = "+str(sig.min())+" to "+str(sig.max()))
     print("press = "+str(pressg.min())+" to "+str(pressg.max()))
-#    sig=x.sph2grid(x.grid2sph(sig))
-#    print("sigma = "+str(sig.min())+" to "+str(sig.max()))
-#    ii=input('s')
+    #    sig=x.sph2grid(x.grid2sph(sig))
+    #    print("sigma = "+str(sig.min())+" to "+str(sig.max()))
+    #    ii=input('s')
     # in pressure, there should not be any strong bumps, as we do not want artificial shock waves
-    geff=-grav+old_div((ug**2+vg**2),rsphere)
-    sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation
+    geff=-grav+(ug**2+vg**2)/rsphere
+    sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation (should there be any?)
     beta = betasolve_p(cssqscale*sig/pressg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, press, geff
     energyg = pressg * 3. * (1.-beta/2.)
-    accflag=hbump*0.
-    
-sigSpec  = x.grid2sph(np.log(sig))
-# pressSpec  = x.grid2sph(pressg)
+    accflag = hbump*0. # initially, the tracer is 0 everywhere
+
+# spectral arrays... 
+sigSpec  = x.grid2sph(np.log(sig)) # we use logarithms of Sigma and E as both quantities always have the same sign but change by several orders of magnitude
 energySpec  = x.grid2sph(np.log(energyg))
 accflagSpec  = x.grid2sph(accflag)
 divSpec  = x.grid2sph(divg)
@@ -180,10 +181,10 @@ vortSpec = x.grid2sph(vortg)
 ###################################################
 # Save simulation setup to file
 f5io.saveParams(f5, conf)
-    
+
 ##################################################
 # source/sink term
-def sdotsource(lats, lons, latspread, t):
+def sdotsource(lats, lons, latspread):
     '''
     source term for surface density:
     lats -- latitudes, radians
@@ -194,8 +195,6 @@ def sdotsource(lats, lons, latspread, t):
     y=np.zeros((nlats,nlons), np.float)
     devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
     y=sigplus*np.exp(-0.5*(devcos/latspread)**2)
-    if((tturnon>0.) & (t>0.)):
-        y*=(1.-np.exp(-t/tturnon)) # smooth turn-on
     return y, devcos
 
 def sdotsink(sigma):
@@ -210,10 +209,13 @@ def sdotsink(sigma):
     else:
         return sigma*0.
 
-# source velocities:
-sdotmax, sina = sdotsource(lats, lons, latspread, -1.)
-omega_source=2.*overkepler/rsphere**1.5*sina
-ud,vd = x.getuv(x.grid2sph(omega_source),x.grid2sph(omega_source)*0.) # velocity components of the source
+# sources:
+sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
+vort_source=2.*overkepler/rsphere**1.5*sina # vorticity source ; divergence source is assumed zero
+ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
+beta_acc = 1. # radiation-dominated matter
+csqinit_acc = (overkepler*latspread)**2 / rsphere
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) # 
 
 # main loop
 time1 = time.clock() # time loop
@@ -230,8 +232,6 @@ timer.start("total")
 
 
 while(t<(tmax+t0)):
-# ncycle in np.arange(itmax+1):
-    # get vort,u,v,sigma on grid
     ##################################################
     # initialize on grid
     timer.start_comp("init-grid")
@@ -249,18 +249,7 @@ while(t<(tmax+t0)):
     ##################################################
 
     geff=-grav+(ug**2+vg**2)/rsphere # effective gravity
-    geff=(geff-np.fabs(geff))/2. # only negative geff
-    #    sigpos=(sig+np.fabs(sig))/2.+sigfloor # we need to exclude negative sigma points from calculation
-    #    energypos=(energyg+np.fabs(energyg))/2.+energyfloor
-    # there could be bias if many sigma<0 points appear
-    if((sig.min()<0.)|(energyg.min()<0.)):
-        print("sigmin = "+str(sig.min()))
-        print("energymin = "+str(energyg.min()))
-        wpressmin=energyg.argmin()
-        print("beta[] = "+str(np.reshape(beta,np.size(beta))[wpressmin]))
-        print("ncycle = "+str(ncycle))
-        f5.close()
-        sys.exit()
+    #    geff=(geff-np.fabs(geff))/2. # only negative geff
 
     ##################################################
     # pressure ratio 
@@ -269,7 +258,7 @@ while(t<(tmax+t0)):
     beta = betasolve_e(cssqscale*sig/energyg*np.sqrt(np.sqrt(-geff*sig))) # beta as a function of sigma, energy, and geff
     wbnan=np.where(np.isnan(beta))
 
-    if(np.size(wbnan)>0):
+    if (np.size(wbnan)>0) | (geff.max()>0.) | (sig.min()<0.) | (energyg.min()<0.):
         print("sigmin = "+str(sig.min()))
         print("energymin = "+str(energyg.min()))
         wpressmin=energyg.argmin()
@@ -283,6 +272,10 @@ while(t<(tmax+t0)):
         print("lenergy = "+str(lenergyg[wbnan]))
         # ii=input("betanan")
         f5.close()
+        if(ifplot):
+            visualize(t, -1, lats, lons, 
+                      vortg, divg, ug, vg, sig, pressg, beta, accflag, qminus, qplus+qns, 
+                      conf, f5io.outdir) # crash visualization
         sys.exit()
     pressg = energyg / 3. / (1.-beta/2.)
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
@@ -328,12 +321,8 @@ while(t<(tmax+t0)):
         dissvortSpec=vortSpec*hyperdiff_expanded #expanded exponential diffusion term
         dissdivSpec=divSpec*hyperdiff_expanded # need to incorporate for omegaNS in the friction term
         
-        #    wnan=np.where(np.isnan(dissvortSpec+dissdivSpec))
-        #    if(np.size(wnan)>0):
-        #        dissvortSpec[wnan]=0. ;  dissdivSpec[wnan]=0.
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
-    dissipation = (ug*dissug+vg*dissvg) # -v . dv/dt_diss 
-    # dissipation = (dissipation + np.fabs(dissipation))/2. # only positive!
+    dissipation = (ug*dissug+vg*dissvg) # -v . dv/dt_diss  # positive if it is real dissipation, because hyperdiff_expanded is positive
 
     # energy sources and sinks:   
     qplus = sig * dissipation 
@@ -361,8 +350,10 @@ while(t<(tmax+t0)):
     #    sdotplus, sina = sdotsource(lats, lons, latspread, t)
     if(tturnon>0.):
         sdotplus = sdotmax * (1.-np.exp(-t/tturnon))
+        energy_source = energy_source_max * (1.-np.exp(-t/tturnon))
     else:
         sdotplus = sdotmax
+        energy_source = energy_source_max 
     #    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
     if(tdepl>0.):
         lsdot = sdotplus/sig-1./tdepl
@@ -371,9 +362,9 @@ while(t<(tmax+t0)):
 
     dsigdtSpec += x.grid2sph(lsdot)
     # source term in vorticity
-    #    domega=(omega_source-vortg) # difference in net vorticity
+    #    domega=(vort_source-vortg) # difference in net vorticity
     
-    vortdot =  sdotplus/sig * (omega_source-vortg)
+    vortdot =  sdotplus/sig * (vort_source-vortg)
     divdot  = -sdotplus/sig * divg
     if(tfric>0.):
         vortdot+=(vortgNS-vortg)/tfric # +sdotminus/sig*vortg
@@ -381,13 +372,10 @@ while(t<(tmax+t0)):
        
     dvortdtSpec += x.grid2sph(vortdot)
     ddivdtSpec += x.grid2sph(divdot)
-    csqinit_acc = (overkepler*latspread)**2 / rsphere
-    beta_acc = 1.0
     thermalterm = (qplus - qminus + qns ) / energyg
-
+    
     denergydtaddterms = -divg / 3. /(1.-beta/2.) + \
-                        (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  + \
-                        sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)) / energyg
+                        (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  +  energy_source) / energyg
     if(tdepl>0.):
         denergydtaddterms -= 1./tdepl                        
     if(efold_diss>0.):
@@ -411,7 +399,7 @@ while(t<(tmax+t0)):
         print(((qplus - qminus + qns))[wdtspecnan])
         print((sdotplus*((vg-vd)**2+(ug-ud)**2))[wdtspecnan])
 #        print((sdotplus*csqinit_acc* 3. * (1.-beta_acc/2.)-1./tdepl * energyg)[wdtspecnan])
-        print("time from last output "+str(t-tstore+dtout))
+        print("time from last output "+str(t-tstore+dt_out))
         f5.close()
         sys.exit()
 
@@ -424,14 +412,14 @@ while(t<(tmax+t0)):
     #    dt_thermal=1./((np.abs(denergydtSpec)/np.abs(energySpec))).mean()
     #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
     dt_accr=1./(np.abs(sdotplus)).max()
-    #    dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+100./dt_thermal+5./dt_accr+1./dtout) # dt_accr may safely equal to inf, checked!
+    dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+1./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked!
     if(dt <= 1e-12):
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
         print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))
         print(" dt(thermal) = "+str(dt_thermal))
         print(" dt(accr) = "+str(dt_accr))
         print("dt = "+str(dt))
-        print("time from last output "+str(t-tstore+dtout))
+        print("time from last output "+str(t-tstore+dt_out))
         f5.close()
         sys.exit()
 
@@ -479,10 +467,11 @@ while(t<(tmax+t0)):
     
     ##################################################
 
-    if(ncycle % (outskip/10) ==0 ): # make sure it's alive
+    if(ncycle % (outskip) ==0 ): # make sure it's alive
         print("lg(E) range "+str(lenergyg.min())+" to "+str(lenergyg.max()))
         print("lg(Sigma) range "+str(lsig.min())+" to "+str(lsig.max()))
         print('t=%10.5f ms' % (t*1e3*tscale))
+        print(" dt(CFL, light) = "+str(dt_cfl))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
         print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))
         print(" dt(thermal) = "+str(dt_thermal))
@@ -502,7 +491,7 @@ while(t<(tmax+t0)):
 
         timer.start("io")
 
-        tstore=t+dtout
+        tstore=t+dt_out
         if(ifplot):
             visualize(t, nout,
                       lats, lons, 

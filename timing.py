@@ -11,7 +11,7 @@ from spharmt import Spharmt
 from scipy.integrate import trapz
 
 # TODO: global parameters should be read from hdf5 rather than taken from conf
-from conf import ifplot, mdotfinal
+from conf import ifplot
 
 if(ifplot):
     import plots
@@ -37,7 +37,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     tscale=params.attrs["tscale"] ; mass1=params.attrs["NSmass"]
     sigmascale=params.attrs["sigmascale"]; sigplus=params.attrs["sigplus"]
     overkepler=params.attrs["overkepler"]; tfric=params.attrs["tfric"]
-    tdepl=params.attrs["tdepl"]
+    tdepl=params.attrs["tdepl"] ; mdotfinal=params.attrs["mdotfinal"]
     # NSmass=params.attrs["mass"]
 #    print(type(nlons))
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
@@ -158,13 +158,13 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     print("total energy changed from "+str(kenergy[0]+thenergy[0])+" to "+str(kenergy[-1]+thenergy[-1])+"\n")
 
     if(ifplot): 
-        plots.timangle(tar, lats, lons, np.log(sigmaver),
+        plots.timangle(tar*1e3, lats, lons, np.log(sigmaver),
                        np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega)
-        plots.timangle(tar, lats, lons, omeaver,
+        plots.timangle(tar*1e3, lats, lons, omeaver,
                        np.log(omeaver_lon), prefix=outdir+'/ome')
-        plots.sometimes(tar, [mdot, mdot*0.+mdotfinal], fmt=['k.', 'r-'], prefix=outdir+'/mdot',
-                        title='mass accretion rate')
-        plots.sometimes(tar, [maxdiss, -mindiss], fmt=['k', 'r'],
+        plots.sometimes(tar*1e3, [mdot, mdot*0.+mdotfinal], fmt=['k.', 'r-']
+                        , prefix=outdir+'/mdot', title='mass accretion rate')
+        plots.sometimes(tar*1e3, [maxdiss, -mindiss], fmt=['k', 'r'],
                         prefix=outdir+'/disslimits', title='dissipation limits')
         omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
         feq=(tdepl*tscale)*mdot/mass_total*630322
@@ -186,7 +186,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
                         , title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
         plots.sometimes(tar, [angmoz_new, newmass_total/2.18082e-2*np.sqrt(rsphere)*mass1*overkepler, angmoz_old]
                        , fmt=['k', 'b', 'r'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
-                       , prefix=outdir+'/angmoz')
+                        , prefix=outdir+'/angmoz', ylog=False)
         plots.sometimes(tar, [tbottom, teff, tbottommin, tbottommax], fmt=['k-', 'r-', 'k:', 'k:']
                         # , linest=['solid', 'solid', 'dotted', 'dotted']
                         , title='$T$, keV', prefix=outdir+'/t')

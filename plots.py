@@ -258,22 +258,13 @@ def visualize(t, nout,
                  beta, 
                  0., 1., 
                  title=r'$\beta$')
-
-#    visualizeSprofile(axs[3], 
-#                      latsDeg, 
-#                      divg, 
-#                      title=r"$(\nabla \cdot v)$")
-    # sigma
-    sigpos=old_div((sig+np.fabs(sig)),2.)+cf.sigfloor
-#    sig_init_base = cf.sig0*np.exp(0.5*(cf.omega*cf.rsphere*np.cos(lats))**2/cf.csqinit)
-    # cf.sig0*np.exp(-(cf.omega*cf.rsphere)**2/cf.csqmin/2.*(1.-np.cos(lats)))
-
+# surface density 
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
-                 np.log(sigpos),  
-                 np.log(sigpos.min()*0.9),  np.log(sigpos.max()*1.1),  
+                 sig*cf.sigmascale,  
+                 sig.min()*0.9*cf.sigmascale,  sig.max()*1.1*cf.sigmascale,  
                  title=r'$\Sigma$')
-#    axs[4].plot([tanrat(angmox, angmoy)*180./np.pi], [np.arcsin(angmoz/vangmo)*180./np.pi], 'or')
+# accretion tracer countour (one half)
     axs[4].contour(
         lonsDeg,
         latsDeg,
@@ -285,12 +276,12 @@ def visualize(t, nout,
 
     visualizeTwoprofiles(axs[5], 
                          lonsDeg, latsDeg, 
-                         sigpos*cf.sigmascale, 
-                         sigpos*accflag*cf.sigmascale, 
+                         sig*cf.sigmascale, 
+                         sig*accflag*cf.sigmascale, 
                          title1=r"$\Sigma$", 
                          title2=r"${\rm g \,cm^{-2}}$",
-                         log=True)
-    #passive scalar
+                         log=False)
+    #tracer map
     visualizeMap(axs[6], lonsDeg, latsDeg, 
                  accflag, -0.1, 1.1, title=r'tracer')
 #    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')
@@ -472,15 +463,16 @@ def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plo
     plt.clf()
     for k in np.arange(nq):
         plt.plot(x, qlist[k], fmt[k])
-    plt.yscale('log')
+    if(ylog):
+        plt.yscale('log')
     plt.xlabel(xname) ;   plt.ylabel(yname) ; plt.title(title)
     plt.savefig(prefix+postfix+'.eps')
     plt.savefig(prefix+postfix+'.png')
     plt.close()
     
 # general 1D-plot of several quantities as functions of time
-def sometimes(tar, qlist, fmt=None, prefix='out/', title=''):
-    someplot(tar, qlist, xname='$t$, s', prefix=prefix, title=title, postfix='curves', fmt=fmt)
+def sometimes(tar, qlist, fmt=None, prefix='out/', title='', ylog=True):
+    someplot(tar, qlist, xname='$t$, ms', prefix=prefix, title=title, postfix='curves', fmt=fmt, ylog=ylog)
     
 ########################################################################
 # post-processing of remotely produced light curves and spectra
@@ -612,7 +604,7 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.clf()
     plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=np.linspace(qth.min(), qth.max(), 30), cmap='hot')
     plt.colorbar()
-    plt.xlabel('$t$')
+    plt.xlabel('$t$, ms')
     plt.ylabel('latitude')
     plt.savefig(prefix+'_tth.eps')
     plt.savefig(prefix+'_tth.png')
@@ -623,7 +615,7 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
         plt.plot(tar, (omega*tar % (2.*np.pi))*180./np.pi, color='k')
     #    plt.colorbar()
     plt.ylim(0.,360.)
-    plt.xlabel('$t$, s', fontsize=20)
+    plt.xlabel('$t$, ms', fontsize=20)
     plt.ylabel('longitude', fontsize=20)
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
