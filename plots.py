@@ -170,7 +170,7 @@ def visualize(t, nout,
               lats, lons, 
               vortg, divg, ug, vg, sig, press, beta, accflag, qminus, qplus,
               cf, outdir):
-    energy= old_div(press, (3. * (1.-old_div(beta,2.))))# (ug**2+vg**2)/2.
+    energy= press/(3. * (1.-beta/2.))
     #prepare figure etc
     fig = plt.figure(figsize=(10,10))
     gs = plt.GridSpec(5, 10)
@@ -258,13 +258,13 @@ def visualize(t, nout,
                  beta, 
                  0., 1., 
                  title=r'$\beta$')
-# surface density 
+
     visualizeMap(axs[4], 
                  lonsDeg, latsDeg, 
                  sig*cf.sigmascale,  
                  sig.min()*0.9*cf.sigmascale,  sig.max()*1.1*cf.sigmascale,  
                  title=r'$\Sigma$')
-# accretion tracer countour (one half)
+
     axs[4].contour(
         lonsDeg,
         latsDeg,
@@ -280,8 +280,8 @@ def visualize(t, nout,
                          sig*accflag*cf.sigmascale, 
                          title1=r"$\Sigma$", 
                          title2=r"${\rm g \,cm^{-2}}$",
-                         log=False)
-    #tracer map
+                         log=True)
+    #passive scalar
     visualizeMap(axs[6], lonsDeg, latsDeg, 
                  accflag, -0.1, 1.1, title=r'tracer')
 #    axs[6].plot([(np.pi/2.-np.arctan(angmoy/vangmo))*180./np.pi], [np.arcsin(angmoz/angmox)*180./np.pi], 'or')

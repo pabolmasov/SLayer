@@ -184,9 +184,15 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plots.sometimes(tar, [flux, lumtot, heattot], fmt=['k-', 'r-', 'r--'] 
                         #           , linest=['solid', 'solid', 'dashed']
                         , title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
-        plots.sometimes(tar, [angmoz_new, newmass_total/2.18082e-2*np.sqrt(rsphere)*mass1*overkepler, angmoz_old]
-                       , fmt=['k', 'b', 'r'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
-                        , prefix=outdir+'/angmoz', ylog=False)
+        if(sigplus>0.):
+            plots.sometimes(tar, [angmoz_new, angmoz_old, angmoz_new+angmoz_old]
+                            , fmt=['-b', '-r', '-k'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
+                            , prefix=outdir+'/angmoz', ylog=True)
+        else:
+            plots.sometimes(tar, [angmoz_new+angmoz_old], fmt=['-k']
+                            , title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
+                            , prefix=outdir+'/angmoz', ylog=False)
+            
         plots.sometimes(tar, [tbottom, teff, tbottommin, tbottommax], fmt=['k-', 'r-', 'k:', 'k:']
                         # , linest=['solid', 'solid', 'dotted', 'dotted']
                         , title='$T$, keV', prefix=outdir+'/t')

@@ -32,10 +32,7 @@ from spharmt import Spharmt
 import f5io as f5io #module for file I/O
 import conf as conf #importing simulation setup module
 
-
 from timer import Timer
-
-
 
 ####################################
 # extra arguments (allow to run several slayers in parallel and write results to arbitrary output directories)
@@ -63,7 +60,7 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 from conf import nlons, nlats # dimensions of the simulation area
 from conf import grav, rsphere, mass1 # gravity, radius of the star, mass of the star (solar)
 from conf import omega, sig0, overkepler, tscale # star rotation frequency, initial density level, deviation from Kepler for the falling matter
-from conf import dt_cfl_factor, dt_out_factor # scaling for the time steps
+from conf import ifscaledt, dt_cfl_factor, dt_out_factor # scaling for the time steps
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import efold, ndiss, efold_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin # physical parameters 
@@ -122,7 +119,14 @@ vortgNS = x.sph2grid(vortSpec) # rotation of the neutron star
 divg  = x.sph2grid(divSpec)
 
 # create (hyper)diffusion factor; normal diffusion corresponds to ndiss=2 (x.lap is already nabla^2)
-hyperdiff_expanded = ((x.lap/np.abs(x.lap).max()))**(ndiss/2)/efold
+# print(x.lap)
+lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
+lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
+#  print('laplacians from '+str(lapmin)+' to '+str(lapmax))
+# ii=input('posa')
+hyperdiff_expanded = ((x.lap/lapmax)**(ndiss/2)-(lapmin/lapmax)**(ndiss/2))/efold
+hyperdiff_expanded = np.maximum(hyperdiff_expanded, 0.)
+# print(hyperdiff_expanded)
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this should work
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 if(efold_diss>0.):
@@ -412,7 +416,10 @@ while(t<(tmax+t0)):
     #    dt_thermal=1./((np.abs(denergydtSpec)/np.abs(energySpec))).mean()
     #    if( dt_thermal <= (10. * dt) ): # very rapid thermal evolution; we can artificially decrease the time step
     dt_accr=1./(np.abs(sdotplus)).max()
-    dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+1./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked!
+    if(ifscaledt):
+        dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
+    else:
+        dt=dt_cfl
     if(dt <= 1e-12):
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
         print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))
