@@ -35,7 +35,7 @@ def plotnth(filename, nstep):
     outdir=os.path.dirname(filename)
     f = h5py.File(filename,'r')
     params=f["params"]
-    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] 
+    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; tscale=params.attrs["tscale"]
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
     lons1d = x.lons # (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
@@ -55,7 +55,7 @@ def plotnth(filename, nstep):
     step=5
     nth,nphi=np.shape(lats)
     fmap.write("# map with step = "+str(step)+"\n")
-    fmap.write("# t="+str(t)+"\n")
+    fmap.write("# t="+str(t*tscale)+"\n")
     fmap.write("# format: lats lons sigma digv vortg ug vg E Q- accflag\n")
     for kth in np.arange(0,nth, step):
         for kphi in np.arange(0,nphi, step):

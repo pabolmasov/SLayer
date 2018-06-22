@@ -612,7 +612,9 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     fig=plt.figure()
     plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30),cmap='hot')
     if(omega != None):
-        plt.plot(tar, (omega*tar % (2.*np.pi))*180./np.pi, color='k')
+        tnorm=omega*tar
+        for k in np.arange(np.floor(tnorm.max())):
+            plt.plot(tar, tnorm*180./np.pi-360.*k, color='k')
     #    plt.colorbar()
     plt.ylim(0.,360.)
     plt.xlabel('$t$, ms', fontsize=20)

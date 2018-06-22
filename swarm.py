@@ -125,7 +125,7 @@ lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
 #  print('laplacians from '+str(lapmin)+' to '+str(lapmax))
 # ii=input('posa')
 hyperdiff_expanded = ((x.lap/lapmax)**(ndiss/2)-(lapmin/lapmax)**(ndiss/2))/efold
-hyperdiff_expanded = np.maximum(hyperdiff_expanded, 0.)
+# hyperdiff_expanded = np.maximum(hyperdiff_expanded, 0.)
 # print(hyperdiff_expanded)
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this should work
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
@@ -155,7 +155,7 @@ else:
         if(gammainit == 0.): # constant-Sigma solution; poles are very cold in this solution, but the contrasts in density are minimal
             print("sigma=const")
             sig=np.cos(lats)*0.+sig0
-            pressg=sig*(csqinit+0.5*(omega*rsphere*np.cos(lats))**2)
+            pressg=sig*(csqinit+0.5*(omega*rsphere*np.cos(lats))**2) # check this formula!
             #            ii=input("/")
         else: # free gammainit "polytropic" relation \Pi \propto \Sigma^\Gammainit
             sig=(sig0**(gammainit-1.)+0.5*(gammainit-1.)/gammainit*(omega*rsphere*np.cos(lats))**2/kinit)**(1./(gammainit-1.))
@@ -327,11 +327,11 @@ while(t<(tmax+t0)):
         
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
     dissipation = (ug*dissug+vg*dissvg) # -v . dv/dt_diss  # positive if it is real dissipation, because hyperdiff_expanded is positive
-
+    #    lost_angmoz = sig * dissug * np.sin(lats) * rsphere # angular momentum loss (z component)
     # energy sources and sinks:   
     qplus = sig * dissipation 
-    qminus = (-geff) * sig / 3. / (1.+kappa*sig) * (1.-beta) 
-    # qminus = (-geff/kappa) / 3.  * (1.-beta)  # there is no much difference in performance
+    # qminus = (-geff) * sig / 3. / (1.+kappa*sig) * (1.-beta) 
+    qminus = (-geff/kappa) / 3.  * (1.-beta)  # there is no much difference in performance
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
 
     timer.stop_comp("diffusion")

@@ -159,7 +159,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
 
     if(ifplot): 
         plots.timangle(tar*1e3, lats, lons, np.log(sigmaver),
-                       np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega)
+                       np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega/1e3/tscale)
         plots.timangle(tar*1e3, lats, lons, omeaver,
                        np.log(omeaver_lon), prefix=outdir+'/ome')
         plots.sometimes(tar*1e3, [mdot, mdot*0.+mdotfinal], fmt=['k.', 'r-']
