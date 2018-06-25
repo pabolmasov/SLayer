@@ -124,7 +124,7 @@ lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
 lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
 #  print('laplacians from '+str(lapmin)+' to '+str(lapmax))
 # ii=input('posa')
-hyperdiff_expanded = ((x.lap/lapmax)**(ndiss/2)-(lapmin/lapmax)**(ndiss/2))/efold
+hyperdiff_expanded = (x.lap/lapmax)**(ndiss/2)/efold
 # hyperdiff_expanded = np.maximum(hyperdiff_expanded, 0.)
 # print(hyperdiff_expanded)
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this should work
@@ -371,8 +371,8 @@ while(t<(tmax+t0)):
     vortdot =  sdotplus/sig * (vort_source-vortg)
     divdot  = -sdotplus/sig * divg
     if(tfric>0.):
-        vortdot+=(vortgNS-vortg)/tfric # +sdotminus/sig*vortg
-        divdot+=-divg/tfric # friction term for divergence
+        vortdot += (vortgNS-vortg)/tfric # +sdotminus/sig*vortg
+        divdot  += -divg/tfric # friction term for divergence
        
     dvortdtSpec += x.grid2sph(vortdot)
     ddivdtSpec += x.grid2sph(divdot)
@@ -487,8 +487,6 @@ while(t<(tmax+t0)):
         time2 = time.clock()
         print('simulation time = '+str(time2-time1)+'s')
         print("about "+str(t/tmax*100.)+"% done") 
-
-
 
     ##################################################
     # I/O

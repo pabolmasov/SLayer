@@ -126,6 +126,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
             vmax=vmax,
             cmap='hot',
             )
+    ax.set_xlim(-180,180) ; ax.set_ylim(-90,90)
     plt.colorbar(pc, ax=ax)
     #ax.axis('equal')
 
@@ -164,6 +165,7 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
         color='k',
         scale=8.0,
     )
+    ax.set_xlim(-180,180) ; ax.set_ylim(-90,90)
 
 # main real-time visualization routine:
 def visualize(t, nout,
@@ -684,7 +686,7 @@ def plot_saved(infile):
     somemap(lons, lats, qminus, infile+"_qminus.png")
     somemap(lons, lats, vortg, infile+"_vort.png")
     
-def multiplot_saved(prefix, skip=0):
+def multiplot_saved(prefix, skip=0, step=1):
 
     flist0 = np.sort(glob.glob(prefix+"[0-9].dat"))
     flist1 = np.sort(glob.glob(prefix+"[0-9][0-9].dat"))
@@ -695,7 +697,7 @@ def multiplot_saved(prefix, skip=0):
     nlist = np.size(flist)
     outdir=os.path.dirname(prefix)
     
-    for k in np.arange(nlist-skip)+skip:
+    for k in np.arange(skip, nlist, step):
         plot_saved(flist[k])
         print(outdir+'/sig{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_sig.png"+" "+outdir+'/sig{:05d}'.format(k)+".png")

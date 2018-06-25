@@ -9,6 +9,7 @@ import h5py
 from spharmt import Spharmt 
 
 from scipy.integrate import trapz
+from scipy.interpolate import interp1d
 
 # TODO: global parameters should be read from hdf5 rather than taken from conf
 from conf import ifplot
@@ -41,7 +42,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     # NSmass=params.attrs["mass"]
 #    print(type(nlons))
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
-    lons1d = x.lons
+    lons1d = x.lons ; lats1d = x.lats
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
     dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
@@ -81,32 +82,66 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
         #        print np.shape(energy)
         press = energy* 3. * (1.-beta/2.)
+        dimsequal = (np.shape(sig)[0] == nlats)
+        if dimsequal:
+            x1= x
+            lons1 = lons ; lats1 = lats
+            dlons1 = dlons ; dlats1 = dlats
+            lons1d1 = lons1d ; lats1d1 = lats1d
+            clats1d1 = clats1d
+            cosa1 = cosa
+        else:
+            # if the sizes of individual entries are unequal
+            #            print("dimensions changed to "+str(np.shape(sig)))
+            nlats1, nlons1 = np.shape(sig)
+            x1 = Spharmt(int(nlons1),int(nlats1),int(old_div(nlons1,3)),rsphere,gridtype='gaussian')
+            lons1d1 = x1.lons ; lats1d1 = x1.lats
+            clats1d1 = np.sin(x1.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
+            lons1,lats1 = np.meshgrid(lons1d1, np.arccos(clats1d1))
+            dlons1=2.*np.pi/np.size(lons1d1) ; dlats1=old_div(2.,np.double(nlats1))
+            cosa1=np.cos(lats1)*np.cos(lat0)+np.sin(lats1)*np.sin(lat0)*np.cos(lons1-lon0)
+            cosa1=(cosa1+np.fabs(cosa1))/2. # viewing angle positive (visible) or zero (invisible side)
+
         tar[k]=data.attrs["t"] ; mdot[k]=data.attrs['mdot']
         print("entrance "+keys[k]+", dimensions "+str(np.shape(energy)))
-        flux[k]=trapz((qminus*cosa).sum(axis=1), x=-clats1d)*dlons
+        flux[k]=trapz((qminus*cosa1).sum(axis=1), x=-clats1d1)*dlons1
         lumtot[k]=data.attrs['lumtot']
         heattot[k]=data.attrs['heattot']
+        #        lumtot[k]=trapz(qminus.sum(axis=1), x=-clats1d)*dlons
+        #        heattot[k]=trapz(qplus.sum(axis=1), x=-clats1d)*dlons
         mass_total[k]=data.attrs['mass']
         newmass_total[k]=data.attrs['newmass']
-        mass[k]=trapz((sig*cosa).sum(axis=1), x=-clats1d)*dlons
-        newmass[k]=trapz((accflag*sig*cosa).sum(axis=1), x=-clats1d)*dlons
-        kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
-        kenergy_u[k]=trapz(((ug**2)*sig).sum(axis=1), x=-clats1d)*dlons/2.
-        kenergy_v[k]=trapz((vg**2*sig).sum(axis=1), x=-clats1d)*dlons/2.
-        thenergy[k]=trapz(energy.sum(axis=1), x=-clats1d)*dlons
-        angmoz_new[k]=trapz((sig*ug*np.sin(lats)*accflag).sum(axis=1), x=-clats1d)*dlons
-        angmoz_old[k]=trapz((sig*ug*np.sin(lats)*(1.-accflag)).sum(axis=1), x=-clats1d)*dlons
+        mass[k]=trapz((sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
+        newmass[k]=trapz((accflag*sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
+        kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d1)*dlons1/2.
+        kenergy_u[k]=trapz(((ug**2)*sig).sum(axis=1), x=-clats1d1)*dlons1/2.
+        kenergy_v[k]=trapz((vg**2*sig).sum(axis=1), x=-clats1d1)*dlons1/2.
+        thenergy[k]=trapz(energy.sum(axis=1), x=-clats1d1)*dlons1
+        angmoz_new[k]=trapz((sig*ug*np.sin(lats1)*accflag).sum(axis=1), x=-clats1d1)*dlons1
+        angmoz_old[k]=trapz((sig*ug*np.sin(lats1)*(1.-accflag)).sum(axis=1), x=-clats1d1)*dlons1
         csqmap=press/sig*(4.+beta)/3. ;    meancs[k]=np.sqrt(csqmap.mean())
         tbottom[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).mean()
         tbottommin[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).min()
         tbottommax[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).max()
         teff[k]=(qminus.mean()*sigmascale/mass1)**0.25*3.64
         maxdiss[k]=diss.max() ;     mindiss[k]=diss.min()
-        sigmaver[:,k]=(sig).mean(axis=1)/sig.mean()
-        omeaver[:,k]=(sig*ug/np.sin(lats)).mean(axis=1)/sig.mean() /rsphere
-        omeaver_lon[:,k]=(sig*ug/np.sin(lats)).mean(axis=0)/sig.mean() /rsphere
-        sigmaver_lon[:,k]=(sig).mean(axis=0)/sig.mean()
-        omegamean[k]=trapz((ug/np.sin(lats)*sig).sum(axis=1), x=-clats1d)*dlons / mass_total[k] /rsphere
+        if(dimsequal):
+            sigmaver[:,k]=(sig).mean(axis=1)/sig.mean()
+            omeaver[:,k]=(sig*ug/np.sin(lats1)).mean(axis=1)/sig.mean() /rsphere
+            omeaver_lon[:,k]=(sig*ug/np.sin(lats1)).mean(axis=0)/sig.mean() /rsphere
+            sigmaver_lon[:,k]=(sig).mean(axis=0)/sig.mean()
+        else:
+            # if dimensions are not equal, and we need to interpolate
+            #            print("size (lats1) = "+str(np.size(lats1)))
+            averfun = interp1d(lats1d1, (sig).mean(axis=1)/sig.mean(), kind='linear')
+            sigmaver[:,k] = averfun(lats1d)
+            averfun = interp1d(lats1d1, (sig*ug/np.sin(lats1)).mean(axis=1)/sig.mean() /rsphere, kind='linear')
+            omeaver[:,k] = averfun(lats1d)
+            averfun = interp1d(lons1d1, (sig).mean(axis=0)/sig.mean(), kind='linear')
+            sigmaver_lon[:,k] = averfun(lons1d)
+            averfun = interp1d(lons1d1, (sig*ug/np.sin(lats1)).mean(axis=0)/sig.mean() /rsphere, kind='linear')
+            omeaver_lon[:,k] = averfun(lons1d)
+        omegamean[k]=trapz((ug/np.sin(lats1)*sig).sum(axis=1), x=-clats1d1)*dlons1 / mass_total[k] /rsphere
     f.close() 
     tar*=tscale 
     # mass consistency:
@@ -121,6 +156,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     angmoz_old *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     flux *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s apparent luminosity
     lumtot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total luminosity
+    heattot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total luminosity
     kenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
@@ -181,7 +217,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
                         , fmt=['k-', 'r-', 'b-', 'b:', 'b--']
                         #, linest=['solid', 'solid', 'solid', 'dotted', 'dashed']
                         , title=r'energy, $10^{35}$erg', prefix=outdir+'/e')
-        plots.sometimes(tar, [flux, lumtot, heattot], fmt=['k-', 'r-', 'r--'] 
+        plots.sometimes(tar, [flux, lumtot, heattot], fmt=['k-', 'r-', 'g--'] 
                         #           , linest=['solid', 'solid', 'dashed']
                         , title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
         if(sigplus>0.):
@@ -232,7 +268,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         fsp=np.fft.rfft(flux[wwindow]/flux.std()) ;   fspm=np.fft.rfft(mass[wwindow]/mass.std())
         fspn=np.fft.rfft(newmass[wwindow]/mass.std()) # note we normalize for total mass variation; if sigplus===0, does not make sense but does not invoke errors
         freq = np.fft.rfftfreq(wsize, tspan/np.double(nsize)) # frequency grid (different for all the time bins)
-        pds=np.abs(fsp*freq)**2  ;   pdsm=np.abs(fspm*freq)**2 ;   pdsn=np.abs(fspn*freq)**2
+        pds=np.abs(fsp*freq)**2  ;   pdsm=np.abs(fspm*freq)**2 ;   pdsn=np.abs(fspn*freq)**2 # note we mutiply by f^2 to remove the overall \propto f^{-2} trend, that makes the peaks distinguishable
         
         for kb in np.arange(nbins):
             freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
@@ -402,5 +438,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/run.hdf5', np.pi/2., 0., ntimes=5, nbins=30)
+fluxest('out/runcombine.hdf5', np.pi/2., 0., ntimes=5, nbins=30)
 # meanmaps('out/run.hdf5', 1000, 2000)

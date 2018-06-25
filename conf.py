@@ -15,14 +15,14 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=False
-nrest=705 # number of output entry for restart
+ifrestart=True
+nrest=4564 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 128          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -66,8 +66,8 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 0.1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1.e-8 # smoothing the dissipation term when used as a heat source
+efold = 0.01 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
+efold_diss = 1e-4 # smoothing the dissipation term when used as a heat source
 ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################
@@ -80,7 +80,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 1.e-3 # Msun/yr, intended mass accretion rate
+mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.1   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
