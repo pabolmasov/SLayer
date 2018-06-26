@@ -16,13 +16,13 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=True
-nrest=4564 # number of output entry for restart
+nrest=123 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -67,7 +67,7 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 # Hyperdiffusion
 ##################################################
 efold = 0.01 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1e-4 # smoothing the dissipation term when used as a heat source
+efold_diss = 0. # smoothing the dissipation term when used as a heat source
 ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################

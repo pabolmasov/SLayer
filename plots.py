@@ -610,6 +610,7 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.ylabel('latitude')
     plt.savefig(prefix+'_tth.eps')
     plt.savefig(prefix+'_tth.png')
+    plt.close()
     plt.clf()
     fig=plt.figure()
     plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30),cmap='hot')
@@ -627,7 +628,8 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     fig.tight_layout()
     plt.savefig(prefix+'_tphi.eps')
     plt.savefig(prefix+'_tphi.png')
-        
+    plt.close()
+    
 # a wrapper for timangle
 def plot_timangle(prefix='out/'):
     '''
@@ -708,3 +710,9 @@ def multiplot_saved(prefix, skip=0, step=1):
 # multiplot_saved('titania/out_twist/runcombine.hdf5_map', skip=7792)
 # multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
 # multiplot_saved('titania/out512/run.hdf5_map', skip=0)
+# multiplot_saved('titania/out_ND/run.hdf5_map', skip=0, step=10)
+# FFplot(prefix='titania/out_ND/diss_')
+# dynsplot(infile="titania/out_ND/pds_diss")
+# dynsplot(infile="titania/out_ND/pds_mass")
+# pdsplot(infile="titania/out_ND/pdstots_diss")
+# pdsplot(infile="titania/out_ND/pdstots_mass")

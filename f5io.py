@@ -80,12 +80,13 @@ def saveSim(f5, nout, t,
     x = Spharmt(int(conf.nlons),int(conf.nlats),int(old_div(conf.nlons,3)),conf.rsphere,gridtype='gaussian')
     lons1d = x.lons
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
-    dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(conf.nlats))
+    dlons=2.*np.pi/np.double(conf.nlons) ; dlats=2./np.double(conf.nlats)
     mass=np.trapz(sig.sum(axis=1), x=-clats1d)*dlons
     mass_acc=np.trapz((sig*accflag).sum(axis=1), x=-clats1d)*dlons
     mass_native=np.trapz((sig*(1.-accflag)).sum(axis=1), x=-clats1d)*dlons
     lumtot=np.trapz(qminus.sum(axis=1), x=-clats1d)*dlons
     heattot=np.trapz(qplus.sum(axis=1), x=-clats1d)*dlons
+    print("f5io: lumtot = "+str(lumtot)+"; heattot = "+str(heattot))
     mdot=np.trapz(sdot.sum(axis=1), x=-clats1d)*dlons
     #    totenergy=(sig*energy+old_div((ug**2+vg**2),2.)).sum()*sarea
 
@@ -142,19 +143,21 @@ def restart(restartfile, nrest, conf):
         # interpolation:
         vortfun =  si.interp2d(x1.lons, x1.lats, -vortg1, kind='linear')
         divfun =  si.interp2d(x1.lons, x1.lats, divg1, kind='linear')
-        sigfun =  si.interp2d(x1.lons, x1.lats, sig1, kind='linear')
-        energyfun =  si.interp2d(x1.lons, x1.lats, energy1, kind='linear')
+        sigfun =  si.interp2d(x1.lons, x1.lats, np.log(sig1), kind='linear')
+        energyfun =  si.interp2d(x1.lons, x1.lats, np.log(energy1), kind='linear')
         accflagfun =  si.interp2d(x1.lons, x1.lats, accflag1, kind='linear')
-        vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = sigfun(x.lons, x.lats) ; energyg = energyfun(x.lons, x.lats) ; accflag = accflagfun(x.lons, x.lats)
+        vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = np.exp(sigfun(x.lons, x.lats)) ; energyg = np.exp(energyfun(x.lons, x.lats)) ; accflag = accflagfun(x.lons, x.lats)
         # accflag may be smoothed without any loss of generality or stability
         dlats=old_div(np.pi,np.double(conf.nlats)) ;  dlons=2.*np.pi/np.double(conf.nlons) # approximate size in latitudinal and longitudinal directions
         print("smoothing accflag")
-        accflag = nd.filters.gaussian_filter(accflag, old_div(2.,(old_div(1.,dlats)+old_div(1.,dlons))), mode='constant') # smoothing
         w1=np.where(accflag > 1.) ; w0=np.where(accflag <0.)
         if(np.size(w1)>0):
             accflag[w1]=1.
         if(np.size(w0)>0):
             accflag[w0]=0. 
+        accflag = nd.filters.gaussian_filter(accflag,
+                                             2./(1./dlats+1./dlons),
+                                             mode='constant') # smoothing
         print("restart: restore and interpolation finished")
     else:
         vortg = data["vortg"][:]

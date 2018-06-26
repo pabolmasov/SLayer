@@ -217,7 +217,7 @@ def sdotsink(sigma):
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
 vort_source=2.*overkepler/rsphere**1.5*sina # vorticity source ; divergence source is assumed zero
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
-beta_acc = 1. # radiation-dominated matter
+beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
 energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) # 
 
@@ -331,9 +331,8 @@ while(t<(tmax+t0)):
     # energy sources and sinks:   
     qplus = sig * dissipation 
     # qminus = (-geff) * sig / 3. / (1.+kappa*sig) * (1.-beta) 
-    qminus = (-geff/kappa) / 3.  * (1.-beta)  # there is no much difference in performance
+    qminus = (-geff/kappa) * (1.-beta)  # vertical integration excludes rho or sigma; no 3 here (see section "vertical structure" in the paper)
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
-
     timer.stop_comp("diffusion")
     ##################################################
     # baroclinic terms in vorticity and divirgence:
@@ -380,6 +379,7 @@ while(t<(tmax+t0)):
     
     denergydtaddterms = -divg / 3. /(1.-beta/2.) + \
                         (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  +  energy_source) / energyg
+    #     denergydtaddterms *= 0.
     if(tdepl>0.):
         denergydtaddterms -= 1./tdepl                        
     if(efold_diss>0.):
@@ -459,8 +459,8 @@ while(t<(tmax+t0)):
 
     hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
     sigma_diff = hyperdiff_fact
-    #   if(efold_diss>0.):
-    #      diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
+ #   if(efold_diss>0.):
+ #       diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
 
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
