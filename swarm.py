@@ -478,6 +478,7 @@ while(t<(tmax+t0)):
         print("lg(E) range "+str(lenergyg.min())+" to "+str(lenergyg.max()))
         print("lg(Sigma) range "+str(lsig.min())+" to "+str(lsig.max()))
         print('t=%10.5f ms' % (t*1e3*tscale))
+        print("csqmax = "+str(cssqmax)+", vsqmax = "+str(vsqmax))
         print(" dt(CFL, light) = "+str(dt_cfl))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
         print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))

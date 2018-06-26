@@ -16,7 +16,7 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=True
-nrest=123 # number of output entry for restart
+nrest=924 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -80,7 +80,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
+mdotfinal = 0. # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.1   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2

@@ -71,7 +71,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     maxdiss=np.zeros(nsize) ;    mindiss=np.zeros(nsize)
     sigmaver=np.zeros([nlats, nsize])  ;   sigmaver_lon=np.zeros([nlons, nsize])
     omeaver=np.zeros([nlats, nsize])  ;   omeaver_lon=np.zeros([nlons, nsize])
-    tbottom=np.zeros(nsize) ; teff=np.zeros(nsize)
+    tbottommean=np.zeros(nsize) ; teff=np.zeros(nsize)
     tbottommax=np.zeros(nsize) ; tbottommin=np.zeros(nsize)
     omegamean=np.zeros(nsize) ;   mdot=np.zeros(nsize)
     for k in np.arange(nsize):
@@ -80,8 +80,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         ug=data["ug"][:] ;  vg=data["vg"][:]
         energy=data["energy"][:] ; beta=data["beta"][:]
         qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
-        #        print np.shape(energy)
-        press = energy* 3. * (1.-beta/2.)
+        #        print("net kinetic energy from "+str((ug**2+vg**2).min()/2.)+"  to "+str((ug**2+vg**2).max()/2.))
+        #        print("net thermal energy from "+str((energy/sig).min())+"  to "+str((energy/sig).max()))
+        print("beta from "+str(beta.min())+"  to "+str(beta.max()))
+        press = energy / (3. * (1.-beta/2.))
         dimsequal = (np.shape(sig)[0] == nlats) & (np.shape(sig)[1] == nlons)
         if dimsequal:
             x1= x
@@ -120,9 +122,13 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         angmoz_new[k]=trapz((sig*ug*np.sin(lats1)*accflag).sum(axis=1), x=-clats1d1)*dlons1
         angmoz_old[k]=trapz((sig*ug*np.sin(lats1)*(1.-accflag)).sum(axis=1), x=-clats1d1)*dlons1
         csqmap=press/sig*(4.+beta)/3. ;    meancs[k]=np.sqrt(csqmap.mean())
-        tbottom[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).mean()
-        tbottommin[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).min()
-        tbottommax[k]=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).max()
+        tbottom=339.6*((1.-beta)*sig*(sigmascale/1e8)/mass1/rsphere**2)**0.25
+        tbottommean[k]=tbottom.mean()
+        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).mean()
+        tbottommin[k]=tbottom.min()
+        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).min()
+        tbottommax[k]=tbottom.max()
+        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).max()
         teff[k]=(qminus.mean()*sigmascale/mass1)**0.25*3.64
         maxdiss[k]=diss.max() ;     mindiss[k]=diss.min()
         if(dimsequal):
@@ -229,11 +235,11 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
                             , title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
                             , prefix=outdir+'/angmoz', ylog=False)
             
-        plots.sometimes(tar, [tbottom, teff, tbottommin, tbottommax], fmt=['k-', 'r-', 'k:', 'k:']
+        plots.sometimes(tar, [tbottommean, teff, tbottommin, tbottommax], fmt=['k-', 'r-', 'k:', 'k:']
                         # , linest=['solid', 'solid', 'dotted', 'dotted']
                         , title='$T$, keV', prefix=outdir+'/t')
         print("last Teff = "+str(teff[-1]))
-        print("last Tb = "+str(tbottom[-1]))
+        print("last Tb = "+str(tbottommean[-1]))
 
     rawflux=flux
     flux-=md*tar+bd ; mass-=m*tar+b; newmass-=mn*tar+bn # subtraction of linear trends
@@ -438,5 +444,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/run.hdf5', np.pi/2., 0., ntimes=5, nbins=30)
+fluxest('out/runcombine.hdf5', np.pi/2., 0., ntimes=5, nbins=30)
 # meanmaps('out/run.hdf5', 1000, 2000)

@@ -237,7 +237,8 @@ def visualize(t, nout,
                  -vorm*1.1, vorm*1.1, 
                  title="$\Delta \omega$")
     # internal temperature
-    tbottom=50.59*((1.-beta)*energy*cf.sigmascale/cf.mass1)**0.25
+    tbottom=339.6*((1.-beta)*sig*(cf.sigmascale/1e8)/cf.mass1/cf.rsphere**2)**0.25
+    # 50.59*((1.-beta)*energy*cf.sigmascale/cf.mass1)**0.25
     visualizeMap(axs[1], 
                  lonsDeg, latsDeg, 
                  tbottom, 

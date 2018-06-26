@@ -81,7 +81,8 @@ def plotnth(filename, nstep):
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
-        tbottom=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
+        tbottom=339.6*((1.-beta)*sig*(sigmascale/1e8)/mass1/rsphere**2)**0.25
+        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
         # vortg-2.*omegaNS*np.sin(lats)
         plots.snapplot(lonsDeg, latsDeg, sig, accflag, teff, xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
