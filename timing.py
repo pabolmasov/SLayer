@@ -36,9 +36,12 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"]
     omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"]
     tscale=params.attrs["tscale"] ; mass1=params.attrs["NSmass"]
+    csqmin=params.attrs["csqmin"] 
     sigmascale=params.attrs["sigmascale"]; sigplus=params.attrs["sigplus"]
     overkepler=params.attrs["overkepler"]; tfric=params.attrs["tfric"]
     tdepl=params.attrs["tdepl"] ; mdotfinal=params.attrs["mdotfinal"]
+    mu=0.6
+    cssqscale=2.89591e-06 * sigmascale**0.25 / mu * mass1**0.25
     # NSmass=params.attrs["mass"]
 #    print(type(nlons))
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
@@ -82,6 +85,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
         #        print("net kinetic energy from "+str((ug**2+vg**2).min()/2.)+"  to "+str((ug**2+vg**2).max()/2.))
         #        print("net thermal energy from "+str((energy/sig).min())+"  to "+str((energy/sig).max()))
+        #        print("or net thermal energy from "+str((8.6877e-4/beta*(1.-beta)**0.25*(1.-beta/2.)/mu*(sig*sigmascale/1e8/mass1/rsphere**2)**0.25).min())+"  to "+str((8.6877e-4/beta*(1.-beta)**0.25*(1.-beta/2.)/mu*(sig*sigmascale/1e8/mass1/rsphere**2)**0.25).max()))
         print("beta from "+str(beta.min())+"  to "+str(beta.max()))
         press = energy / (3. * (1.-beta/2.))
         dimsequal = (np.shape(sig)[0] == nlats) & (np.shape(sig)[1] == nlons)
@@ -113,6 +117,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         #        heattot[k]=trapz(qplus.sum(axis=1), x=-clats1d)*dlons
         mass_total[k]=data.attrs['mass']
         newmass_total[k]=data.attrs['newmass']
+        #        mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
+        #        newmass_total[k]=trapz((sig*accflag).sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
         newmass[k]=trapz((accflag*sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
         kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d1)*dlons1/2.
@@ -124,11 +130,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         csqmap=press/sig*(4.+beta)/3. ;    meancs[k]=np.sqrt(csqmap.mean())
         tbottom=339.6*((1.-beta)*sig*(sigmascale/1e8)/mass1/rsphere**2)**0.25
         tbottommean[k]=tbottom.mean()
-        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).mean()
         tbottommin[k]=tbottom.min()
-        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).min()
         tbottommax[k]=tbottom.max()
-        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25).max()
         teff[k]=(qminus.mean()*sigmascale/mass1)**0.25*3.64
         maxdiss[k]=diss.max() ;     mindiss[k]=diss.min()
         if(dimsequal):
@@ -162,7 +165,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     angmoz_old *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     flux *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s apparent luminosity
     lumtot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total luminosity
-    heattot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total luminosity
+    heattot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total heating
+    qnstot = 0.3979*rsphere**2*mass1*sigmascale * 4.*np.pi * (csqmin/cssqscale)**4  # heating from the NS surface
     kenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
@@ -212,30 +216,31 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         feq=(tdepl*tscale)*mdot/mass_total*630322
         omegaeq=(omega/tscale+omegadisk/feq)*(1.+feq)/(2.*np.pi)
         print("feq = "+str(feq))
-        plots.sometimes(tar, [omegamean/(2.*np.pi), tar*0.+omega/tscale/(2.*np.pi), tar*0.+omegadisk/(2.*np.pi), omegaeq], fmt=['k', 'r', 'b', 'g'],
+        plots.sometimes(tar*1e3, [omegamean/(2.*np.pi), tar*0.+omega/tscale/(2.*np.pi), tar*0.+omegadisk/(2.*np.pi), omegaeq], fmt=['k', 'r', 'b', 'g'],
                         prefix=outdir+'/omega', title=r'frequency')
+        plots.sometimes(tar*1e3, [mass_total, newmass_total, mass_total-newmass_total, mdotfinal*(tar-tar[0])*1e3*630.322+mass_total[0]*0.5, mdotfinal*(tar-tar[0])*1e3*630.322+mass_total[0]]
+                        , fmt=['k-', 'g-', 'r-', 'k:', 'k:'], ylog=False
+                        , prefix=outdir+'/m', title=r'mass, $10^{20}$g')
         if(sigplus>0.):
-            plots.sometimes(tar, [mass_total, newmass_total, mass, newmass], fmt=['k-', 'k:', 'r-', 'g-']
-                       #     , linest=['solid', 'dotted', 'solid', 'solid']
-                            , prefix=outdir+'/m', title=r'mass, $10^{20}$g')
-            plots.sometimes(tar, [newmass_total/mass_total], title='mass fraction', prefix=outdir+'/mfraction')
-        plots.sometimes(tar, [kenergy+thenergy, thenergy, kenergy, kenergy_v, kenergy_u]
+            plots.sometimes(tar*1e3, [newmass_total/mass_total], title='mass fraction', prefix=outdir+'/mfraction')
+
+        plots.sometimes(tar*1e3, [kenergy+thenergy, thenergy, kenergy, kenergy_v, kenergy_u]
                         , fmt=['k-', 'r-', 'b-', 'b:', 'b--']
                         #, linest=['solid', 'solid', 'solid', 'dotted', 'dashed']
                         , title=r'energy, $10^{35}$erg', prefix=outdir+'/e')
-        plots.sometimes(tar, [flux, lumtot, heattot], fmt=['k-', 'r-', 'g--'] 
+        plots.sometimes(tar*1e3, [flux, lumtot, heattot, flux*0.+qnstot], fmt=['k-', 'r-', 'g--', 'k:'] 
                         #           , linest=['solid', 'solid', 'dashed']
                         , title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
         if(sigplus>0.):
-            plots.sometimes(tar, [angmoz_new, angmoz_old, angmoz_new+angmoz_old]
+            plots.sometimes(tar*1e3, [angmoz_new, angmoz_old, angmoz_new+angmoz_old]
                             , fmt=['-b', '-r', '-k'], title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
                             , prefix=outdir+'/angmoz', ylog=True)
         else:
-            plots.sometimes(tar, [angmoz_new+angmoz_old], fmt=['-k']
+            plots.sometimes(tar*1e3, [angmoz_new+angmoz_old], fmt=['-k']
                             , title=r'angular momentum, $10^{26} {\rm g \,cm^2\, s^{-1}}$'
                             , prefix=outdir+'/angmoz', ylog=False)
             
-        plots.sometimes(tar, [tbottommean, teff, tbottommin, tbottommax], fmt=['k-', 'r-', 'k:', 'k:']
+        plots.sometimes(tar*1e3, [tbottommean, teff, tbottommin, tbottommax], fmt=['k-', 'r-', 'k:', 'k:']
                         # , linest=['solid', 'solid', 'dotted', 'dotted']
                         , title='$T$, keV', prefix=outdir+'/t')
         print("last Teff = "+str(teff[-1]))
@@ -444,5 +449,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/runcombine.hdf5', np.pi/2., 0., ntimes=5, nbins=30)
+fluxest('out/run.hdf5', np.pi/2., 0., ntimes=5, nbins=30)
 # meanmaps('out/run.hdf5', 1000, 2000)

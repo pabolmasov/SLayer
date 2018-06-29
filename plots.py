@@ -445,7 +445,7 @@ def somemap(lons, lats, q, outname):
     plt.ioff()
     plt.clf()
     fig=plt.figure()
-    plt.contourf(lons, lats, q, cmap='hot',levels=levs)
+    plt.pcolormesh(lons, lats, q, cmap='hot') #,levels=levs)
     plt.colorbar()
     plt.xlabel('longitude')
     plt.ylabel('latitude')
@@ -685,7 +685,7 @@ def plot_saved(infile):
     qminus=np.reshape(qminus, [np.size(ulats), np.size(ulons)])
     vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
 
-    somemap(lons, lats, np.log(sig), infile+"_sig.png")
+    somemap(lons, lats, sig, infile+"_sig.png")
     somemap(lons, lats, qminus, infile+"_qminus.png")
     somemap(lons, lats, vortg, infile+"_vort.png")
     
@@ -707,7 +707,7 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
-        
+# plot_saved('titania/out_ND/run.hdf5_map0000')
 # multiplot_saved('titania/out_twist/runcombine.hdf5_map', skip=7792)
 # multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
 # multiplot_saved('titania/out512/run.hdf5_map', skip=0)
