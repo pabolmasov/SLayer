@@ -115,10 +115,10 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         heattot[k]=data.attrs['heattot']
         #        lumtot[k]=trapz(qminus.sum(axis=1), x=-clats1d)*dlons
         #        heattot[k]=trapz(qplus.sum(axis=1), x=-clats1d)*dlons
-        mass_total[k]=data.attrs['mass']
-        newmass_total[k]=data.attrs['newmass']
-        #        mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
-        #        newmass_total[k]=trapz((sig*accflag).sum(axis=1), x=-clats1d)*dlons
+        # mass_total[k]=data.attrs['mass']
+        # newmass_total[k]=data.attrs['newmass']
+        mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
+        newmass_total[k]=trapz((sig*accflag).sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
         newmass[k]=trapz((accflag*sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
         kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d1)*dlons1/2.
@@ -213,13 +213,13 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         plots.sometimes(tar*1e3, [maxdiss, -mindiss], fmt=['k', 'r'],
                         prefix=outdir+'/disslimits', title='dissipation limits')
         omegadisk=2.*np.pi/rsphere**1.5*0.9/tscale
-        feq=(tdepl*tscale)*mdot/mass_total*630322
+        feq=(tdepl*tscale)*mdot/mass_total*630322.
         omegaeq=(omega/tscale+omegadisk/feq)*(1.+feq)/(2.*np.pi)
         print("feq = "+str(feq))
         plots.sometimes(tar*1e3, [omegamean/(2.*np.pi), tar*0.+omega/tscale/(2.*np.pi), tar*0.+omegadisk/(2.*np.pi), omegaeq], fmt=['k', 'r', 'b', 'g'],
                         prefix=outdir+'/omega', title=r'frequency')
-        plots.sometimes(tar*1e3, [mass_total, newmass_total, mass_total-newmass_total, mdotfinal*(tar-tar[0])*1e3*630.322+mass_total[0]*0.5, mdotfinal*(tar-tar[0])*1e3*630.322+mass_total[0]]
-                        , fmt=['k-', 'g-', 'r-', 'k:', 'k:'], ylog=False
+        plots.sometimes(tar*1e3, [mass_total, newmass_total, mass_total-newmass_total, mdotfinal*tar*tscale*630322.]
+                        , fmt=['k-', 'g-', 'r-', 'k:'], ylog=False
                         , prefix=outdir+'/m', title=r'mass, $10^{20}$g')
         if(sigplus>0.):
             plots.sometimes(tar*1e3, [newmass_total/mass_total], title='mass fraction', prefix=outdir+'/mfraction')
@@ -449,5 +449,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/run.hdf5', np.pi/2., 0., ntimes=5, nbins=30)
+fluxest('out/run.hdf5', np.pi/2., 0., ntimes=10, nbins=30, nfilter=100)
 # meanmaps('out/run.hdf5', 1000, 2000)
