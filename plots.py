@@ -647,7 +647,7 @@ def plot_timangle(prefix='out/'):
     flons=np.reshape(flons, [np.size(t), np.size(ulons)])
     lons=np.reshape(lons, [np.size(t), np.size(ulons)])
     #    print(lons[:,0])
-    timangle(t, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots')
+    timangle(t*1e3, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots')
 
 # vdKlis's plot: frequency as a function of flux
 def FFplot(prefix='out/'):
@@ -708,10 +708,11 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
 # plot_saved('titania/out_ND/run.hdf5_map0000')
-# multiplot_saved('titania/out_twist/runcombine.hdf5_map', skip=7792)
+# multiplot_saved('titania/out_twist/run.hdf5_map')
 # multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
 # multiplot_saved('titania/out512/run.hdf5_map', skip=0)
 # multiplot_saved('titania/out_ND/run.hdf5_map', skip=0, step=10)
+# multiplot_saved('titania/out/run.hdf5_map', skip=0, step=10)
 # FFplot(prefix='titania/out_ND/diss_')
 # dynsplot(infile="titania/out_ND/pds_diss")
 # dynsplot(infile="titania/out_ND/pds_mass")

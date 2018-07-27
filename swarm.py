@@ -111,15 +111,15 @@ print("dt_out = "+str(dt_out)+"GM/c**3 = "+str(dt_out*tscale)+"s")
 # initial velocity field  (pure rotation)
 ug = omega*np.cos(lats)*rsphere
 vg = 0.00*omega*np.sin(lats)*np.cos(lons)
-ug0 = omega*np.cos(lats)*rsphere
 if(iftwist):
     ug *= (lats/twistscale) / np.sqrt(1.+(lats/twistscale)**2) # twisted sphere test
+ug0 = omega*np.cos(lats)*rsphere
 
 # initial vorticity, divergence in spectral space
 vortSpec, divSpec = x.getVortDivSpec(ug,vg) 
 vortg = x.sph2grid(vortSpec)
 # vortg += 2.*omega*rsphere*np.sin(lats)*np.cos(lons)*0.01
-vortgNS = x.sph2grid(vortSpec) # rotation of the neutron star 
+vortgNS = vortg # rotation of the neutron star 
 divg  = x.sph2grid(divSpec)
 
 # create (hyper)diffusion factor; normal diffusion corresponds to ndiss=2 (x.lap is already nabla^2)
