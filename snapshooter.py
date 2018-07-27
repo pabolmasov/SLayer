@@ -35,7 +35,7 @@ def plotnth(filename, nstep):
     outdir=os.path.dirname(filename)
     f = h5py.File(filename,'r')
     params=f["params"]
-    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] 
+    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; tscale=params.attrs["tscale"]
     x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
     lons1d = x.lons # (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
@@ -52,16 +52,17 @@ def plotnth(filename, nstep):
     press=energy* 3. * (1.-beta/2.)
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
-    step=3
+    step=5
     nth,nphi=np.shape(lats)
     fmap.write("# map with step = "+str(step)+"\n")
-    fmap.write("# t="+str(t)+"\n")
-    fmap.write("# format: lats lons sigma ug vg E diss accflag\n")
+    fmap.write("# t="+str(t*tscale)+"\n")
+    fmap.write("# format: lats lons sigma digv vortg ug vg E Q- accflag\n")
     for kth in np.arange(0,nth, step):
         for kphi in np.arange(0,nphi, step):
             fmap.write(str(lats[kth,kphi])+" "+str(lons[kth,kphi])+" "+str(sig[kth,kphi])+" "
+                       +str(divg[kth,kphi])+" "+str(vortg[kth,kphi])+" "
                        +str(ug[kth,kphi])+" "+str(vg[kth,kphi])+" "
-                       +str(energy[kth,kphi])+" "+str(diss[kth,kphi])+" "
+                       +str(energy[kth,kphi])+" "+str(qminus[kth,kphi])+" "
                        +str(accflag[kth,kphi])+"\n")
     fmap.flush()
     fmap.close()
@@ -80,11 +81,32 @@ def plotnth(filename, nstep):
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
         xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
         yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
-        tbottom=(50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
+        tbottom=339.6*((1.-beta)*sig*(sigmascale/1e8)/mass1/rsphere**2)**0.25
+        # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
-        plots.snapplot(lonsDeg, latsDeg, sig, accflag, vortg-2.*omegaNS*np.sin(lats), xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
+        # vortg-2.*omegaNS*np.sin(lats)
+        plots.snapplot(lonsDeg, latsDeg, sig, accflag, teff, xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
         # plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
-
+        gamma=4./3.
+        j=ug*rsphere*np.cos(lats)
+        geff=1./rsphere**2-(ug**2+vg**2)/rsphere
+        s=np.log(press/sig)-(1.-1./gamma)*np.log(geff)
+        sgrad1, sgrad2 = x.getGrad(x.grid2sph(s))
+        jgrad1, jgrad2 = x.getGrad(x.grid2sph(j))
+        ograd1, ograd2 = x.getGrad(x.grid2sph(np.log(ug/rsphere/np.cos(lats))))
+        kappasq = -2.*ug*np.sin(lats)/np.cos(lats)**2*jgrad2
+        nsq = (ug/rsphere)**2*sgrad2
+        laminst=(2.*np.pi/np.abs(ograd2)).mean(axis=1)
+        dlaminst=(2.*np.pi/np.abs(ograd2)).std(axis=1)
+        rcircle=2.*np.pi*rsphere*np.cos(x.lats)
+        
+        plots.someplot(x.lats*180./np.pi, [laminst, rcircle],
+                       xname='latitude, deg', yname=r'$\lambda_{\rm KH}$', prefix=outdir+'/KH',
+                       fmt=['k.', 'r-'], title='$t = {:6.2f}$\,ms'.format( t*tscale*1e3))
+        plots.someplot(lats, [j], xname='lats', yname='$j$', prefix=outdir+'/jacc')
+        plots.someplot(lats, [kappasq + nsq, -(kappasq+nsq), kappasq, nsq], xname='lats',
+                       yname=r'$\varkappa^2+N^2$',
+                       prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])
 # multiple diagnostic maps for making movies
 def multireader(nmin, nmax, infile):
 
@@ -93,12 +115,8 @@ def multireader(nmin, nmax, infile):
     
     for k in np.arange(nmax-nmin)+nmin:
         plotnth(infile, k)
-        os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
-        os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
-        os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
-#        os.system('cp '+outdir+'/snapshot.eps '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.eps')
-#        os.system('cp '+outdir+'/northpole.eps '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.eps')
-#        os.system('cp '+outdir+'/southpole.eps '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.eps')
-#        os.system('cp '+outdir+'/sgeff.eps '+outdir+'/sgeff'+str(k).rjust(ndigits, '0')+'.eps')
-        print('shot'+str(k).rjust(ndigits, '0')+'.png')
-        
+        if(ifplot):
+            os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
+        print('shot'+str(k).rjust(ndigits, '0'))
