@@ -404,7 +404,10 @@ while(t<(tmax+t0)):
         denergydtaddterms = -divg * pressg + (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  +  energy_source)
     #     denergydtaddterms *= 0.
     if(tdepl>0.):
-        denergydtaddterms -= 1./tdepl                        
+        if(logSE):
+            denergydtaddterms -= 1./tdepl
+        else:
+            denergydtaddterms -= energyg/tdepl
     if(efold_diss>0.):
         denergydtSpec_srce = x.grid2sph( thermalterm ) *diss_diff + x.grid2sph( denergydtaddterms) 
     else:

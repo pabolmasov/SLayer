@@ -25,6 +25,8 @@ from matplotlib import interactive
 
 import glob
 
+# compound and special plots for the paper
+
 def twotwists():
 
     file1 = "out_twist/ecurve1.5707963267948966.dat"

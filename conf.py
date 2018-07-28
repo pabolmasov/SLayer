@@ -15,8 +15,8 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
-nrest=3079 # number of output entry for restart
+ifrestart=False
+nrest=804 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -102,12 +102,12 @@ overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
 tfric=0.*pspin/tscale
 # depletion of the atmosphere:
-tdepl=0.*pspin/tscale
+tdepl=10.*pspin/tscale
 # turning on the source smoothly
 tturnon=30.*pspin/tscale
 
 #####################################################
 # twist test
-iftwist=True
+iftwist=False
 twistscale=latspread
 
