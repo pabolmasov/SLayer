@@ -11,7 +11,6 @@ from spharmt import Spharmt
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
 
-# TODO: global parameters should be read from hdf5 rather than taken from conf
 from conf import ifplot
 
 if(ifplot):
@@ -449,5 +448,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/runcombine.hdf5', np.pi/2., 0., ntimes=10, nbins=100)
+fluxest('out/run.hdf5', np.pi/2., 0., ntimes=10, nbins=100)
 # meanmaps('out/run.hdf5', 1000, 2000)

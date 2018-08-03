@@ -16,13 +16,13 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=False
-nrest=804 # number of output entry for restart
+nrest=1226 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -102,7 +102,7 @@ overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
 tfric=0.*pspin/tscale
 # depletion of the atmosphere:
-tdepl=10.*pspin/tscale
+tdepl=1.*pspin/tscale
 # turning on the source smoothly
 tturnon=30.*pspin/tscale
 
