@@ -21,6 +21,7 @@ def comparot(infile):
     compares two snapshots of a single output file assuming rigid-body rotation
     '''
     f = h5py.File(infile,'r')
+    outdir=os.path.dirname(infile)
 
     params=f["params"]
     # loading global parameters from the hdf5 file
@@ -40,20 +41,27 @@ def comparot(infile):
     # first snapshot:
     data=f[keys[0]]
     sig0=data["sig"][:]
-    err=np.zeros(nsize, dtype=double)
-    tar=np.zeros(nsize, dtype=double)
+    err=np.zeros(nsize, dtype=np.double)
+    tar=np.zeros(nsize, dtype=np.double)
+    sig1=np.zeros(np.shape(sig0), dtype=np.double)
+    t0=data.attrs["t"] ; tar[0]=t0
+    sigfun=interp1d(lons1d, sig0, axis=1,bounds_error=False, fill_value="extrapolate", kind='nearest')
     # all the others
     for k in np.arange(nsize-1)+1:
         data=f[keys[k]]
         sig=data["sig"][:]
         t=data.attrs["t"] ; tar[k]=t
-        rotang=t*omega
+        rotang=(t-t0)*omega
         print("rotation in "+str(rotang)+"rad")
-        sigfun=interp1d(lons, sig, axis=0)
-        sig1=sigfun((lons+rotang) % (2.*np.pi))
-        err[k]=(sig1/sig0-1.).std()
+        #        print(np.shape(sig))
+        #        print(np.shape(lons1d))
+        print((lons1d+rotang) % (2.*np.pi))
+        sig1[:]=sigfun((lons1d-rotang) % (2.*np.pi))
+        err[k]=(sig/sig1-1.).std()
         if(ifplot):
-            plots.somemap(lons, lats, sig1-sig0, outdir+"/err_sigma.png")
+            plots.somemap(lons, lats, sig-sig1, outdir+"/err_sigma.png")
+        print("entry "+str(keys[k])+" finished")
     if(ifplot):
         plots.sometimes(tar*1e3*tscale, [err], prefix=outdir+'/errplot.png')
     
+    f.close()
