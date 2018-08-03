@@ -42,10 +42,12 @@ def comparot(infile):
     data=f[keys[0]]
     sig0=data["sig"][:]
     err=np.zeros(nsize, dtype=np.double)
+    serr=np.zeros(nsize, dtype=np.double)
     tar=np.zeros(nsize, dtype=np.double)
     sig1=np.zeros(np.shape(sig0), dtype=np.double)
     t0=data.attrs["t"] ; tar[0]=t0
-    sigfun=interp1d(lons1d, sig0, axis=1,bounds_error=False, fill_value="extrapolate", kind='nearest')
+    sigfun=interp1d(lons1d, sig0, axis=1, bounds_error=False, kind='nearest')
+    fout=open("rtest.dat", "w")
     # all the others
     for k in np.arange(nsize-1)+1:
         data=f[keys[k]]
@@ -55,13 +57,18 @@ def comparot(infile):
         print("rotation in "+str(rotang)+"rad")
         #        print(np.shape(sig))
         #        print(np.shape(lons1d))
-        print((lons1d+rotang) % (2.*np.pi))
+#        print((lons1d+rotang) % (2.*np.pi))
         sig1[:]=sigfun((lons1d-rotang) % (2.*np.pi))
-        err[k]=(sig/sig1-1.).std()
+        wfin=np.isfinite(sig1)
+        err[k]=(sig/sig1-1.)[wfin].std()
+        serr[k]=(sig/sig1-1.)[wfin].mean() # systematic error
+        fout.write(str(t-t0)+" "+str(err[k])+" "+str(serr[k])+"\n")
+        print("error +-"+str(err[k]))
+        print("systematic +-"+str(serr[k]))
         if(ifplot):
             plots.somemap(lons, lats, sig-sig1, outdir+"/err_sigma.png")
         print("entry "+str(keys[k])+" finished")
     if(ifplot):
-        plots.sometimes(tar*1e3*tscale, [err], prefix=outdir+'/errplot.png')
-    
+        plots.sometimes(tar*1e3*tscale, [err, serr], fmt=['r-', 'k-'] , prefix=outdir+'/err')
+    fout.close()
     f.close()
