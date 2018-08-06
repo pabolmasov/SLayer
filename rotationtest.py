@@ -47,7 +47,7 @@ def comparot(infile):
     sig1=np.zeros(np.shape(sig0), dtype=np.double)
     t0=data.attrs["t"] ; tar[0]=t0
     sigfun=interp1d(lons1d, sig0, axis=1, bounds_error=False, kind='nearest')
-    fout=open("rtest.dat", "w")
+    fout=open(outdir+"/rtest.dat", "w")
     # all the others
     for k in np.arange(nsize-1)+1:
         data=f[keys[k]]
@@ -62,7 +62,7 @@ def comparot(infile):
         wfin=np.isfinite(sig1)
         err[k]=(sig/sig1-1.)[wfin].std()
         serr[k]=(sig/sig1-1.)[wfin].mean() # systematic error
-        fout.write(str(t-t0)+" "+str(err[k])+" "+str(serr[k])+"\n")
+        fout.write(str((t-t0)*tscale)+" "+str(err[k])+" "+str(serr[k])+"\n")
         print("error +-"+str(err[k]))
         print("systematic +-"+str(serr[k]))
         if(ifplot):

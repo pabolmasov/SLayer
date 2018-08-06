@@ -22,7 +22,7 @@ if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 128          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -41,7 +41,7 @@ omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 eps_deformation = omega**2*rsphere**3
 print("deformation factor "+str(eps_deformation))
-sigmascale = 1.e8 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
+sigmascale = 1.e9 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
 
 kappa = 0.35*sigmascale # opacity, inverse sigmascale
 mu=0.6 # mean molecular weight
@@ -90,7 +90,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 0. # Msun/yr, intended mass accretion rate
+mdotfinal = 1e-8 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
