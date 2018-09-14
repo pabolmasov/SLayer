@@ -18,7 +18,7 @@ if(ifplot):
     
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
-def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
+def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None, logbinning=False):
     """
     fluxest(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>, <keywords>)
     keywords:
@@ -175,10 +175,6 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
     if(np.size(wnan)>0):
         print(str(np.size(wnan))+" NaN points")
         ii=war_input('?')
-    # linear trend:
-    m,b =  np.polyfit(tar, mass, 1) # for "visible mass"
-    mn,bn =  np.polyfit(tar, newmass, 1) # for "visible accreted mass"
-    md,bd =  np.polyfit(tar, flux, 1) # for dissipation
 
     # ascii output:
     flc=open(outdir+'/lcurve'+str(lat0)+'.dat', 'w')
@@ -245,13 +241,23 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         print("last Teff = "+str(teff[-1]))
         print("last Tb = "+str(tbottommean[-1]))
 
+    # linear trend:
+    m,b =  np.polyfit(tar, mass, 1) # for "visible mass"
+    mn,bn =  np.polyfit(tar, newmass, 1) # for "visible accreted mass"
+    md,bd =  np.polyfit(tar, flux, 1) # for dissipation
     rawflux=flux
     flux-=md*tar+bd ; mass-=m*tar+b; newmass-=mn*tar+bn # subtraction of linear trends
     tmean=tar.mean() ;     tspan=tar.max()-tar.min()
     freq1=1./tspan*np.double(ntimes)/2. ; freq2=freq1*np.double(nsize)/np.double(ntimes)
+    if(ifplot):
+        plots.sometimes(tar*1e3, [flux/flux.std(), mass/mass.std()], fmt=['k-', 'r-'] 
+                        , title=r'normalized quantities', prefix=outdir+'/n', ylog=False)
 
     # binning:
-    binfreq=(freq2-freq1)*((np.arange(nbins+1)/np.double(nbins)))+freq1
+    if(logbinning):
+        binfreq=(freq2/freq1)**((np.arange(nbins+1)/np.double(nbins)))*freq1
+    else:
+        binfreq=(freq2-freq1)*((np.arange(nbins+1)/np.double(nbins)))+freq1
     # (freq2/freq1)**((np.arange(nbins+1)/np.double(nbins)))*freq1
     binfreq[0]=0.
     binfreqc=(binfreq[:-1]+binfreq[1:])/2. ;   binfreqs=(-binfreq[:-1]+binfreq[1:])/2.
@@ -275,8 +281,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None):
         wwindow=np.where((tar>=tbegin)&(tar<tend))
         binflux[kt]=rawflux[wwindow].mean()   ;     binstd[kt]=rawflux[wwindow].std()
         wsize=np.size(wwindow)
-        fsp=np.fft.rfft(flux[wwindow]/flux.std()) ;   fspm=np.fft.rfft(mass[wwindow]/mass.std())
-        fspn=np.fft.rfft(newmass[wwindow]/mass.std()) # note we normalize for total mass variation; if sigplus===0, does not make sense but does not invoke errors
+        fsp=np.fft.rfft((flux[wwindow]-flux[wwindow].mean())/flux[wwindow].std()) ;   fspm=np.fft.rfft((mass[wwindow]-mass[wwindow].mean())/mass[wwindow].std())
+        fspn=np.fft.rfft((newmass[wwindow]-newmass[wwindow].mean())/mass[wwindow].std()) # note we normalize for total mass variation; if sigplus===0, does not make sense but does not invoke errors
         freq = np.fft.rfftfreq(wsize, tspan/np.double(nsize)) # frequency grid (different for all the time bins)
         pds=np.abs(fsp*freq)**2  ;   pdsm=np.abs(fspm*freq)**2 ;   pdsn=np.abs(fspn*freq)**2 # note we mutiply by f^2 to remove the overall \propto f^{-2} trend, that makes the peaks distinguishable
         
@@ -448,5 +454,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/run.hdf5', np.pi/2., 0., ntimes=10, nbins=100)
+fluxest('out/run.hdf5', np.pi/2., 0., ntimes=10, nbins=100, logbinning=True)
 # meanmaps('out/run.hdf5', 1000, 2000)

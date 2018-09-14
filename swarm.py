@@ -63,7 +63,7 @@ from conf import grav, rsphere, mass1 # gravity, radius of the star, mass of the
 from conf import omega, sig0, overkepler, tscale # star rotation frequency, initial density level, deviation from Kepler for the falling matter
 from conf import ifscaledt, dt_cfl_factor, dt_out_factor # scaling for the time steps
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
-from conf import efold, ndiss, efold_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
+from conf import ktrunc, ndiss, ktrunc_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin, sigmafloor, energyfloor # physical parameters 
 from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax # frequency of diagnostic outputs, maximal time
@@ -126,16 +126,11 @@ divg  = x.sph2grid(divSpec)
 # print(x.lap)
 lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
 lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
-#  print('laplacians from '+str(lapmin)+' to '+str(lapmax))
-# ii=input('posa')
-hyperdiff_expanded = (x.lap/lapmax)**(ndiss/2)/efold
-# hyperdiff_expanded = np.maximum(hyperdiff_expanded, 0.)
-# print(hyperdiff_expanded)
-hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # if efold scales with dt, this should work
+hyperdiff_expanded = (x.lap/(lapmax*ktrunc**2))**(ndiss/2)
+hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
-if(efold_diss>0.):
-    diss_diff = np.exp(-hyperdiff_expanded * efold / efold_diss * dt)
-#    diss_diff = np.exp(-(x.lap/np.abs(x.lap).max())**(ndiss/2)*dt/efold_diss) # dissipation is artifitially smoothed by a larger amount
+if(ktrunc_diss>0.):
+    diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt)
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
@@ -408,7 +403,7 @@ while(t<(tmax+t0)):
             denergydtaddterms -= 1./tdepl
         else:
             denergydtaddterms -= energyg/tdepl
-    if(efold_diss>0.):
+    if(ktrunc_diss>0.):
         denergydtSpec_srce = x.grid2sph( thermalterm ) *diss_diff + x.grid2sph( denergydtaddterms) 
     else:
         denergydtSpec_srce = x.grid2sph( thermalterm+ denergydtaddterms )
@@ -559,7 +554,7 @@ f5.close()
 time2 = time.clock()
 print(('CPU time = ',time2-time1))
 
-# ffmpeg -f image2 -r 15 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
+# ffmpeg -f image2 -r 35 -pattern_type glob -i 'out/swater*.png' -pix_fmt yuv420p -b 4096k out/swater.mp4
 
 timer.stop("total")
 timer.stats("total")

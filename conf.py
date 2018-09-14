@@ -16,7 +16,7 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=False
-nrest=1226 # number of output entry for restart
+nrest=8700 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -36,7 +36,7 @@ outskip= 1000 # how often do we make a simple log output
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 0.03                  # spin period, in seconds
+pspin      = 0.003                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 eps_deformation = omega**2*rsphere**3
@@ -76,9 +76,9 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 0.1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1e-4 # smoothing the dissipation term when used as a heat source
-ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
+ktrunc = 1. # wavenumber multiplier for spectral cut-off
+ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
+ndiss = 2      # order for hyperdiffusion (2 is normal diffusion)
 
 ##################################################
 #perturbation parameters
@@ -90,7 +90,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 1e-8 # Msun/yr, intended mass accretion rate
+mdotfinal = 0. # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
@@ -102,12 +102,12 @@ overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
 tfric=0.*pspin/tscale
 # depletion of the atmosphere:
-tdepl=1.*pspin/tscale
+tdepl=0.*pspin/tscale
 # turning on the source smoothly
-tturnon=30.*pspin/tscale
+tturnon=0.*pspin/tscale
 
 #####################################################
 # twist test
-iftwist=False
+iftwist=True
 twistscale=latspread
 

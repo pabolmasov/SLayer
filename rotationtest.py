@@ -16,6 +16,32 @@ from conf import ifplot
 if(ifplot):
     import plots
 
+def comparetwoshots(run1, n1, run2, n2):
+    '''
+    simply computes the difference maps and average residuals between two unrelated snapshots
+    dimensions should be identical 
+    '''
+    f1 = h5py.File(run1,'r')
+    keys1=list(f1.keys())
+    params=f1["params"]
+    data1=f1[keys1[n1]]
+    sig1=data1["sig"][:]
+    rsphere=params.attrs["rsphere"]; nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"]
+    x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
+    lons1d = x.lons ; lats1d = x.lats
+    clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
+    lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
+    dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
+    f2 = h5py.File(run2,'r')
+    keys2=list(f2.keys())
+    data2=f2[keys2[n2]]
+    sig2=data2["sig"][:]
+    if(ifplot):
+        plots.somemap(lons, lats, sig2-sig1, "diff_sigma.png")
+    drel=((sig1-sig2)/(sig1+sig2)).std()
+    sdrel=((sig1-sig2)/(sig1+sig2)).mean()
+    return drel, sdrel
+    
 def comparot(infile):
     '''
     compares two snapshots of a single output file assuming rigid-body rotation
@@ -46,7 +72,7 @@ def comparot(infile):
     tar=np.zeros(nsize, dtype=np.double)
     sig1=np.zeros(np.shape(sig0), dtype=np.double)
     t0=data.attrs["t"] ; tar[0]=t0
-    sigfun=interp1d(lons1d, sig0, axis=1, bounds_error=False, kind='nearest')
+    sigfun=interp1d(lons1d, sig0, axis=1, bounds_error=False, kind='nearest',fill_value='extrapolate')
     fout=open(outdir+"/rtest.dat", "w")
     # all the others
     for k in np.arange(nsize-1)+1:
@@ -72,3 +98,4 @@ def comparot(infile):
         plots.sometimes(tar*1e3*tscale, [err, serr], fmt=['r-', 'k-'] , prefix=outdir+'/err')
     fout.close()
     f.close()
+# comparot('out/run.hdf5')
