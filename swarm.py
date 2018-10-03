@@ -479,7 +479,7 @@ while(t<(tmax+t0)):
     timer.start_comp("diffusion2")
 
     hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
-    sigma_diff = hyperdiff_fact
+    sigma_diff = np.exp(-10.*hyperdiff_expanded*dt)
 
     vortSpec *= hyperdiff_fact
     divSpec *= hyperdiff_fact
