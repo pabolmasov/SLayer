@@ -86,10 +86,10 @@ bmin=betamin ; bmax=1.-betamin ; nb=10000
 # "beta" part of the main loop is little-time-consuming independently of nb
 b = (bmax-bmin)*(old_div((np.arange(nb)+0.5),np.double(nb)))+bmin
 bx = b/(1.-b)**0.25
-b[0]=0. ; bx[0]=0.  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
+b[0]=0. ; bx[0]=0.0  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
+betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value='extrapolate')
 # as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value=1.)
+betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value='extrapolate')
 # as a function of energy
 ######################################
 
@@ -129,6 +129,8 @@ lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
 hyperdiff_expanded = (x.lap/(lapmax*ktrunc**2))**(ndiss/2)
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
+ddivfac = 10.
+div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
 if(ktrunc_diss>0.):
     diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt)
 
@@ -221,7 +223,8 @@ def sdotsink(sigma):
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
 vort_source=2.*overkepler/rsphere**1.5*sina # vorticity source ; divergence source is assumed zero
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
-beta_acc = 0. # radiation-dominated matter
+beta_acc = 1. # gas-dominated matter
+# beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
 energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) # 
 
@@ -479,10 +482,11 @@ while(t<(tmax+t0)):
     timer.start_comp("diffusion2")
 
     hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
-    sigma_diff = np.exp(-10.*hyperdiff_expanded*dt)
+    div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
+    sigma_diff = hyperdiff_fact
 
     vortSpec *= hyperdiff_fact
-    divSpec *= hyperdiff_fact
+    divSpec *= div_diff
     sigSpec *= sigma_diff
     energySpec *= sigma_diff
     accflagSpec *= sigma_diff # do we need to smooth it?

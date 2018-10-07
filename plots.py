@@ -99,7 +99,6 @@ def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="
         ax.set_yscale('log')
 
 def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
-
     """ 
     make a contour map plot of the incoming data array (in grid)
     """
@@ -421,6 +420,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.savefig(outdir+'/southpole.eps')
     plt.savefig(outdir+'/southpole.png')
     plt.close()
+#
 # post-factum visualizations from the ascii output of snapplot:
 def postmaps(infile):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
@@ -435,6 +435,7 @@ def postmaps(infile):
     vv=np.sqrt(ug**2+vg**2)
     snapplot(lons, lats, sigma, accflag, energy/sigma, ug/vv.mean()*100., -vg/vv.mean()*100., [2,2], outdir=os.path.dirname(infile))
     
+#    
 # general framework for a post-processed map of some quantity q
 def somemap(lons, lats, q, outname):
     wnan=np.where(np.isnan(q))

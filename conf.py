@@ -16,13 +16,13 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=False
-nrest=8700 # number of output entry for restart
+nrest=600 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -41,7 +41,7 @@ omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 eps_deformation = omega**2*rsphere**3
 print("deformation factor "+str(eps_deformation))
-sigmascale = 1.e9 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
+sigmascale = 1.e8 # all the sigmas are normalized to sigmascale, all the energy to sigmascale * c**2
 
 kappa = 0.35*sigmascale # opacity, inverse sigmascale
 mu=0.6 # mean molecular weight
@@ -80,9 +80,10 @@ ktrunc = 1. # wavenumber multiplier for spectral cut-off (1 for kmax)
 ktrunc_diss = 2. # smoothing the dissipation term when used as a heat source
 ndiss = 8.      # order for hyperdiffusion (2 is normal diffusion)
 
+ddivfac = 10. # smoothing enhancement for divergence
 ##################################################
 #perturbation parameters
-bump_amp  = -0.15     # perturbation amplitude
+bump_amp  = -0.05     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)

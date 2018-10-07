@@ -68,7 +68,7 @@ def twoND():
     error growth for the no-accretion, rigid-body test (NDLR, NDHR)
     '''
     file1='out_NDLR/rtest.dat'
-    file2='titania/out_ND/rtest.dat'
+    file2='titania/out_NDHR/rtest.dat'
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
     lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
     

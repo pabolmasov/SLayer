@@ -44,7 +44,7 @@ def comparetwoshots(run1, n1, run2, n2):
     
 def comparot(infile):
     '''
-    compares two snapshots of a single output file assuming rigid-body rotation
+    compares all the snapshots of a single output file assuming rigid-body rotation 
     '''
     f = h5py.File(infile,'r')
     outdir=os.path.dirname(infile)
