@@ -62,8 +62,10 @@ from conf import nlons, nlats # dimensions of the simulation area
 from conf import grav, rsphere, mass1 # gravity, radius of the star, mass of the star (solar)
 from conf import omega, sig0, overkepler, tscale # star rotation frequency, initial density level, deviation from Kepler for the falling matter
 from conf import ifscaledt, dt_cfl_factor, dt_out_factor # scaling for the time steps
+from conf import ifscalediff
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import ktrunc, ndiss, ktrunc_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
+from conf import ddivfac
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin, sigmafloor, energyfloor # physical parameters 
 from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax # frequency of diagnostic outputs, maximal time
@@ -129,7 +131,6 @@ lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
 hyperdiff_expanded = (x.lap/(lapmax*ktrunc**2))**(ndiss/2)
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
-ddivfac = 10.
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
 if(ktrunc_diss>0.):
     diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt)
@@ -333,12 +334,16 @@ while(t<(tmax+t0)):
     
     #    hyperdiff_perdt=hyperdiff_expanded
     # dissipation estimates:
-    if(tfric>0.):
-        dissvortSpec=vortSpec*(hyperdiff_expanded+1./tfric) #expanded exponential diffusion term
-        dissdivSpec=divSpec*(hyperdiff_expanded+1./tfric) # need to incorporate for omegaNS in the friction term
+    if(ifscalediff):
+        dtscale = dt_cfl/dt # fixed smoothing per single time step
     else:
-        dissvortSpec=vortSpec*hyperdiff_expanded #expanded exponential diffusion term
-        dissdivSpec=divSpec*hyperdiff_expanded # need to incorporate for omegaNS in the friction term
+        dtscale = 1. # fixed smoothing per unit time
+    if(tfric>0.):
+        dissvortSpec=vortSpec*(hyperdiff_expanded*dtscale+1./tfric) #expanded exponential diffusion term
+        dissdivSpec=divSpec*(ddivfac*hyperdiff_expanded*dtscale+1./tfric) # need to incorporate for omegaNS in the friction term
+    else:
+        dissvortSpec=vortSpec*hyperdiff_expanded*dtscale #expanded exponential diffusion term
+        dissdivSpec=divSpec*hyperdiff_expanded*dtscale # need to incorporate for omegaNS in the friction term
         
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
     dissipation = (ug*dissug+vg*dissvg) # -v . dv/dt_diss  # positive if it is real dissipation, because hyperdiff_expanded is positive
@@ -407,6 +412,7 @@ while(t<(tmax+t0)):
         else:
             denergydtaddterms -= energyg/tdepl
     if(ktrunc_diss>0.):
+        diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt * dtscale)
         denergydtSpec_srce = x.grid2sph( thermalterm ) *diss_diff + x.grid2sph( denergydtaddterms) 
     else:
         denergydtSpec_srce = x.grid2sph( thermalterm+ denergydtaddterms )
@@ -443,7 +449,7 @@ while(t<(tmax+t0)):
         dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
     else:
         dt=dt_cfl
-    if(dt <= 1e-12):
+    if(dt <= 1e-10):
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
         print(" dt(CFL, adv) = "+str(dt_cfl/np.sqrt(vsqmax)))
         print(" dt(thermal) = "+str(dt_thermal))
@@ -481,9 +487,10 @@ while(t<(tmax+t0)):
     #diffusion
     timer.start_comp("diffusion2")
 
-    hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
-    div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
-    sigma_diff = hyperdiff_fact
+    if(ifscalediff):
+        hyperdiff_fact = np.exp(-hyperdiff_expanded*dt)
+        div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
+        sigma_diff = hyperdiff_fact
 
     vortSpec *= hyperdiff_fact
     divSpec *= div_diff
