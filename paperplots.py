@@ -25,8 +25,13 @@ from matplotlib import interactive
 
 import glob
 
-def twotwists():
+plt.ioff()
+# compound and special plots for the paper
 
+def twotwists():
+    '''
+    picture for the split-sphere test
+    '''
     file1 = "out_twist/ecurve1.5707963267948966.dat"
     file2 = "titania/out_twist/ecurve1.57079632679.dat"
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
@@ -56,5 +61,33 @@ def twotwists():
     fig.set_size_inches(5, 4)
     plt.savefig('twotwists.png')
     plt.savefig('twotwists.eps')
+    plt.close()
+    
+def twoND():
+    '''
+    error growth for the no-accretion, rigid-body test (NDLR, NDHR)
+    '''
+    file1='out_NDLR/rtest.dat'
+    file2='titania/out_NDHR/rtest.dat'
+    lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
+    lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
+    
+    tar1=lines1[:,0] ; err1=lines1[:,1] ; serr1=lines1[:,2]
+    tar2=lines2[:,0] ; err2=lines2[:,1] ; serr2=lines2[:,2]
+
+    plt.clf()
+    fig=plt.figure()
+    plt.subplot(211)
+    plt.plot(tar1, err1, '.k')
+    plt.plot(tar2, err2, '.r')
+    plt.ylabel('random error, $\Delta \Sigma/\Sigma$')
+    plt.subplot(212)
+    plt.plot(tar1, serr1, 'k')
+    plt.plot(tar2, serr2, 'r')
+    plt.ylabel('systematic error, $\Delta \Sigma/\Sigma$')
+    plt.xlabel('$t$, s')
+    fig.set_size_inches(4, 8)
+    plt.tight_layout()
+    plt.savefig('rtests.eps')
     plt.close()
     

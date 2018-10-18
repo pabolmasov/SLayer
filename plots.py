@@ -99,7 +99,6 @@ def visualizeTwoprofiles(ax, lonsDeg, latsDeg, data1, data2, title1="", title2="
         ax.set_yscale('log')
 
 def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
-
     """ 
     make a contour map plot of the incoming data array (in grid)
     """
@@ -421,6 +420,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.savefig(outdir+'/southpole.eps')
     plt.savefig(outdir+'/southpole.png')
     plt.close()
+#
 # post-factum visualizations from the ascii output of snapplot:
 def postmaps(infile):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
@@ -435,6 +435,7 @@ def postmaps(infile):
     vv=np.sqrt(ug**2+vg**2)
     snapplot(lons, lats, sigma, accflag, energy/sigma, ug/vv.mean()*100., -vg/vv.mean()*100., [2,2], outdir=os.path.dirname(infile))
     
+#    
 # general framework for a post-processed map of some quantity q
 def somemap(lons, lats, q, outname):
     wnan=np.where(np.isnan(q))
@@ -445,11 +446,12 @@ def somemap(lons, lats, q, outname):
     plt.ioff()
     plt.clf()
     fig=plt.figure()
-    plt.pcolormesh(lons, lats, q, cmap='hot') #,levels=levs)
+    plt.pcolormesh(lons*180./np.pi, lats*180./np.pi, q, cmap='hot') #,levels=levs)
     plt.colorbar()
-    plt.xlabel('longitude')
-    plt.ylabel('latitude')
-    fig.set_size_inches(8, 5)
+    plt.xlabel('longitude, deg',fontsize=12)
+    plt.ylabel('latitude, deg', fontsize=12)
+    fig.set_size_inches(5, 4)
+    fig.tight_layout()
     plt.savefig(outname)
     plt.close()
 #
@@ -707,7 +709,7 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
-# plot_saved('titania/out_ND/run.hdf5_map0000')
+# plot_saved('titania/out_twist/run.hdf5_map0000')
 # multiplot_saved('titania/out_twist/run.hdf5_map')
 # multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
 # multiplot_saved('titania/out512/run.hdf5_map', skip=0)

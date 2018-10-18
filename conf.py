@@ -15,14 +15,14 @@ ifplot=True
 
 ##########################
 # a switch for restart
-ifrestart=True
-nrest=3079 # number of output entry for restart
+ifrestart=False
+nrest=600 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -36,7 +36,7 @@ outskip= 1000 # how often do we make a simple log output
 
 # basic physical parameters
 rsphere    = 6.04606               # neutron star radius, GM/c**2 units
-pspin      = 0.03                  # spin period, in seconds
+pspin      = 0.003                  # spin period, in seconds
 omega      = 2.*np.pi/pspin*tscale # rotation rate
 grav       = 1./rsphere**2         # gravity
 eps_deformation = omega**2*rsphere**3
@@ -57,6 +57,7 @@ print("rotation is about "+str(omega*np.sqrt(rsphere**3))+"Keplerian")
 dt_cfl_factor = 0.5 #  Courant-Friedrichs-Levy's multiplier (<~1) for the time step
 dt_out_factor = 0.5 # output step, in dynamical times
 ifscaledt = True # if we change the value of the time step (including thermal-timescale processes etc. )
+ifscalediff = True # change dissipation with dt
 tmax=100.*pspin/tscale # we are going to run the simulation for some multiple of spin periods
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
@@ -66,7 +67,7 @@ gammainit = 0. # artificially very stiff EOS, because we want density contrasts 
 kinit = 1e-8 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
 
 # minimal physical surface density and energy density:
-sigmafloor = 1./kappa
+sigmafloor = 10./kappa
 energyfloor = sigmafloor * csqmin
 
 print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
@@ -76,13 +77,14 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-efold = 0.1 # efolding timescale at ntrunc for hyperdiffusion (in dt units)
-efold_diss = 1e-4 # smoothing the dissipation term when used as a heat source
-ndiss = 8      # order for hyperdiffusion (2 is normal diffusion)
+ktrunc = 1000. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc_diss = 10. # smoothing the dissipation term when used as a heat source
+ndiss = 2.      # order for hyperdiffusion (2 is normal diffusion)
 
+ddivfac = 1. # smoothing enhancement for divergence
 ##################################################
 #perturbation parameters
-bump_amp  = -0.15     # perturbation amplitude
+bump_amp  = -0.05     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
@@ -90,9 +92,9 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 0. # Msun/yr, intended mass accretion rate
+mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-latspread = 0.2   # spread in radians
+latspread = 0.5   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
@@ -104,10 +106,10 @@ tfric=0.*pspin/tscale
 # depletion of the atmosphere:
 tdepl=0.*pspin/tscale
 # turning on the source smoothly
-tturnon=30.*pspin/tscale
+tturnon=10.*pspin/tscale
 
 #####################################################
 # twist test
-iftwist=True
+iftwist=False
 twistscale=latspread
 
