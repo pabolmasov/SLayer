@@ -57,7 +57,7 @@ print("rotation is about "+str(omega*np.sqrt(rsphere**3))+"Keplerian")
 dt_cfl_factor = 0.5 #  Courant-Friedrichs-Levy's multiplier (<~1) for the time step
 dt_out_factor = 0.5 # output step, in dynamical times
 ifscaledt = True # if we change the value of the time step (including thermal-timescale processes etc. )
-ifscalediff = False # change dissipation with dt
+ifscalediff = True # change dissipation with dt
 tmax=100.*pspin/tscale # we are going to run the simulation for some multiple of spin periods
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
@@ -67,7 +67,7 @@ gammainit = 0. # artificially very stiff EOS, because we want density contrasts 
 kinit = 1e-8 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
 
 # minimal physical surface density and energy density:
-sigmafloor = 1./kappa
+sigmafloor = 10./kappa
 energyfloor = sigmafloor * csqmin
 
 print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
@@ -77,11 +77,11 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 100. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc = 1.e2 # wavenumber multiplier for spectral cut-off (1 for kmax)
 ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
 ndiss = 2.      # order for hyperdiffusion (2 is normal diffusion)
 
-ddivfac = 1. # smoothing enhancement for divergence
+ddivfac = 0. # smoothing enhancement for divergence
 ##################################################
 #perturbation parameters
 bump_amp  = -0.05     # perturbation amplitude

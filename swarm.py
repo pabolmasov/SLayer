@@ -133,7 +133,7 @@ hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loo
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
 if(ktrunc_diss>0.):
-    diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt)
+    diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**(ndiss/2.) * dt)
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
@@ -222,12 +222,13 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina # vorticity source ; divergence source is assumed zero
+vort_source=2.*overkepler/rsphere**1.5*sina*(1.-0.75*(2.*sina**2-1.)) # vorticity source ; divergence source is assumed zero
+# if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 beta_acc = 1. # gas-dominated matter
 # beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) # 
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) *0. #  !!!
 
 # main loop
 time1 = time.clock() # time loop
@@ -259,9 +260,11 @@ while(t<(tmax+t0)):
     else:
         sig  = x.sph2grid(sigSpec)-sigmafloor
         sigpos = (sig + np.abs(sig))/2.+sigmafloor
+        sig+=sigmafloor
         lsig = np.log(sigpos)
         energyg  = x.sph2grid(energySpec)-energyfloor
         energypos = (energyg + np.abs(energyg))/2.+energyfloor
+        energyg+=energyfloor
         lenergyg = np.log(energypos)
     accflag = x.sph2grid(accflagSpec)
     divg  = x.sph2grid(divSpec)
@@ -271,7 +274,7 @@ while(t<(tmax+t0)):
     ##################################################
 
     geff=-grav+(ug**2+vg**2-ug0**2)/rsphere # effective gravity
-    #    geff=(geff-np.fabs(geff))/2. # only negative geff
+    geff=(geff-np.fabs(geff))/2. # only negative geff
 
     ##################################################
     # pressure ratio 
@@ -349,7 +352,7 @@ while(t<(tmax+t0)):
     dissipation = (ug*dissug+vg*dissvg) # -v . dv/dt_diss  # positive if it is real dissipation, because hyperdiff_expanded is positive
     #    lost_angmoz = sig * dissug * np.sin(lats) * rsphere # angular momentum loss (z component)
     # energy sources and sinks:   
-    qplus = sig * dissipation 
+    qplus = sig * dissipation  
     # qminus = (-geff/kappa) * energyg / (energyg+energyfloor) * (1.-beta)  # unphysical, but small energies are frozen
     qminus = (-geff/kappa) * (1.-beta)  # vertical integration excludes rho or sigma; no 3 here (see section "vertical structure" in the paper)
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
@@ -405,7 +408,6 @@ while(t<(tmax+t0)):
     else:
         thermalterm = ( qplus - qminus + qns )
         denergydtaddterms = -divg * pressg + (0.5*sdotplus*((vg-vd)**2+(ug-ud)**2)  +  energy_source)
-    #     denergydtaddterms *= 0.
     if(tdepl>0.):
         if(logSE):
             denergydtaddterms -= 1./tdepl
@@ -413,7 +415,7 @@ while(t<(tmax+t0)):
             denergydtaddterms -= energyg/tdepl
     if(ktrunc_diss>0.):
         diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt * dtscale)
-        denergydtSpec_srce = x.grid2sph( thermalterm ) *diss_diff + x.grid2sph( denergydtaddterms) 
+        denergydtSpec_srce = x.grid2sph( thermalterm ) *diss_diff  + x.grid2sph( denergydtaddterms)  
     else:
         denergydtSpec_srce = x.grid2sph( thermalterm+ denergydtaddterms )
 
@@ -462,7 +464,6 @@ while(t<(tmax+t0)):
     ##################################################
     # passive scalar evolution:
     timer.start_comp("passive-scalar")
-
     #    tmpg1 = ug*accflag; tmpg2 = vg*accflag
     tmpSpec, dacctmp = x.getVortDivSpec(ug*accflag,vg*accflag)
     daccflagdtSpec = -dacctmp
@@ -476,11 +477,11 @@ while(t<(tmax+t0)):
     timer.start_comp("time-step")
 
     t += dt ; ncycle+=1
-    vortSpec += dvortdtSpec * dt
-    divSpec += ddivdtSpec * dt
-    sigSpec += dsigdtSpec * dt
-    energySpec += denergydtSpec * dt
-    accflagSpec += daccflagdtSpec * dt
+    vortSpec += (dvortdtSpec+dvortdtSpec_srce) * dt
+    divSpec += (ddivdtSpec+ddivdtSpec_srce) * dt
+    sigSpec += (dsigdtSpec+dsigdtSpec_srce) * dt
+    energySpec += (denergydtSpec+denergydtSpec_srce) * dt
+    accflagSpec += (daccflagdtSpec+daccflagdtSpec_srce) * dt
 
     timer.stop_comp("time-step")
     ##################################################
@@ -499,11 +500,11 @@ while(t<(tmax+t0)):
     accflagSpec *= sigma_diff # do we need to smooth it?
 
     # adding source terms:
-    vortSpec += dvortdtSpec_srce * dt
-    divSpec += ddivdtSpec_srce * dt
-    sigSpec += dsigdtSpec_srce * dt
-    energySpec += denergydtSpec_srce * dt
-    accflagSpec +=  daccflagdtSpec_srce * dt
+    #    vortSpec += dvortdtSpec_srce * dt
+    #    divSpec += ddivdtSpec_srce * dt
+    #    sigSpec += dsigdtSpec_srce * dt
+    #    energySpec += denergydtSpec_srce * dt
+    #    accflagSpec +=  daccflagdtSpec_srce * dt
     timer.stop_comp("diffusion2")
     ##################################################
     timer.lap("step") 
