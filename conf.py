@@ -77,11 +77,11 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 1.e2 # wavenumber multiplier for spectral cut-off (1 for kmax)
-ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
+ktrunc = 1000. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc_diss = 10. # smoothing the dissipation term when used as a heat source
 ndiss = 2.      # order for hyperdiffusion (2 is normal diffusion)
 
-ddivfac = 0. # smoothing enhancement for divergence
+ddivfac = 1. # smoothing enhancement for divergence
 ##################################################
 #perturbation parameters
 bump_amp  = -0.05     # perturbation amplitude

@@ -222,8 +222,8 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina*(1.-0.75*(2.*sina**2-1.)) # vorticity source ; divergence source is assumed zero
-# if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.))
+vort_source=2.*overkepler/rsphere**1.5*sina*np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
+# if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 beta_acc = 1. # gas-dominated matter
 # beta_acc = 0. # radiation-dominated matter
@@ -559,7 +559,6 @@ while(t<(tmax+t0)):
 
         timer.start("step") #refresh lap counter (avoids IO profiling)
         timer.purge_comps()
-
 
 #end of time cycle loop
 f5.close()
