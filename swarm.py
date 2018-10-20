@@ -302,7 +302,7 @@ while(t<(tmax+t0)):
                       vortg, divg, ug, vg, sig, pressg, beta, accflag, qminus, qplus+qns, 
                       conf, f5io.outdir) # crash visualization
         sys.exit()
-    pressg = energyg / 3. / (1.-beta/2.)
+    pressg = energyg / 3. / (1.-beta/2.) # beta is not the source of all evil
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
 
@@ -315,7 +315,7 @@ while(t<(tmax+t0)):
     ddivdtSpec, dvortdtSpec = x.getVortDivSpec(ug*vortg, vg*vortg ) # all the nablas already contain an additional 1/R multiplier
     dvortdtSpec *= -1.
     # divergence flux
-    ddivdtSpec += - x.lap * x.grid2sph(ug**2+vg**2+ug0**2) / 2.
+    ddivdtSpec += - x.lap * x.grid2sph(ug**2+vg**2+ug0**2) / 2. 
     #    tmpg = x.sph2grid(ddivdtSpec)
     #    tmpg1 = ug*lsig;  tmpg2 = vg*lsig
     if(logSE):
@@ -354,7 +354,7 @@ while(t<(tmax+t0)):
     # energy sources and sinks:   
     qplus = sig * dissipation  
     # qminus = (-geff/kappa) * energyg / (energyg+energyfloor) * (1.-beta)  # unphysical, but small energies are frozen
-    qminus = (-geff/kappa) * (1.-beta)  # vertical integration excludes rho or sigma; no 3 here (see section "vertical structure" in the paper)
+    qminus = (-geff/kappa) * (1.-beta) # vertical integration excludes rho or sigma; no 3 here (see section "vertical structure" in the paper)
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
     timer.stop_comp("diffusion")
     ##################################################
@@ -449,6 +449,7 @@ while(t<(tmax+t0)):
         dt_accr=1./(np.abs(sdotplus/sig)).max()
     if(ifscaledt):
         dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
+        dt=1./(1./dt_cfl+10./dt_thermal+2./dt_accr+1./dt_out)
     else:
         dt=dt_cfl
     if(dt <= 1e-10):

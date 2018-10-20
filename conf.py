@@ -94,7 +94,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 # source term
 mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-latspread = 0.5   # spread in radians
+latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
