@@ -128,12 +128,14 @@ divg  = x.sph2grid(divSpec)
 # print(x.lap)
 lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
 lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
-hyperdiff_expanded = (x.lap/(lapmax*ktrunc**2))**(ndiss/2)
+hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive!
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
+# print(hyperdiff_fact)
+# input('fdslkjsa')
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
 if(ktrunc_diss>0.):
-    diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**(ndiss/2.) * dt)
+    diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**(ndiss) * dt)
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
@@ -146,7 +148,6 @@ daccflagdtSpec = np.zeros(vortSpec.shape, np.complex)
 # restart module:
 if(ifrestart):
     vortg, divg, sig, energyg, accflag, t0 = f5io.restart(restartfile, nrest, conf)
-    
 else:
     t0=0.
     nrest=0
@@ -228,7 +229,7 @@ ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity c
 beta_acc = 1. # gas-dominated matter
 # beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) *0. #  !!!
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)*0. #  !!!
 
 # main loop
 time1 = time.clock() # time loop
@@ -442,14 +443,14 @@ while(t<(tmax+t0)):
 
     #    denergyg=x.sph2grid(denergydtSpec)
     if(logSE):
-        dt_thermal=1./np.abs(thermalterm).max()
+        dt_thermal=1./(np.abs(thermalterm)+np.abs(denergydtaddterms)).max()
         dt_accr=1./(np.abs(sdotplus)).max()
     else:
-        dt_thermal=1./np.abs(thermalterm/energypos).max()
+        dt_thermal=1./((np.abs(thermalterm)+np.abs(denergydtaddterms))/energypos).max()
         dt_accr=1./(np.abs(sdotplus/sig)).max()
     if(ifscaledt):
-        dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
-        dt=1./(1./dt_cfl+10./dt_thermal+2./dt_accr+1./dt_out)
+        #        dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
+        dt=1./(1./dt_cfl+1./dt_thermal+2./dt_accr+1./dt_out)
     else:
         dt=dt_cfl
     if(dt <= 1e-10):
