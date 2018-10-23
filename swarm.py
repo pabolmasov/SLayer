@@ -128,12 +128,16 @@ divg  = x.sph2grid(divSpec)
 # print(x.lap)
 lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
 lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
-hyperdiff_expanded = (x.lap/(lapmax*ktrunc**2))**(ndiss/2)
+hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive! let us care somehow about the mean flow
+# hyperdiff_expanded = hyperdiff_expanded - hyperdiff_expanded[hyperdiff_expanded>0.].min()
+# hyperdiff_expanded[0] = 0. # care for the overall rotation trend 
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
+# print(hyperdiff_expanded)
+# input('fdslkjsa')
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
 if(ktrunc_diss>0.):
-    diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**(ndiss/2.) * dt)
+    diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**(ndiss) * dt)
 
 # initialize spectral tendency arrays
 ddivdtSpec  = np.zeros(vortSpec.shape, np.complex)
@@ -146,7 +150,6 @@ daccflagdtSpec = np.zeros(vortSpec.shape, np.complex)
 # restart module:
 if(ifrestart):
     vortg, divg, sig, energyg, accflag, t0 = f5io.restart(restartfile, nrest, conf)
-    
 else:
     t0=0.
     nrest=0
@@ -222,13 +225,14 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina*np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
+vort_source=2.*overkepler/rsphere**1.5*sina
+# *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
 # if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 beta_acc = 1. # gas-dominated matter
 # beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) *0. #  !!!
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)*0. #  !!!
 
 # main loop
 time1 = time.clock() # time loop
@@ -302,7 +306,7 @@ while(t<(tmax+t0)):
                       vortg, divg, ug, vg, sig, pressg, beta, accflag, qminus, qplus+qns, 
                       conf, f5io.outdir) # crash visualization
         sys.exit()
-    pressg = energyg / 3. / (1.-beta/2.)
+    pressg = energyg / 3. / (1.-beta/2.) # beta is not the source of all evil
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
 
@@ -315,7 +319,7 @@ while(t<(tmax+t0)):
     ddivdtSpec, dvortdtSpec = x.getVortDivSpec(ug*vortg, vg*vortg ) # all the nablas already contain an additional 1/R multiplier
     dvortdtSpec *= -1.
     # divergence flux
-    ddivdtSpec += - x.lap * x.grid2sph(ug**2+vg**2+ug0**2) / 2.
+    ddivdtSpec += - x.lap * x.grid2sph(ug**2+vg**2+ug0**2) / 2. 
     #    tmpg = x.sph2grid(ddivdtSpec)
     #    tmpg1 = ug*lsig;  tmpg2 = vg*lsig
     if(logSE):
@@ -354,7 +358,7 @@ while(t<(tmax+t0)):
     # energy sources and sinks:   
     qplus = sig * dissipation  
     # qminus = (-geff/kappa) * energyg / (energyg+energyfloor) * (1.-beta)  # unphysical, but small energies are frozen
-    qminus = (-geff/kappa) * (1.-beta)  # vertical integration excludes rho or sigma; no 3 here (see section "vertical structure" in the paper)
+    qminus = (-geff/kappa) * (1.-beta) # vertical integration excludes rho or sigma; no 3 here (see section "vertical structure" in the paper)
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
     timer.stop_comp("diffusion")
     ##################################################
@@ -442,13 +446,14 @@ while(t<(tmax+t0)):
 
     #    denergyg=x.sph2grid(denergydtSpec)
     if(logSE):
-        dt_thermal=1./np.abs(thermalterm).max()
+        dt_thermal=1./(np.abs(thermalterm)+np.abs(denergydtaddterms)).max()
         dt_accr=1./(np.abs(sdotplus)).max()
     else:
-        dt_thermal=1./np.abs(thermalterm/energypos).max()
+        dt_thermal=1./((np.abs(thermalterm)+np.abs(denergydtaddterms))/energypos).max()
         dt_accr=1./(np.abs(sdotplus/sig)).max()
     if(ifscaledt):
         dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
+        # dt=1./(1./dt_cfl+1./dt_thermal+2./dt_accr+1./dt_out)
     else:
         dt=dt_cfl
     if(dt <= 1e-10):
@@ -477,11 +482,11 @@ while(t<(tmax+t0)):
     timer.start_comp("time-step")
 
     t += dt ; ncycle+=1
-    vortSpec += (dvortdtSpec+dvortdtSpec_srce) * dt
-    divSpec += (ddivdtSpec+ddivdtSpec_srce) * dt
-    sigSpec += (dsigdtSpec+dsigdtSpec_srce) * dt
-    energySpec += (denergydtSpec+denergydtSpec_srce) * dt
-    accflagSpec += (daccflagdtSpec+daccflagdtSpec_srce) * dt
+    vortSpec += (dvortdtSpec) * dt
+    divSpec += (ddivdtSpec) * dt
+    sigSpec += (dsigdtSpec) * dt
+    energySpec += (denergydtSpec) * dt
+    accflagSpec += (daccflagdtSpec) * dt
 
     timer.stop_comp("time-step")
     ##################################################
@@ -500,11 +505,11 @@ while(t<(tmax+t0)):
     accflagSpec *= sigma_diff # do we need to smooth it?
 
     # adding source terms:
-    #    vortSpec += dvortdtSpec_srce * dt
-    #    divSpec += ddivdtSpec_srce * dt
-    #    sigSpec += dsigdtSpec_srce * dt
-    #    energySpec += denergydtSpec_srce * dt
-    #    accflagSpec +=  daccflagdtSpec_srce * dt
+    vortSpec += dvortdtSpec_srce * dt
+    divSpec += ddivdtSpec_srce * dt
+    sigSpec += dsigdtSpec_srce * dt
+    energySpec += denergydtSpec_srce * dt
+    accflagSpec +=  daccflagdtSpec_srce * dt
     timer.stop_comp("diffusion2")
     ##################################################
     timer.lap("step") 
