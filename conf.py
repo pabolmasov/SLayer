@@ -16,13 +16,13 @@ ifplot=True
 ##########################
 # a switch for restart
 ifrestart=False
-nrest=600 # number of output entry for restart
+nrest=1197 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 128          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -57,7 +57,7 @@ print("rotation is about "+str(omega*np.sqrt(rsphere**3))+"Keplerian")
 dt_cfl_factor = 0.5 #  Courant-Friedrichs-Levy's multiplier (<~1) for the time step
 dt_out_factor = 0.5 # output step, in dynamical times
 ifscaledt = True # if we change the value of the time step (including thermal-timescale processes etc. )
-ifscalediff = True # change dissipation with dt
+ifscalediff = False # change dissipation with dt
 tmax=100.*pspin/tscale # we are going to run the simulation for some multiple of spin periods
 csqmin=1e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
@@ -77,10 +77,9 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 1000. # wavenumber multiplier for spectral cut-off (1 for kmax)
-ktrunc_diss = 10. # smoothing the dissipation term when used as a heat source
+ktrunc = 10. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
 ndiss = 2.      # order for hyperdiffusion (2 is normal diffusion)
-
 ddivfac = 1. # smoothing enhancement for divergence
 ##################################################
 #perturbation parameters

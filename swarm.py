@@ -128,9 +128,11 @@ divg  = x.sph2grid(divSpec)
 # print(x.lap)
 lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
 lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
-hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive!
+hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive! let us care somehow about the mean flow
+# hyperdiff_expanded = hyperdiff_expanded - hyperdiff_expanded[hyperdiff_expanded>0.].min()
+# hyperdiff_expanded[0] = 0. # care for the overall rotation trend 
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
-# print(hyperdiff_fact)
+# print(hyperdiff_expanded)
 # input('fdslkjsa')
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
@@ -223,7 +225,8 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina*np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
+vort_source=2.*overkepler/rsphere**1.5*sina
+# *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
 # if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 beta_acc = 1. # gas-dominated matter
@@ -449,8 +452,8 @@ while(t<(tmax+t0)):
         dt_thermal=1./((np.abs(thermalterm)+np.abs(denergydtaddterms))/energypos).max()
         dt_accr=1./(np.abs(sdotplus/sig)).max()
     if(ifscaledt):
-        #        dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
-        dt=1./(1./dt_cfl+1./dt_thermal+2./dt_accr+1./dt_out)
+        dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
+        # dt=1./(1./dt_cfl+1./dt_thermal+2./dt_accr+1./dt_out)
     else:
         dt=dt_cfl
     if(dt <= 1e-10):
@@ -479,11 +482,11 @@ while(t<(tmax+t0)):
     timer.start_comp("time-step")
 
     t += dt ; ncycle+=1
-    vortSpec += (dvortdtSpec+dvortdtSpec_srce) * dt
-    divSpec += (ddivdtSpec+ddivdtSpec_srce) * dt
-    sigSpec += (dsigdtSpec+dsigdtSpec_srce) * dt
-    energySpec += (denergydtSpec+denergydtSpec_srce) * dt
-    accflagSpec += (daccflagdtSpec+daccflagdtSpec_srce) * dt
+    vortSpec += (dvortdtSpec) * dt
+    divSpec += (ddivdtSpec) * dt
+    sigSpec += (dsigdtSpec) * dt
+    energySpec += (denergydtSpec) * dt
+    accflagSpec += (daccflagdtSpec) * dt
 
     timer.stop_comp("time-step")
     ##################################################
@@ -502,11 +505,11 @@ while(t<(tmax+t0)):
     accflagSpec *= sigma_diff # do we need to smooth it?
 
     # adding source terms:
-    #    vortSpec += dvortdtSpec_srce * dt
-    #    divSpec += ddivdtSpec_srce * dt
-    #    sigSpec += dsigdtSpec_srce * dt
-    #    energySpec += denergydtSpec_srce * dt
-    #    accflagSpec +=  daccflagdtSpec_srce * dt
+    vortSpec += dvortdtSpec_srce * dt
+    divSpec += ddivdtSpec_srce * dt
+    sigSpec += dsigdtSpec_srce * dt
+    energySpec += denergydtSpec_srce * dt
+    accflagSpec +=  daccflagdtSpec_srce * dt
     timer.stop_comp("diffusion2")
     ##################################################
     timer.lap("step") 
