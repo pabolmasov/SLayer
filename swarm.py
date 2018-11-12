@@ -65,7 +65,7 @@ from conf import ifscaledt, dt_cfl_factor, dt_out_factor # scaling for the time 
 from conf import ifscalediff
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import ktrunc, ndiss, ktrunc_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
-from conf import ddivfac
+from conf import ddivfac, jitterskip
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin, sigmafloor, energyfloor # physical parameters 
 from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax # frequency of diagnostic outputs, maximal time
@@ -80,6 +80,8 @@ from conf import eps_deformation
 if(ifplot):
     from plots import visualize
 
+from jitter import jitternod
+    
 ############################
 # beta calibration
 bmin=betamin ; bmax=1.-betamin ; nb=10000
@@ -98,6 +100,7 @@ betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fi
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
+x1 = Spharmt(2*conf.nlons, 2*conf.nlats, conf.ntrunc, conf.rsphere, gridtype='regular')
 lons,lats = np.meshgrid(x.lons, x.lats)
 ############
 # time steps
@@ -134,8 +137,8 @@ hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive! let us c
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
 # print(hyperdiff_expanded)
 # input('fdslkjsa')
-sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
+sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 if(ktrunc_diss>0.):
     diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**(ndiss) * dt)
 
@@ -225,14 +228,15 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina
+vort_source=2.*overkepler/rsphere**1.5*sina * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
+# !!! let us try again a smooth version
 # *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
 # if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 beta_acc = 1. # gas-dominated matter
 # beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)*0. #  !!!
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) *0. 
 
 # main loop
 time1 = time.clock() # time loop
@@ -482,9 +486,10 @@ while(t<(tmax+t0)):
     timer.start_comp("time-step")
 
     t += dt ; ncycle+=1
-    vortSpec += (dvortdtSpec) * dt
-    divSpec += (ddivdtSpec) * dt
-    sigSpec += (dsigdtSpec) * dt
+    # !!! let us try to smooth all the evolution terms
+    vortSpec += (dvortdtSpec)  * dt
+    divSpec += (ddivdtSpec)  * dt
+    sigSpec += (dsigdtSpec)  * dt
     energySpec += (denergydtSpec) * dt
     accflagSpec += (daccflagdtSpec) * dt
 
@@ -502,24 +507,38 @@ while(t<(tmax+t0)):
     divSpec *= div_diff
     sigSpec *= sigma_diff
     energySpec *= sigma_diff
-    accflagSpec *= sigma_diff # do we need to smooth it?
+    #    accflagSpec *= sigma_diff # do we need to smooth it?
 
-    # adding source terms:
+    # adding source terms: 
     vortSpec += dvortdtSpec_srce * dt
     divSpec += ddivdtSpec_srce * dt
     sigSpec += dsigdtSpec_srce * dt
     energySpec += denergydtSpec_srce * dt
     accflagSpec +=  daccflagdtSpec_srce * dt
+    
+    if(ncycle % jitterskip == 0):
+        #        vortg0 = vortg ; divg0 = divg ; sig0 = sig ; pressg0=pressg
+        dphi = np.random.rand()*np.pi*2./np.double(x.nlons)
+        dphi = np.pi / 4.
+        #        print("jitter by "+str(dphi))
+        # jitternod(vort, div, sig, energy, incl, grid, grid1)
+        vortg1, divg1, sig1, energyg1 = jitternod(x.sph2grid(vortSpec), x.sph2grid(divSpec), x.sph2grid(sigSpec), x.sph2grid(energySpec), dphi, x, x1)
+        vortg, divg, sig, energyg = jitternod(vortg1, divg1, sig1, energyg1, -dphi, x1, x)
+        vortSpec = x.grid2sph(vortg)  ; divSpec = x.grid2sph(divg) ; sigSpec = x.grid2sph(sig)  ; energySpect =  x.grid2sph(energyg)
+#        print("jitter by "+str(dphi))
+#        r = input("j")
+    
     timer.stop_comp("diffusion2")
     ##################################################
     timer.lap("step") 
     
     ##################################################
 
-    if(ncycle % (outskip) ==0 ): # make sure it's alive
+    if(ncycle % outskip ==0 ): # make sure it's alive
         print("lg(E) range "+str(lenergyg.min())+" to "+str(lenergyg.max()))
         print("lg(Sigma) range "+str(lsig.min())+" to "+str(lsig.max()))
         print('t=%10.5f ms' % (t*1e3*tscale))
+        print("ncycle = "+str(ncycle))
         print("csqmax = "+str(cssqmax)+", vsqmax = "+str(vsqmax))
         print(" dt(CFL, light) = "+str(dt_cfl))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
@@ -529,7 +548,7 @@ while(t<(tmax+t0)):
         print("dt = "+str(dt))
         time2 = time.clock()
         print('simulation time = '+str(time2-time1)+'s')
-        print("about "+str(t/tmax*100.)+"% done") 
+        print("about "+str(t/tmax*100.)+"% done")
 
     ##################################################
     # I/O

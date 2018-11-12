@@ -16,7 +16,7 @@ def HDFcombine(f5array, otheroutdir=None):
         print("nothing to combine")
         exit()
     else:
-        print("preparing to glue "+str(n)+" files")
+        print("preparing to stitch "+str(n)+" files")
     if(otheroutdir == None):
         outdir=os.path.dirname(f5array[0])
     else:
