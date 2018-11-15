@@ -80,7 +80,7 @@ from conf import eps_deformation
 if(ifplot):
     from plots import visualize
 
-from jitter import jitternod
+from jitter import jitternod, jitterturn
     
 ############################
 # beta calibration
@@ -100,7 +100,7 @@ betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fi
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
-x1 = Spharmt(2*conf.nlons, 2*conf.nlats, conf.ntrunc, conf.rsphere, gridtype='regular')
+x1 = Spharmt(2*conf.nlons, 2*conf.nlats, 2*conf.ntrunc, conf.rsphere, gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
 ############
 # time steps
@@ -518,13 +518,16 @@ while(t<(tmax+t0)):
     
     if(ncycle % jitterskip == 0):
         #        vortg0 = vortg ; divg0 = divg ; sig0 = sig ; pressg0=pressg
-        dphi = np.random.rand()*np.pi*2./np.double(x.nlons)
-        dphi = np.pi / 4.
+        dphi = np.random.rand()*np.pi-np.pi/2. # /np.double(x.nlons)
+        dlon = np.random.rand()*2.*np.pi-np.pi
+        #        dphi = np.pi / 4.
         #        print("jitter by "+str(dphi))
         # jitternod(vort, div, sig, energy, incl, grid, grid1)
-        vortg1, divg1, sig1, energyg1 = jitternod(x.sph2grid(vortSpec), x.sph2grid(divSpec), x.sph2grid(sigSpec), x.sph2grid(energySpec), dphi, x, x1)
-        vortg, divg, sig, energyg = jitternod(vortg1, divg1, sig1, energyg1, -dphi, x1, x)
-        vortSpec = x.grid2sph(vortg)  ; divSpec = x.grid2sph(divg) ; sigSpec = x.grid2sph(sig)  ; energySpect =  x.grid2sph(energyg)
+        vortg1, divg1, sig1, energyg1 = jitterturn(x.sph2grid(vortSpec), x.sph2grid(divSpec), x.sph2grid(sigSpec), x.sph2grid(energySpec), dlon, x, x1)
+        vortg2, divg2, sig2, energyg2 = jitternod(vortg1, divg1, sig1, energyg1, -dphi, x1, x1)
+        vortg1, divg1, sig1, energyg1 = jitternod(vortg2, divg2, sig2, energyg2, dphi, x1, x1)
+        vortg2, divg2, sig2, energyg2 = jitterturn(vortg1, divg1, sig1, energyg1, -dlon, x1, x)
+        vortSpec = x.grid2sph(vortg2)  ; divSpec = x.grid2sph(divg2) ; sigSpec = x.grid2sph(sig2)  ; energySpect =  x.grid2sph(energyg2)
 #        print("jitter by "+str(dphi))
 #        r = input("j")
     

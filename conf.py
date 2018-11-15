@@ -15,14 +15,14 @@ ifplot = True
 
 ##########################
 # a switch for restart
-ifrestart = True
+ifrestart = False
 nrest=7308 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 128          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -81,7 +81,7 @@ ktrunc = 50. # wavenumber multiplier for spectral cut-off (1 for kmax)
 # ktrunc >~ Nx/|\ln e_M|**(1./Ndiss) (see Parfrey et al. 2012, formula 32 and after) -- condition for preserving the overall solution
 ktrunc_diss = 0.5 # smoothing the dissipation term when used as a heat source
 ndiss = 2.     # order for hyperdiffusion (2 is normal diffusion)
-ddivfac = 100. # 0.5*ktrunc**2 # smoothing enhancement for divergence
+ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
 jitterskip = 1000
 ##################################################
 #perturbation parameters
@@ -93,7 +93,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 1e-8 # Msun/yr, intended mass accretion rate
+mdotfinal = 1e-7 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.1   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
@@ -107,7 +107,7 @@ tfric=0.*pspin/tscale
 # depletion of the atmosphere:
 tdepl=0.*pspin/tscale
 # turning on the source smoothly
-tturnon=0.*pspin/tscale
+tturnon=10.*pspin/tscale
 
 #####################################################
 # twist test
