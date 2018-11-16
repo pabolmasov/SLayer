@@ -507,7 +507,7 @@ while(t<(tmax+t0)):
     divSpec *= div_diff
     sigSpec *= sigma_diff
     energySpec *= sigma_diff
-    #    accflagSpec *= sigma_diff # do we need to smooth it?
+    accflagSpec *= sigma_diff # do we need to smooth it?
 
     # adding source terms: 
     vortSpec += dvortdtSpec_srce * dt
