@@ -91,9 +91,9 @@ bmin=betamin ; bmax=1.-betamin ; nb=10000
 b = (bmax-bmin)*(old_div((np.arange(nb)+0.5),np.double(nb)))+bmin
 bx = b/(1.-b)**0.25
 b[0]=0. ; bx[0]=0.0  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value='extrapolate')
+betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
 # as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value='extrapolate')
+betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value=1.)
 # as a function of energy
 ######################################
 
