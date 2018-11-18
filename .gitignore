@@ -5,3 +5,4 @@ out*/
 swm.py
 *.fig
 *.eps
+conf_*.py

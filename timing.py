@@ -280,13 +280,17 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None, 
         tcenter[kt]=(tbegin+tend)/2.   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
         wwindow=(tar>=tbegin)&(tar<tend)
         binflux[kt]=rawflux[wwindow].mean()   ;     binstd[kt]=rawflux[wwindow].std()
-        wsize=np.size(wwindow)
+        wsize=(wwindow).sum()
         fsp=np.fft.rfft((flux[wwindow]-flux[wwindow].mean()), norm="ortho")/flux[wwindow].std()
         fspm=np.fft.rfft((mass[wwindow]-mass[wwindow].mean()), norm="ortho")/mass[wwindow].std()
         fspn=np.fft.rfft((newmass[wwindow]-newmass[wwindow].mean()), norm="ortho")/mass[wwindow].std() # note we normalize for total mass variation; if sigplus===0, does not make sense but does not invoke errors
         freq = np.fft.rfftfreq(wsize, tspan/np.double(nsize)) # frequency grid (different for all the time bins)
         pds=np.abs(fsp)**2  ;   pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2 # we can mutiply by f^2 to remove the overall \propto f^{-2} trend, that makes the peaks distinguishable
-        
+        if(np.size(pds) != np.size(freq)):
+            print(wsize)
+            print(np.size(pds))
+            print(np.size(freq))
+            input("q")
         for kb in np.arange(nbins):
             freqrange=(freq>=binfreq[kb])&(freq<binfreq[kb+1])
             pdsbin[kt,kb]=pds[freqrange].mean()   ;     pdsbinm[kt,kb]=pdsm[freqrange].mean()   ;   pdsbinn[kt,kb]=pdsn[freqrange].mean()
@@ -311,8 +315,8 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None, 
     for kb in np.arange(nbins):
         freqrange=(freq>=binfreq[kb])&(freq<binfreq[kb+1])
         pdsbin_total[kb]=pds[freqrange].mean()   ;     pdsbinm_total[kb]=pdsm[freqrange].mean()   ;   pdsbinn_total[kb]=pdsn[freqrange].mean()
-        dpdsbin_total[kb]=pds[freqrange].std()/sqrt(double(freqrange.sum())-1.)   ;     dpdsbinm_total[kb]=pdsm[freqrange].std()/sqrt(double(freqrange.sum())-1.)
-        dpdsbinn_total[kb]=pdsn[freqrange].std()/sqrt(double(freqrange.sum())-1.)
+        dpdsbin_total[kb]=pds[freqrange].std()/np.sqrt(np.double(freqrange.sum())-1.)   ;     dpdsbinm_total[kb]=pdsm[freqrange].std()/np.sqrt(np.double(freqrange.sum())-1.)
+        dpdsbinn_total[kb]=pdsn[freqrange].std()/np.sqrt(np.double(freqrange.sum())-1.)
 
     # we will need mean fluxes for vdKlis's plots:
     fbinfluxes=open(outdir+'/diss_binflux.dat', 'w')
@@ -455,5 +459,5 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
        
-fluxest('out/runOLD.hdf5', np.pi/4., 0., ntimes=5, nbins=100, logbinning=False)
+fluxest('out8/run.hdf5', np.pi/4., 0., ntimes=5, nbins=100, logbinning=False)
 # meanmaps('out/run.hdf5', 1000, 2000)

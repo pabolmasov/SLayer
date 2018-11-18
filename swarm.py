@@ -228,7 +228,8 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
+vort_source=2.*overkepler/rsphere**1.5*sina
+# * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
 # !!! let us try again a smooth version
 # *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
 # if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
@@ -515,22 +516,23 @@ while(t<(tmax+t0)):
     sigSpec += dsigdtSpec_srce * dt
     energySpec += denergydtSpec_srce * dt
     accflagSpec +=  daccflagdtSpec_srce * dt
-    
-    if(ncycle % jitterskip == 0):
-        #        vortg0 = vortg ; divg0 = divg ; sig0 = sig ; pressg0=pressg
-        dphi = np.random.rand()*np.pi-np.pi/2. # /np.double(x.nlons)
-        dlon = np.random.rand()*2.*np.pi-np.pi
-        #        dphi = np.pi / 4.
-        #        print("jitter by "+str(dphi))
-        # jitternod(vort, div, sig, energy, incl, grid, grid1)
-        vortg1, divg1, sig1, energyg1 = jitterturn(x.sph2grid(vortSpec), x.sph2grid(divSpec), x.sph2grid(sigSpec), x.sph2grid(energySpec), dlon, x, x1)
-        vortg2, divg2, sig2, energyg2 = jitternod(vortg1, divg1, sig1, energyg1, -dphi, x1, x1)
-        vortg1, divg1, sig1, energyg1 = jitternod(vortg2, divg2, sig2, energyg2, dphi, x1, x1)
-        vortg2, divg2, sig2, energyg2 = jitterturn(vortg1, divg1, sig1, energyg1, -dlon, x1, x)
-        vortSpec = x.grid2sph(vortg2)  ; divSpec = x.grid2sph(divg2) ; sigSpec = x.grid2sph(sig2)  ; energySpect =  x.grid2sph(energyg2)
-#        print("jitter by "+str(dphi))
-#        r = input("j")
-    
+
+    if(jitterskip>0):
+        if(ncycle % jitterskip == 0):
+            #        vortg0 = vortg ; divg0 = divg ; sig0 = sig ; pressg0=pressg
+            dphi = np.random.rand()*np.pi-np.pi/2. # /np.double(x.nlons)
+            dlon = np.random.rand()*2.*np.pi-np.pi
+            #        dphi = np.pi / 4.
+            #        print("jitter by "+str(dphi))
+            # jitternod(vort, div, sig, energy, incl, grid, grid1)
+            vortg1, divg1, sig1, energyg1, accflag1 = jitterturn(x.sph2grid(vortSpec), x.sph2grid(divSpec), x.sph2grid(sigSpec), x.sph2grid(energySpec), x.sph2grid(accflagSpec), dlon, x, x1)
+            vortg2, divg2, sig2, energyg2, accflag2 = jitternod(vortg1, divg1, sig1, energyg1, accflag1, -dphi, x1, x1)
+            vortg1, divg1, sig1, energyg1, accflag1 = jitternod(vortg2, divg2, sig2, energyg2, accflag2,  dphi, x1, x1)
+            vortg2, divg2, sig2, energyg2, accflag2 = jitterturn(vortg1, divg1, sig1, energyg1, accflag1,  -dlon, x1, x)
+            vortSpec = x.grid2sph(vortg2)  ; divSpec = x.grid2sph(divg2) ; sigSpec = x.grid2sph(sig2)  ; energySpec =  x.grid2sph(energyg2) ; accflagSpec = x.grid2sph(accflag2)
+            #        print("jitter by "+str(dphi))
+            #        r = input("j")
+
     timer.stop_comp("diffusion2")
     ##################################################
     timer.lap("step") 

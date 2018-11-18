@@ -5,7 +5,7 @@ import numpy as np
 import scipy.interpolate as si
 
 # jitter block
-def jitterturn(vort0, div0, sig0, energy0, dlon, grid, grid1): #, back=False):
+def jitterturn(vort0, div0, sig0, energy0, accflag0, dlon, grid, grid1): #, back=False):
     '''
     turns all the functions on the grid by an arbitrary angle in dlon
     '''
@@ -17,6 +17,8 @@ def jitterturn(vort0, div0, sig0, energy0, dlon, grid, grid1): #, back=False):
                                          bbox=[-np.pi/2., np.pi/2., 0., 2.*np.pi])
     energy_spline = si.RectBivariateSpline(-grid.lats, grid.lons, energy0, kx=1, ky=1,
                                          bbox=[-np.pi/2., np.pi/2., 0., 2.*np.pi])
+    accflag_spline = si.RectBivariateSpline(-grid.lats, grid.lons, accflag0, kx=1, ky=1,
+                                         bbox=[-np.pi/2., np.pi/2., 0., 2.*np.pi])
     #    si.interp2d(grid.lons, grid.lats, vort, kind='cubic')
     xlons,xlats = np.meshgrid(grid1.lons, grid1.lats)
 
@@ -24,10 +26,11 @@ def jitterturn(vort0, div0, sig0, energy0, dlon, grid, grid1): #, back=False):
     div1 = div_spline.ev(-xlats, (xlons+dlon) % (2.*np.pi))
     sig1 = sig_spline.ev(-xlats, (xlons+dlon) % (2.*np.pi))
     energy1 = energy_spline.ev(-xlats, (xlons+dlon) % (2.*np.pi))
+    accflag1 = accflag_spline.ev(-xlats, (xlons+dlon) % (2.*np.pi))
     
-    return vort1, div1, sig1, energy1
+    return vort1, div1, sig1, energy1, acclag1
 
-def jitternod(vort0, div0, sig0, energy0, incl, grid, grid1):
+def jitternod(vort0, div0, sig0, energy0, accflag0, incl, grid, grid1):
     '''
     turns all the functions on the grid by an arbitrary inclination angle incl
     '''
@@ -40,6 +43,8 @@ def jitternod(vort0, div0, sig0, energy0, incl, grid, grid1):
     sig_spline = si.RectBivariateSpline(-grid.lats, grid.lons, sig0, kx=1, ky=1,
                                          bbox=[-np.pi/2., np.pi/2., 0., 2.*np.pi])
     energy_spline = si.RectBivariateSpline(-grid.lats, grid.lons, energy0, kx=1, ky=1,
+                                         bbox=[-np.pi/2., np.pi/2., 0., 2.*np.pi])
+    accflag_spline = si.RectBivariateSpline(-grid.lats, grid.lons, accflag0, kx=1, ky=1,
                                          bbox=[-np.pi/2., np.pi/2., 0., 2.*np.pi])
 
     xlons,xlats = np.meshgrid(grid1.lons, grid1.lats)
@@ -60,5 +65,6 @@ def jitternod(vort0, div0, sig0, energy0, incl, grid, grid1):
     div1 = div_spline.ev(-lats1, lons1)
     sig1 = sig_spline.ev(-lats1, lons1)
     energy1 = energy_spline.ev(-lats1, lons1)
+    accflag1 = accflag_spline.ev(-lats1, lons1)
     
-    return vort1, div1, sig1, energy1
+    return vort1, div1, sig1, energy1, accflag1
