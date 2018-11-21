@@ -440,13 +440,16 @@ def meanmaps(filename, n1, n2):
         energy=data["energy"][:] ; beta=data["beta"][:]
         qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
         sigmean+=sig ; energymean+=energy ; ugmean+=ug ; vgmean+=vg ; ugdisp+=ug**2 ; vgdisp+=vg**2
+        uvcorr += ug * vg
         qmmean+=qminus ; qpmean+=qplus
     f.close()
     sigmean/=np.double(n2-n1) ; energymean/=np.double(n2-n1) ; ugmean/=np.double(n2-n1); vgmean/=np.double(n2-n1)
     qmmean/=np.double(n2-n1) ; qpmean/=np.double(n2-n1)
     ugdisp=(ugdisp/np.double(n2-n1)-ugmean**2) ; vgdisp=(vgdisp/np.double(n2-n1)-vgmean**2)
     uvcorr=uvcorr/np.double(n2-n1)-ugmean*vgmean
-
+    print("maximal Reynolds stress "+str(uvcorr.max()))
+    print("maximal speed of sound "+str((energymean/sigmean).max()))
+    
     # ascii output:
     fout=open(outdir+'/meanmap.dat', 'w')
     for kx in np.arange(nlons):
@@ -458,6 +461,15 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, energymean, outdir+"/mean_energy.png")
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
-       
-fluxest('out8/run.hdf5', np.pi/4., 0., ntimes=5, nbins=100, logbinning=False)
+
+    # azimuthal average:
+    ulats = lats.mean(axis=1)
+    sigmean_phavg = sigmean.mean(axis=1) ; energymean_phavg = energymean.mean(axis=1)
+    ugmean_phavg = ugmean.mean(axis=1) ; vgmean_phavg = vgmean.mean(axis=1)
+    uvcorr_phavg = uvcorr.mean(axis=1)
+    if(ifplot):
+        plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname='latitude', yname='$u$, $v$', prefix='out/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
+        plots.someplot(ulats, [uvcorr_phavg], xname='latitude', yname=r'$\langle\Delta u \Delta v\rangle$', prefix='out/uvcorr', title='', postfix='plot', fmt=['k-'])
+        
+# fluxest('out/run_jitter1000.hdf5', np.pi/4., 0., ntimes=5, nbins=100, logbinning=True)
 # meanmaps('out/run.hdf5', 1000, 2000)
