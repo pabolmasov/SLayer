@@ -21,7 +21,7 @@ import shtns
 import time
 import os
 import h5py
-from sympy.solvers import solve
+# from sympy.solvers import solve
 # from sympy import Symbol
 import scipy.interpolate as si
 import imp
@@ -100,7 +100,7 @@ betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fi
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
-x1 = Spharmt(2*conf.nlons, 2*conf.nlats, 2*conf.ntrunc, conf.rsphere, gridtype='gaussian')
+x1 = Spharmt(3*conf.nlons, 3*conf.nlats, 3*conf.ntrunc, conf.rsphere, gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
 ############
 # time steps
@@ -487,7 +487,6 @@ while(t<(tmax+t0)):
     timer.start_comp("time-step")
 
     t += dt ; ncycle+=1
-    # !!! let us try to smooth all the evolution terms
     vortSpec += (dvortdtSpec)  * dt
     divSpec += (ddivdtSpec)  * dt
     sigSpec += (dsigdtSpec)  * dt

@@ -15,8 +15,8 @@ ifplot = True
 
 ##########################
 # a switch for restart
-ifrestart = False
-nrest=7308 # number of output entry for restart
+ifrestart = True
+nrest=7191 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -77,12 +77,12 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 100. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc = 1000. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
 # ktrunc >~ Nx/|\ln e_M|**(1./Ndiss) (see Parfrey et al. 2012, formula 32 and after) -- condition for preserving the overall solution
 ktrunc_diss = 0.5 # smoothing the dissipation term when used as a heat source
 ndiss = 2.     # order for hyperdiffusion (2 is normal diffusion)
 ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
-jitterskip = 1000
+jitterskip = 10000
 ##################################################
 #perturbation parameters
 bump_amp  = -0.05     # perturbation amplitude

@@ -28,7 +28,7 @@ def jitterturn(vort0, div0, sig0, energy0, accflag0, dlon, grid, grid1): #, back
     energy1 = energy_spline.ev(-xlats, (xlons+dlon) % (2.*np.pi))
     accflag1 = accflag_spline.ev(-xlats, (xlons+dlon) % (2.*np.pi))
     
-    return vort1, div1, sig1, energy1, acclag1
+    return vort1, div1, sig1, energy1, accflag1
 
 def jitternod(vort0, div0, sig0, energy0, accflag0, incl, grid, grid1):
     '''
