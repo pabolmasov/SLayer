@@ -570,8 +570,8 @@ def dynsplot(infile="out/pds_diss", omega=None):
     print(binfreq2.min(),binfreq2.max())
     plt.clf()
     fig=plt.figure()
-    plt.pcolormesh(tc, fc, f2, cmap='hot')
-    # plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='hot', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    # plt.pcolormesh(tc, fc, f2, cmap='hot')
+    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='hot', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
     # plt.contourf(tc, fc, np.log(f2), cmap='hot')
     #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')

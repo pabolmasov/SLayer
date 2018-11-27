@@ -15,8 +15,8 @@ ifplot = True
 
 ##########################
 # a switch for restart
-ifrestart = True
-nrest=7191 # number of output entry for restart
+ifrestart = False
+nrest=12148 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -52,7 +52,7 @@ cssqscale = 2.89591e-06 * sigmascale**0.25 / mu * mass1**0.25 # = (4/5) (k/m_p c
 betamin=1e-10 # beta is solved for in the range betamin .. 1-betamin
 # there is a singularity near beta=1, not sure about beta=0
 
-sig0       = 1e3/sigmascale             # own neutron star atmosphere scale
+sig0       = 1e2/sigmascale             # own neutron star atmosphere scale
 print("rotation is about "+str(omega*np.sqrt(rsphere**3))+"Keplerian")
 dt_cfl_factor = 0.5 #  Courant-Friedrichs-Levy's multiplier (<~1) for the time step
 dt_out_factor = 0.5 # output step, in dynamical times
@@ -95,11 +95,11 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 # source term
 mdotfinal = 1e-8 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-latspread = 0.1   # spread in radians
+latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
-incle     = latspread*0.1 # inclination of initial rotation, radians
+incle     = np.pi/4. # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:
