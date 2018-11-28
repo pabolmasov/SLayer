@@ -315,6 +315,10 @@ while(t<(tmax+t0)):
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
 
+    # shock watch !!!
+    divmachsq = divg**2 * (dx**2 + dy**2) / (pressg/sig) # Mach^2 for divergence ; divmachsq \gtrsim 1 means a shock wave
+    divg *= divg / np.sqrt(divmachsq + 1.)
+    
     timer.stop_comp("beta")
     ##################################################
     timer.start_comp("fluxes")
@@ -553,7 +557,8 @@ while(t<(tmax+t0)):
         time2 = time.clock()
         print('simulation time = '+str(time2-time1)+'s')
         print("about "+str(t/tmax*100.)+"% done")
-
+        print("(delta * dx / cs**2)_max = "+str(divmachsq.max()))
+        
     ##################################################
     # I/O
 

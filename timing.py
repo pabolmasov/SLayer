@@ -466,11 +466,11 @@ def meanmaps(filename, n1, n2):
     ulats = lats.mean(axis=1)
     sigmean_phavg = sigmean.mean(axis=1) ; energymean_phavg = energymean.mean(axis=1)
     ugmean_phavg = ugmean.mean(axis=1) ; vgmean_phavg = vgmean.mean(axis=1)
-    uvcorr_phavg = uvcorr.mean(axis=1)
+    uvcorr_phavg = uvcorr.mean(axis=1)+(ugmean*vgmean).mean(axis=1)-ugmean_phavg*vgmean_phavg
     csq_phavg = energymean_phavg / sigmean_phavg
     if(ifplot):
-        plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname='latitude', yname='$u$, $v$', prefix='out/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
-        plots.someplot(ulats, [uvcorr_phavg, ugmean_phavg*vgmean_phavg, csq_phavg, -csq_phavg], xname='latitude', yname=r'$\langle\Delta u \Delta v\rangle$', prefix='out/uvcorr', title='', postfix='plot', fmt=['k-', 'b--', 'r:', 'r:'])
+        plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname='latitude', yname='$u$, $v$', prefix=outdir+'/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
+        plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg], xname='latitude', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
         
 # fluxest('out/runcombine.hdf5', np.pi/2., 0., ntimes=10, nbins=30)
 meanmaps('out8/runcombine.hdf5', 4000, 10000)

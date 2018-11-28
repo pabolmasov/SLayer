@@ -475,6 +475,7 @@ def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plo
     plt.savefig(prefix+postfix+'.eps')
     plt.savefig(prefix+postfix+'.png')
     plt.close()
+    print(prefix+postfix)
     
 # general 1D-plot of several quantities as functions of time
 def sometimes(tar, qlist, fmt=None, prefix='out/', title='', ylog=True):
@@ -711,7 +712,9 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
 # plot_saved('titania/out_twist/run.hdf5_map0000')
-# multiplot_saved('titania/out_3LR/run.hdf5_map')
+multiplot_saved('titania/out_8LR/run.hdf5_map')
+dynsplot(infile="titania/out_8LR/pds_newmass")
+pdsplot(infile="titania/out_8LR/pdstots_newmass")
 # multiplot_saved('titania/out_twist/run.hdf5_map')
 # multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
 # multiplot_saved('titania/out512/run.hdf5_map', skip=0)

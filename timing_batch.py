@@ -9,7 +9,9 @@ from snapshooter import multireader
 if you need to reduce multiple output directories
 '''
 
-outlist = ['out_3LR', 'out_3HR', 'out_8LR', 'out_8HR']
+outlist = ['out_3LR', 'out_3HR', 'out_8LR', 'out_8HR', 'out_NAHR',
+           'out_NALR',  'out_NDHR',  'out_NDLR',  'out_slow3HR',
+           'out_stwistHR',  'out_twistHR']
 latlist = [0., np.pi/4., np.pi/2.]
 
 for out in outlist:
