@@ -16,13 +16,13 @@ ifplot = True
 ##########################
 # a switch for restart
 ifrestart = False
-nrest=12148 # number of output entry for restart
+nrest=7308 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 128          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -55,7 +55,7 @@ betamin=1e-10 # beta is solved for in the range betamin .. 1-betamin
 sig0       = 1e2/sigmascale             # own neutron star atmosphere scale
 print("rotation is about "+str(omega*np.sqrt(rsphere**3))+"Keplerian")
 dt_cfl_factor = 0.5 #  Courant-Friedrichs-Levy's multiplier (<~1) for the time step
-dt_out_factor = 0.5 # output step, in dynamical times
+dt_out_factor = 0.25 # output step, in dynamical times
 ifscaledt = True # if we change the value of the time step (including thermal-timescale processes etc. )
 ifscalediff = False # change dissipation with dt
 tmax=200.*pspin/tscale # we are going to run the simulation for some multiple of spin periods
@@ -77,9 +77,9 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 1000. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc = 100. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
 # ktrunc >~ Nx/|\ln e_M|**(1./Ndiss) (see Parfrey et al. 2012, formula 32 and after) -- condition for preserving the overall solution
-ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
+ktrunc_diss = 0.5 # smoothing the dissipation term when used as a heat source
 ndiss = 2.     # order for hyperdiffusion (2 is normal diffusion)
 ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
 jitterskip = 10000
@@ -95,11 +95,11 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 # source term
 mdotfinal = 1e-8 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-latspread = 0.2   # spread in radians
+latspread = 0.5   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
-incle     = np.pi/4. # inclination of initial rotation, radians
+incle     = latspread*0.1 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 # friction time scale with the neutron star:

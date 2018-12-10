@@ -228,8 +228,7 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina
-# * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
+vort_source = 2.*overkepler/rsphere**1.5 * sina * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
 # !!! let us try again a smooth version
 # *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
 # if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
@@ -269,11 +268,11 @@ while(t<(tmax+t0)):
     else:
         sig  = x.sph2grid(sigSpec)-sigmafloor
         sigpos = (sig + np.abs(sig))/2.+sigmafloor
-        sig+=sigmafloor
-        lsig = np.log(sigpos)
+        sig+=sigmafloor # making sure there are no negative points
+        lsig = np.log(sigpos) # do we use lsig/lenergyg?
         energyg  = x.sph2grid(energySpec)-energyfloor
         energypos = (energyg + np.abs(energyg))/2.+energyfloor
-        energyg+=energyfloor
+        energyg+=energyfloor # making sure there are no negative points
         lenergyg = np.log(energypos)
     accflag = x.sph2grid(accflagSpec)
     divg  = x.sph2grid(divSpec)
@@ -317,7 +316,9 @@ while(t<(tmax+t0)):
 
     # shock watch !!!
     divmachsq = divg**2 * (dx**2 + dy**2) / (pressg/sig) # Mach^2 for divergence ; divmachsq \gtrsim 1 means a shock wave
-    divg *= divg / np.sqrt(divmachsq + 1.)
+    #    if(divmachsq.max()>1.):
+    #        divg *= divg / np.sqrt(divmachsq + 1.)
+    #    divSpec = x.grid2sph(divg/ np.sqrt(divmachsq + 1.)) # could be optimized
     
     timer.stop_comp("beta")
     ##################################################
@@ -335,7 +336,7 @@ while(t<(tmax+t0)):
         tmpSpec, dsigdtSpec = x.getVortDivSpec(ug*lsig, vg*lsig ) 
         tmpSpec, denergydtSpec = x.getVortDivSpec(ug*lenergyg, vg*lenergyg) 
     else:
-        tmpSpec, dsigdtSpec = x.getVortDivSpec(ug*sig, vg*sig )
+        tmpSpec, dsigdtSpec = x.getVortDivSpec(ug*sig, vg*sig)
         tmpSpec, denergydtSpec = x.getVortDivSpec(ug*energyg, vg*energyg)
     denergydtSpec *= -1.
     dsigdtSpec *= -1.
@@ -394,15 +395,19 @@ while(t<(tmax+t0)):
         sdotplus = sdotmax
         energy_source = energy_source_max 
     #    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
-    if(tdepl>0.):
-        lsdot = sdotplus/sig-1./tdepl
-    else:
-        lsdot = sdotplus/sig
 
     if(logSE):
+        if(tdepl>0.):
+            lsdot = sdotplus/sig-1./tdepl
+        else:
+            lsdot = sdotplus/sig
         dsigdtSpec_srce = x.grid2sph(lsdot)
+        sdot = sig * lsdot
     else:
-        dsigdtSpec_srce = x.grid2sph(lsdot*sig)
+        sdot = sdotplus
+        if(tdepl > 0.):
+            sdot -= sig / tdepl
+        dsigdtSpec_srce = x.grid2sph(sdot)
     # source term in vorticity
     #    domega=(vort_source-vortg) # difference in net vorticity
     
@@ -557,7 +562,7 @@ while(t<(tmax+t0)):
         time2 = time.clock()
         print('simulation time = '+str(time2-time1)+'s')
         print("about "+str(t/tmax*100.)+"% done")
-        print("(delta * dx / cs**2)_max = "+str(divmachsq.max()))
+        print("(delta * dx / cs)_max = "+str(np.sqrt(divmachsq.max())))
         
     ##################################################
     # I/O
@@ -578,7 +583,7 @@ while(t<(tmax+t0)):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      vortg, divg, ug, vg, sig, energyg, beta,
-                     accflag, dissipation, qminus, qplus, lsdot*sig,
+                     accflag, dissipation, qminus, qplus, sdot,
                      conf)
         nout += 1
         sys.stdout.flush()

@@ -456,6 +456,17 @@ def somemap(lons, lats, q, outname):
     plt.savefig(outname)
     plt.close()
 #
+def plot_somemap(infile, nco):
+    '''
+    plots a map from a lons -- lats -- ... ascii data file
+    '''
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    lats = lines[:,1] ; lons = lines[:,0]
+    q = lines[:,nco]
+    ulons = np.unique(lons) ; ulats = np.unique(lats)
+    qt = np.transpose(np.reshape(q, [np.size(ulons),np.size(ulats)]))
+    somemap(ulons, ulats, qt, infile+"_"+str(nco-2))
+    
 def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plot',
              fmt=None, ylog=False):
     '''
@@ -471,7 +482,10 @@ def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plo
         plt.plot(x, qlist[k], fmt[k])
     if(ylog):
         plt.yscale('log')
-    plt.xlabel(xname) ;   plt.ylabel(yname) ; plt.title(title)
+    plt.xlabel(xname, fontsize=20) ;   plt.ylabel(yname, fontsize=20) ; plt.title(title)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    plt.tight_layout()
     plt.savefig(prefix+postfix+'.eps')
     plt.savefig(prefix+postfix+'.png')
     plt.close()
@@ -480,6 +494,15 @@ def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plo
 # general 1D-plot of several quantities as functions of time
 def sometimes(tar, qlist, fmt=None, prefix='out/', title='', ylog=True):
     someplot(tar, qlist, xname='$t$, ms', prefix=prefix, title=title, postfix='curves', fmt=fmt, ylog=ylog)
+
+def plot_sometimes(infile="out/lcurve", ylog=True, tfilter = None):
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    tar = lines[:,0] ; f = lines[:,1]
+    if(tfilter == None):
+        someplot(tar, [f], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog)
+    else:
+        wfil = (tar<tfilter[1]) & (tar > tfilter[0])
+        someplot(tar[wfil], [f[wfil]], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog, fmt = ['k-'])
     
 ########################################################################
 # post-processing of remotely produced light curves and spectra
@@ -586,7 +609,7 @@ def dynsplot(infile="out/pds_diss", omega=None):
     plt.xlabel('$t$, s', fontsize=20)
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
-    fig.set_size_inches(8, 4)
+    fig.set_size_inches(12, 4)
     fig.tight_layout()
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
@@ -712,9 +735,9 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
 # plot_saved('titania/out_twist/run.hdf5_map0000')
-multiplot_saved('titania/out_8LR/run.hdf5_map')
-dynsplot(infile="titania/out_8LR/pds_newmass")
-pdsplot(infile="titania/out_8LR/pdstots_newmass")
+# multiplot_saved('titania/out_8LR/run.hdf5_map')
+# dynsplot(infile="titania/out_8LR/pds_newmass")
+# pdsplot(infile="titania/out_8LR/pdstots_newmass")
 # multiplot_saved('titania/out_twist/run.hdf5_map')
 # multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
 # multiplot_saved('titania/out512/run.hdf5_map', skip=0)

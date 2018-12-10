@@ -23,11 +23,13 @@ def levisol():
 
     mdot1=0. ; mdot2=10. ; nmdot=5
     mdot=(mdot2-mdot1)*(old_div(np.arange(nmdot),np.double(nmdot-1)))+mdot1
+    mdot = [0.2, 1., 5.]
+    nmdot=np.size(mdot)
     Kcoeff=1.-overkepler**2
     th1=0. ; th2=old_div(np.pi,2.) ;  nth=100
     th=np.arange(nth)/np.double(nth)*(th2-th1)+th1
     costh=np.cos(th) ; sinth=np.sin(th)
-    cmap = matplotlib.cm.get_cmap('jet')
+    cmap = matplotlib.cm.get_cmap('hot')
     plt.clf()
     fig=plt.figure()
     sub1=plt.subplot(211)
@@ -37,8 +39,10 @@ def levisol():
         omega=(costh+(mdot[k]/3.*sinth**2-costh)*(1.-rsphere*v**2))/v/rsphere**2/sinth
         sub1.plot(th, v*np.sqrt(rsphere), color=cmap(old_div(np.double(k),np.double(nmdot))),label='$\dot{m}='+str(mdot[k])+'$')
         sub2.plot(th, omega*rsphere**1.5*sinth, color=cmap(old_div(np.double(k),np.double(nmdot))))
-    sub1.legend()
+    #    sub1.legend()
     sub1.set_ylabel(r'$v/v_{\rm K}$')
     sub2.set_ylabel(r'$\omega\sin\theta/\Omega_{\rm K} $')
     sub2.set_xlabel(r'$\theta$, rad')
+    plt.savefig('oned.eps')
+    sub1.legend()
     plt.savefig('oned.png')

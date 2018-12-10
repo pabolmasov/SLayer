@@ -452,6 +452,7 @@ def meanmaps(filename, n1, n2):
     
     # ascii output:
     fout=open(outdir+'/meanmap.dat', 'w')
+    fout.write("# lons -- lats -- sig -- energy -- ug -- vg -- Dug -- Dvg -- Cuv\n")
     for kx in np.arange(nlons):
         for ky in np.arange(nlats):
             fout.write(str(lons[ky,kx])+" "+str(lats[ky,kx])+" "+str(sigmean[ky,kx])+" "+str(energymean[ky,kx])+" "+str(ugmean[ky,kx])+" "+str(vgmean[ky,kx])+" "+str(ugdisp[ky,kx])+" "+str(vgdisp[ky,kx])+" "+str(uvcorr[ky,kx])+"\n")
@@ -468,9 +469,14 @@ def meanmaps(filename, n1, n2):
     ugmean_phavg = ugmean.mean(axis=1) ; vgmean_phavg = vgmean.mean(axis=1)
     uvcorr_phavg = uvcorr.mean(axis=1)+(ugmean*vgmean).mean(axis=1)-ugmean_phavg*vgmean_phavg
     csq_phavg = energymean_phavg / sigmean_phavg
+    aniso_phavg = ((vgdisp-ugdisp)/(vgdisp+ugdisp)).mean(axis=1)
     if(ifplot):
         plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname='latitude', yname='$u$, $v$', prefix=outdir+'/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
         plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg], xname='latitude', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
-        
-# fluxest('out/runcombine.hdf5', np.pi/2., 0., ntimes=10, nbins=30)
-meanmaps('out8/runcombine.hdf5', 4000, 10000)
+    fout=open(outdir+'/meanmap_phavg.dat', 'w')
+    fout.write("# lats -- sig -- energy -- ug -- vg -- csq -- Cuv -- aniso\n")
+    for k in np.arange(nlats):
+        fout.write(str(lats[0,k])+" "+str(sigmean_phavg[k])+" "+str(energymean_phavg[k])+" "+str(ugmean_phavg[k])+" "+str(vgmean_phavg[k])+" "+str(csq_phavg[k])+" "+str(uvcorr_phavg[k])+" "+str(aniso_phavg[k])+"\n")
+    fout.close()
+fluxest('out_ubuntu/run.hdf5', np.pi/2., 0., ntimes=10, nbins=100)
+meanmaps('out_ubuntu/run.hdf5', 500, 6984)
