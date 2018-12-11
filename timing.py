@@ -224,7 +224,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None, 
                         #, linest=['solid', 'solid', 'solid', 'dotted', 'dashed']
                         , title=r'energy, $10^{35}$erg', prefix=outdir+'/e')
         plots.sometimes(tar*1e3, [flux, lumtot, heattot, flux*0.+qnstot], fmt=['k-', 'r-', 'g--', 'k:'] 
-                        #           , linest=['solid', 'solid', 'dashed']
+                        #       what goes on with heattot???!!!
                         , title=r'apparent luminosity, $10^{37}$erg s$^{-1}$', prefix=outdir+'/l')
         if(sigplus>0.):
             plots.sometimes(tar*1e3, [angmoz_new, angmoz_old, angmoz_new+angmoz_old]
@@ -252,7 +252,7 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None, 
     if(ifplot):
         plots.sometimes(tar*1e3, [flux/flux.std(), mass/mass.std()], fmt=['k-', 'r-'] 
                         , title=r'normalized quantities', prefix=outdir+'/n', ylog=False)
-
+    ##########################
     # binning:
     if(logbinning):
         binfreq=(freq2/freq1)**((np.arange(nbins+1)/np.double(nbins)))*freq1
@@ -278,40 +278,45 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None, 
     for kt in np.arange(ntimes):
         tbegin=tar.min()+tspan*np.double(kt)/np.double(ntimes); tend=tar.min()+tspan*np.double(kt+1)/np.double(ntimes)
         tcenter[kt]=(tbegin+tend)/2.   ;     t2[kt,:]=tbegin;     binfreq2[kt,:]=binfreq
-        wwindow=np.where((tar>=tbegin)&(tar<tend))
+        wwindow=(tar>=tbegin)&(tar<tend)
         binflux[kt]=rawflux[wwindow].mean()   ;     binstd[kt]=rawflux[wwindow].std()
-        wsize=np.size(wwindow)
-        fsp=np.fft.rfft((flux[wwindow]-flux[wwindow].mean())/flux[wwindow].std()) ;   fspm=np.fft.rfft((mass[wwindow]-mass[wwindow].mean())/mass[wwindow].std())
-        fspn=np.fft.rfft((newmass[wwindow]-newmass[wwindow].mean())/mass[wwindow].std()) # note we normalize for total mass variation; if sigplus===0, does not make sense but does not invoke errors
+        wsize=(wwindow).sum()
+        fsp=np.fft.rfft((flux[wwindow]-flux[wwindow].mean()), norm="ortho")/flux[wwindow].std()
+        fspm=np.fft.rfft((mass[wwindow]-mass[wwindow].mean()), norm="ortho")/mass[wwindow].std()
+        fspn=np.fft.rfft((newmass[wwindow]-newmass[wwindow].mean()), norm="ortho")/mass[wwindow].std() # note we normalize for total mass variation; if sigplus===0, does not make sense but does not invoke errors
         freq = np.fft.rfftfreq(wsize, tspan/np.double(nsize)) # frequency grid (different for all the time bins)
-        pds=np.abs(fsp*freq)**2  ;   pdsm=np.abs(fspm*freq)**2 ;   pdsn=np.abs(fspn*freq)**2 # note we mutiply by f^2 to remove the overall \propto f^{-2} trend, that makes the peaks distinguishable
-        
+        pds=np.abs(fsp)**2  ;   pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2 # we can mutiply by f^2 to remove the overall \propto f^{-2} trend, that makes the peaks distinguishable
+        if(np.size(pds) != np.size(freq)):
+            print(wsize)
+            print(np.size(pds))
+            print(np.size(freq))
+            input("q")
         for kb in np.arange(nbins):
-            freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
+            freqrange=(freq>=binfreq[kb])&(freq<binfreq[kb+1])
             pdsbin[kt,kb]=pds[freqrange].mean()   ;     pdsbinm[kt,kb]=pdsm[freqrange].mean()   ;   pdsbinn[kt,kb]=pdsn[freqrange].mean()
             dpdsbin[kt,kb]=pds[freqrange].std()   ;     dpdsbinm[kt,kb]=pdsm[freqrange].std()   ;   dpdsbinn[kt,kb]=pdsn[freqrange].std()    
-            nbin[kt,kb]=np.size(pds[freqrange]) ; nbinm[kt,kb]=np.size(pdsm[freqrange]) ; nbinn[kt,kb]=np.size(pdsn[freqrange])
+            nbin[kt,kb]=(freqrange).sum() ; nbinm[kt,kb]=freqrange.sum() ; nbinn[kt,kb]=freqrange.sum()
         # searching for the maximum in the PDS
-        ston = 10. # signal-to-noize ratio
-        kbmax=(pdsbin[kt,:]).argmax()
+        kbmax=(pdsbin[kt,:]*binfreqc[:]**2).argmax()
         freqmax_diss[kt]=binfreqc[kbmax]
         dfreqmax_diss[kt]=binfreqs[kbmax]
-        kbmax=(pdsbinm[kt,:]).argmax()
+        kbmax=(pdsbinm[kt,:]*binfreqc[:]**2).argmax()
         freqmax_mass[kt]=binfreqc[kbmax]
         dfreqmax_mass[kt]=binfreqs[kbmax]
+    #####################################################
     # let us also make a Fourier of the whole series:
     pdsbin_total=np.zeros([nbins]) ; pdsbinm_total=np.zeros([nbins]) ; pdsbinn_total=np.zeros([nbins])
     dpdsbin_total=np.zeros([nbins]) ; dpdsbinm_total=np.zeros([nbins]) ; dpdsbinn_total=np.zeros([nbins])
-    fsp=np.fft.rfft(flux/flux.std()) ;  fspm=np.fft.rfft(mass/mass.std())
-    fspn=np.fft.rfft(newmass/mass.std())
-        
+    fsp=np.fft.rfft(flux, norm="ortho")/flux.std() ;  fspm=np.fft.rfft(mass, norm="ortho")/mass.std()
+    fspn=np.fft.rfft(newmass, norm="ortho")/mass.std()
+    
     pds=np.abs(fsp)**2  ;  pdsm=np.abs(fspm)**2 ;   pdsn=np.abs(fspn)**2
     freq = np.fft.rfftfreq(nsize, tspan/np.double(nsize)) # frequency grid (total)
     for kb in np.arange(nbins):
-        freqrange=np.where((freq>=binfreq[kb])&(freq<binfreq[kb+1]))
+        freqrange=(freq>=binfreq[kb])&(freq<binfreq[kb+1])
         pdsbin_total[kb]=pds[freqrange].mean()   ;     pdsbinm_total[kb]=pdsm[freqrange].mean()   ;   pdsbinn_total[kb]=pdsn[freqrange].mean()
-        dpdsbin_total[kb]=pds[freqrange].std()   ;     dpdsbinm_total[kb]=pdsm[freqrange].std()
-        dpdsbinn_total[kb]=pdsn[freqrange].std()
+        dpdsbin_total[kb]=pds[freqrange].std()/np.sqrt(np.double(freqrange.sum())-1.)   ;     dpdsbinm_total[kb]=pdsm[freqrange].std()/np.sqrt(np.double(freqrange.sum())-1.)
+        dpdsbinn_total[kb]=pdsn[freqrange].std()/np.sqrt(np.double(freqrange.sum())-1.)
 
     # we will need mean fluxes for vdKlis's plots:
     fbinfluxes=open(outdir+'/diss_binflux.dat', 'w')
@@ -390,18 +395,18 @@ def fluxest(filename, lat0, lon0, nbins=10, ntimes=10, nfilter=None, nlim=None, 
     fpds.close() ;   fpdsm.close() ;   fpdsn.close()
     
     if(ifplot):
-#        omega/=tscale
-        wfin=np.where(np.isfinite(pdsbin_total))
-#        print(omega, omegadisk)
+        #        omega/=tscale
+        wfin=np.isfinite(pdsbin_total)
+        #        print(omega, omegadisk)
         print("pdsbin from "+str(pdsbin_total[wfin].min())+" tot "+str(pdsbin_total[wfin].max()))
-        pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
-        # colour plot:
-        plots.dynsplot(infile=outdir+"/pds_diss")
-        plots.dynsplot(infile=outdir+"/pds_mass")
-        plots.dynsplot(infile=outdir+"/pds_newmass")
-        plots.pdsplot(infile=outdir+"/pdstots_diss")
-        plots.pdsplot(infile=outdir+"/pdstots_mass")
-        plots.pdsplot(infile=outdir+"/pdstots_newmass")
+        #        pmin=pdsbin_total[wfin].min() ; pmax=pdsbin_total[wfin].max()
+        # PDS plots:
+        plots.dynsplot(infile=outdir+"/pds_diss", omega=omega/tscale)
+        plots.dynsplot(infile=outdir+"/pds_mass", omega=omega/tscale)
+        plots.dynsplot(infile=outdir+"/pds_newmass", omega=omega/tscale)
+        plots.pdsplot(infile=outdir+"/pdstots_diss", omega=omega/tscale)
+        plots.pdsplot(infile=outdir+"/pdstots_mass", omega=omega/tscale)
+        plots.pdsplot(infile=outdir+"/pdstots_newmass", omega=omega/tscale)
 
 ####################################################################################################
 def meanmaps(filename, n1, n2):
@@ -435,15 +440,19 @@ def meanmaps(filename, n1, n2):
         energy=data["energy"][:] ; beta=data["beta"][:]
         qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
         sigmean+=sig ; energymean+=energy ; ugmean+=ug ; vgmean+=vg ; ugdisp+=ug**2 ; vgdisp+=vg**2
+        uvcorr += ug * vg
         qmmean+=qminus ; qpmean+=qplus
     f.close()
     sigmean/=np.double(n2-n1) ; energymean/=np.double(n2-n1) ; ugmean/=np.double(n2-n1); vgmean/=np.double(n2-n1)
     qmmean/=np.double(n2-n1) ; qpmean/=np.double(n2-n1)
     ugdisp=(ugdisp/np.double(n2-n1)-ugmean**2) ; vgdisp=(vgdisp/np.double(n2-n1)-vgmean**2)
     uvcorr=uvcorr/np.double(n2-n1)-ugmean*vgmean
-
+    print("maximal Reynolds stress "+str(uvcorr.max()))
+    print("maximal speed of sound "+str((energymean/sigmean).max()))
+    
     # ascii output:
     fout=open(outdir+'/meanmap.dat', 'w')
+    fout.write("# lons -- lats -- sig -- energy -- ug -- vg -- Dug -- Dvg -- Cuv\n")
     for kx in np.arange(nlons):
         for ky in np.arange(nlats):
             fout.write(str(lons[ky,kx])+" "+str(lats[ky,kx])+" "+str(sigmean[ky,kx])+" "+str(energymean[ky,kx])+" "+str(ugmean[ky,kx])+" "+str(vgmean[ky,kx])+" "+str(ugdisp[ky,kx])+" "+str(vgdisp[ky,kx])+" "+str(uvcorr[ky,kx])+"\n")
@@ -453,6 +462,21 @@ def meanmaps(filename, n1, n2):
         plots.somemap(lons, lats, energymean, outdir+"/mean_energy.png")
         plots.somemap(lons, lats, uvcorr/np.sqrt(vgdisp*ugdisp), outdir+"/mean_uvcorr.png")
         plots.somemap(lons, lats, (vgdisp-ugdisp)/(vgdisp+ugdisp), outdir+"/mean_anisotropy.png")
-       
-fluxest('out/run.hdf5', np.pi/2., 0., ntimes=10, nbins=10, logbinning=True)
-# meanmaps('out/run.hdf5', 1000, 2000)
+
+    # azimuthal average:
+    ulats = lats.mean(axis=1)
+    sigmean_phavg = sigmean.mean(axis=1) ; energymean_phavg = energymean.mean(axis=1)
+    ugmean_phavg = ugmean.mean(axis=1) ; vgmean_phavg = vgmean.mean(axis=1)
+    uvcorr_phavg = uvcorr.mean(axis=1)+(ugmean*vgmean).mean(axis=1)-ugmean_phavg*vgmean_phavg
+    csq_phavg = energymean_phavg / sigmean_phavg
+    aniso_phavg = ((vgdisp-ugdisp)/(vgdisp+ugdisp)).mean(axis=1)
+    if(ifplot):
+        plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname='latitude', yname='$u$, $v$', prefix=outdir+'/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
+        plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg], xname='latitude', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
+    fout=open(outdir+'/meanmap_phavg.dat', 'w')
+    fout.write("# lats -- sig -- energy -- ug -- vg -- csq -- Cuv -- aniso\n")
+    for k in np.arange(nlats):
+        fout.write(str(lats[0,k])+" "+str(sigmean_phavg[k])+" "+str(energymean_phavg[k])+" "+str(ugmean_phavg[k])+" "+str(vgmean_phavg[k])+" "+str(csq_phavg[k])+" "+str(uvcorr_phavg[k])+" "+str(aniso_phavg[k])+"\n")
+    fout.close()
+fluxest('out_ubuntu/run.hdf5', np.pi/2., 0., ntimes=10, nbins=100)
+meanmaps('out_ubuntu/run.hdf5', 500, 6984)

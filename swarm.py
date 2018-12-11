@@ -21,7 +21,7 @@ import shtns
 import time
 import os
 import h5py
-from sympy.solvers import solve
+# from sympy.solvers import solve
 # from sympy import Symbol
 import scipy.interpolate as si
 import imp
@@ -65,7 +65,7 @@ from conf import ifscaledt, dt_cfl_factor, dt_out_factor # scaling for the time 
 from conf import ifscalediff
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
 from conf import ktrunc, ndiss, ktrunc_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
-from conf import ddivfac
+from conf import ddivfac, jitterskip
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin, sigmafloor, energyfloor # physical parameters 
 from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax # frequency of diagnostic outputs, maximal time
@@ -80,6 +80,8 @@ from conf import eps_deformation
 if(ifplot):
     from plots import visualize
 
+from jitter import jitternod, jitterturn
+    
 ############################
 # beta calibration
 bmin=betamin ; bmax=1.-betamin ; nb=10000
@@ -89,15 +91,16 @@ bmin=betamin ; bmax=1.-betamin ; nb=10000
 b = (bmax-bmin)*(old_div((np.arange(nb)+0.5),np.double(nb)))+bmin
 bx = b/(1.-b)**0.25
 b[0]=0. ; bx[0]=0.0  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value='extrapolate')
+betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
 # as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value='extrapolate')
+betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value=1.)
 # as a function of energy
 ######################################
 
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
+x1 = Spharmt(3*conf.nlons, 3*conf.nlats, 3*conf.ntrunc, conf.rsphere, gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
 ############
 # time steps
@@ -134,8 +137,8 @@ hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive! let us c
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
 # print(hyperdiff_expanded)
 # input('fdslkjsa')
-sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced. 
+sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 if(ktrunc_diss>0.):
     diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**(ndiss) * dt)
 
@@ -225,14 +228,15 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source=2.*overkepler/rsphere**1.5*sina
+vort_source = 2.*overkepler/rsphere**1.5 * sina # * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
+# !!! let us try again a smooth version
 # *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
 # if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 beta_acc = 1. # gas-dominated matter
 # beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)*0. #  !!!
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) *0. 
 
 # main loop
 time1 = time.clock() # time loop
@@ -264,11 +268,11 @@ while(t<(tmax+t0)):
     else:
         sig  = x.sph2grid(sigSpec)-sigmafloor
         sigpos = (sig + np.abs(sig))/2.+sigmafloor
-        sig+=sigmafloor
-        lsig = np.log(sigpos)
+        sig+=sigmafloor # making sure there are no negative points
+        lsig = np.log(sigpos) # do we use lsig/lenergyg?
         energyg  = x.sph2grid(energySpec)-energyfloor
         energypos = (energyg + np.abs(energyg))/2.+energyfloor
-        energyg+=energyfloor
+        energyg+=energyfloor # making sure there are no negative points
         lenergyg = np.log(energypos)
     accflag = x.sph2grid(accflagSpec)
     divg  = x.sph2grid(divSpec)
@@ -310,6 +314,12 @@ while(t<(tmax+t0)):
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
 
+    # shock watch !!!
+    divmachsq = divg**2 * (dx**2 + dy**2) / (pressg/sig) # Mach^2 for divergence ; divmachsq \gtrsim 1 means a shock wave
+    #    if(divmachsq.max()>1.):
+    #        divg *= divg / np.sqrt(divmachsq + 1.)
+    #    divSpec = x.grid2sph(divg/ np.sqrt(divmachsq + 1.)) # could be optimized
+    
     timer.stop_comp("beta")
     ##################################################
     timer.start_comp("fluxes")
@@ -326,7 +336,7 @@ while(t<(tmax+t0)):
         tmpSpec, dsigdtSpec = x.getVortDivSpec(ug*lsig, vg*lsig ) 
         tmpSpec, denergydtSpec = x.getVortDivSpec(ug*lenergyg, vg*lenergyg) 
     else:
-        tmpSpec, dsigdtSpec = x.getVortDivSpec(ug*sig, vg*sig )
+        tmpSpec, dsigdtSpec = x.getVortDivSpec(ug*sig, vg*sig)
         tmpSpec, denergydtSpec = x.getVortDivSpec(ug*energyg, vg*energyg)
     denergydtSpec *= -1.
     dsigdtSpec *= -1.
@@ -385,20 +395,28 @@ while(t<(tmax+t0)):
         sdotplus = sdotmax
         energy_source = energy_source_max 
     #    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
-    if(tdepl>0.):
-        lsdot = sdotplus/sig-1./tdepl
-    else:
-        lsdot = sdotplus/sig
 
     if(logSE):
+        if(tdepl>0.):
+            lsdot = sdotplus/sig-1./tdepl
+        else:
+            lsdot = sdotplus/sig
         dsigdtSpec_srce = x.grid2sph(lsdot)
+        sdot = sig * lsdot
     else:
-        dsigdtSpec_srce = x.grid2sph(lsdot*sig)
+        sdot = sdotplus
+        if(tdepl > 0.):
+            sdot -= sig / tdepl
+        dsigdtSpec_srce = x.grid2sph(sdot)
     # source term in vorticity
     #    domega=(vort_source-vortg) # difference in net vorticity
-    
-    vortdot =  sdotplus/sig * (vort_source-vortg)
-    divdot  = -sdotplus/sig * divg
+
+    gradsdot1, gradsdot2 = x.getGrad(x.grid2sph(sdotplus/sig))
+
+    vortdot =  sdotplus/sig * (vort_source -vortg) \
+               + (vd-vg) * gradsdot1 - (ud-ug) * gradsdot2
+    divdot  =  -sdotplus/sig * divg \
+               + (ud-ug) * gradsdot1 + (vd-vg) * gradsdot2
     if(tfric>0.):
         vortdot += (vortgNS-vortg)/tfric # +sdotminus/sig*vortg
         divdot  += -divg/tfric # friction term for divergence
@@ -482,9 +500,9 @@ while(t<(tmax+t0)):
     timer.start_comp("time-step")
 
     t += dt ; ncycle+=1
-    vortSpec += (dvortdtSpec) * dt
-    divSpec += (ddivdtSpec) * dt
-    sigSpec += (dsigdtSpec) * dt
+    vortSpec += (dvortdtSpec)  * dt
+    divSpec += (ddivdtSpec)  * dt
+    sigSpec += (dsigdtSpec)  * dt
     energySpec += (denergydtSpec) * dt
     accflagSpec += (daccflagdtSpec) * dt
 
@@ -504,22 +522,40 @@ while(t<(tmax+t0)):
     energySpec *= sigma_diff
     accflagSpec *= sigma_diff # do we need to smooth it?
 
-    # adding source terms:
+    # adding source terms: 
     vortSpec += dvortdtSpec_srce * dt
     divSpec += ddivdtSpec_srce * dt
     sigSpec += dsigdtSpec_srce * dt
     energySpec += denergydtSpec_srce * dt
     accflagSpec +=  daccflagdtSpec_srce * dt
+
+    if(jitterskip>0):
+        if(ncycle % jitterskip == 0):
+            #        vortg0 = vortg ; divg0 = divg ; sig0 = sig ; pressg0=pressg
+            dphi = np.random.rand()*np.pi-np.pi/2. # /np.double(x.nlons)
+            dlon = np.random.rand()*2.*np.pi-np.pi
+            #        dphi = np.pi / 4.
+            #        print("jitter by "+str(dphi))
+            # jitternod(vort, div, sig, energy, incl, grid, grid1)
+            vortg1, divg1, sig1, energyg1, accflag1 = jitterturn(x.sph2grid(vortSpec), x.sph2grid(divSpec), x.sph2grid(sigSpec), x.sph2grid(energySpec), x.sph2grid(accflagSpec), dlon, x, x1)
+            vortg2, divg2, sig2, energyg2, accflag2 = jitternod(vortg1, divg1, sig1, energyg1, accflag1, -dphi, x1, x1)
+            vortg1, divg1, sig1, energyg1, accflag1 = jitternod(vortg2, divg2, sig2, energyg2, accflag2,  dphi, x1, x1)
+            vortg2, divg2, sig2, energyg2, accflag2 = jitterturn(vortg1, divg1, sig1, energyg1, accflag1,  -dlon, x1, x)
+            vortSpec = x.grid2sph(vortg2)  ; divSpec = x.grid2sph(divg2) ; sigSpec = x.grid2sph(sig2)  ; energySpec =  x.grid2sph(energyg2) ; accflagSpec = x.grid2sph(accflag2)
+            #        print("jitter by "+str(dphi))
+            #        r = input("j")
+
     timer.stop_comp("diffusion2")
     ##################################################
     timer.lap("step") 
     
     ##################################################
 
-    if(ncycle % (outskip) ==0 ): # make sure it's alive
+    if(ncycle % outskip ==0 ): # make sure it's alive
         print("lg(E) range "+str(lenergyg.min())+" to "+str(lenergyg.max()))
         print("lg(Sigma) range "+str(lsig.min())+" to "+str(lsig.max()))
         print('t=%10.5f ms' % (t*1e3*tscale))
+        print("ncycle = "+str(ncycle))
         print("csqmax = "+str(cssqmax)+", vsqmax = "+str(vsqmax))
         print(" dt(CFL, light) = "+str(dt_cfl))
         print(" dt(CFL, sound) = "+str(dt_cfl/np.sqrt(cssqmax)))
@@ -529,8 +565,9 @@ while(t<(tmax+t0)):
         print("dt = "+str(dt))
         time2 = time.clock()
         print('simulation time = '+str(time2-time1)+'s')
-        print("about "+str(t/tmax*100.)+"% done") 
-
+        print("about "+str(t/tmax*100.)+"% done")
+        print("(delta * dx / cs)_max = "+str(np.sqrt(divmachsq.max())))
+        
     ##################################################
     # I/O
 
@@ -550,7 +587,7 @@ while(t<(tmax+t0)):
         #file I/O
         f5io.saveSim(f5, nout, t,
                      vortg, divg, ug, vg, sig, energyg, beta,
-                     accflag, dissipation, qminus, qplus, lsdot*sig,
+                     accflag, dissipation, qminus, qplus, sdot,
                      conf)
         nout += 1
         sys.stdout.flush()

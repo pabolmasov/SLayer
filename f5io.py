@@ -16,7 +16,7 @@ def HDFcombine(f5array, otheroutdir=None):
         print("nothing to combine")
         exit()
     else:
-        print("preparing to glue "+str(n)+" files")
+        print("preparing to stitch "+str(n)+" files")
     if(otheroutdir == None):
         outdir=os.path.dirname(f5array[0])
     else:
@@ -53,7 +53,9 @@ def saveParams(f5, conf):
     grp0.attrs['nlats']      = conf.nlats
     grp0.attrs['ntrunc']     = conf.ntrunc
     grp0.attrs['tscale']     = conf.tscale
-#    grp0.attrs['dt_cfl']     = conf.dt_cfl
+    grp0.attrs['ktrunc']     = conf.ktrunc
+    grp0.attrs['ktrunc_diss']     = conf.ktrunc_diss
+    grp0.attrs['ndiss']     = conf.ndiss
 #    grp0.attrs['itmax']      = conf.itmax
     grp0.attrs['rsphere']    = conf.rsphere
     grp0.attrs['pspin']      = conf.pspin

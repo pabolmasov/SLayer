@@ -5,3 +5,5 @@ out*/
 swm.py
 *.fig
 *.eps
+conf_*.py
+timing_batch.py

@@ -127,7 +127,7 @@ def visualizeMap(ax, lonsDeg, latsDeg, data, vmin=0.0, vmax=1.0, title=""):
             )
     ax.set_xlim(-180,180) ; ax.set_ylim(-90,90)
     plt.colorbar(pc, ax=ax)
-    #ax.axis('equal')
+    # ax.axis('equal')
 
 
 def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
@@ -208,24 +208,25 @@ def visualize(t, nout,
     vangmo=np.sqrt(angmox**2+angmoy**2+angmoz**2) # total angular momentum 
 
     print("t = "+str(t))
-    print("angular momentum "+str(vangmo)+", inclined wrt z by "+str(np.arccos(old_div(angmoz,vangmo))*180./np.pi)+"deg")
-    print("net angular momentum "+str(old_div(vangmo,mass)))
-    print("vorticity: "+str(vortg.min())+" to "+str(vortg.max()))
-    print("divergence: "+str(divg.min())+" to "+str(divg.max()))
-    print("azimuthal U: "+str(ug.min())+" to "+str(ug.max()))
-    print("polar V: "+str(vg.min())+" to "+str(vg.max()))
-    print("Sigma: "+str(sig.min())+" to "+str(sig.max()))
-    print("Pi: "+str(press.min())+" to "+str(press.max()))
-    print("accretion flag: "+str(accflag.min())+" to "+str(accflag.max()))
-    print("maximal Q^- "+str(qminus.max()))
-    print("minimal Q^- "+str(qminus.min()))
-    print("maximal Q^+ "+str(qplus.max()))
-    print("minimal Q^+ "+str(qplus.min()))
-    print("total mass = "+str(mass))
-    print("accreted mass = "+str(mass_acc))
-    print("native mass = "+str(mass_native))
-    print("total energy = "+str(thenergy)+"(thermal) + "+str(kenergy)+"(kinetic)")
-    print("net energy = "+str(old_div((thenergy+kenergy),mass)))
+    print("simulation running with ktrunc = "+str(cf.ktrunc)+", ktrunc_diss = "+str(cf.ktrunc_diss)+", Ndiss = "+str(cf.ndiss))
+#    print("angular momentum "+str(vangmo)+", inclined wrt z by "+str(np.arccos(old_div(angmoz,vangmo))*180./np.pi)+"deg")
+#    print("net angular momentum "+str(old_div(vangmo,mass)))
+#    print("vorticity: "+str(vortg.min())+" to "+str(vortg.max()))
+#    print("divergence: "+str(divg.min())+" to "+str(divg.max()))
+#    print("azimuthal U: "+str(ug.min())+" to "+str(ug.max()))
+#    print("polar V: "+str(vg.min())+" to "+str(vg.max()))
+#    print("Sigma: "+str(sig.min())+" to "+str(sig.max()))
+#    print("Pi: "+str(press.min())+" to "+str(press.max()))
+#    print("accretion flag: "+str(accflag.min())+" to "+str(accflag.max()))
+#    print("maximal Q^- "+str(qminus.max()))
+#    print("minimal Q^- "+str(qminus.min()))
+#    print("maximal Q^+ "+str(qplus.max()))
+#    print("minimal Q^+ "+str(qplus.min()))
+#    print("total mass = "+str(mass))
+#    print("accreted mass = "+str(mass_acc))
+#    print("native mass = "+str(mass_native))
+#    print("total energy = "+str(thenergy)+"(thermal) + "+str(kenergy)+"(kinetic)")
+#    print("net energy = "+str(old_div((thenergy+kenergy),mass)))
 
     cspos=old_div((old_div(press,sig)+np.fabs(old_div(press,sig))),2.)
     
@@ -455,6 +456,17 @@ def somemap(lons, lats, q, outname):
     plt.savefig(outname)
     plt.close()
 #
+def plot_somemap(infile, nco):
+    '''
+    plots a map from a lons -- lats -- ... ascii data file
+    '''
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    lats = lines[:,1] ; lons = lines[:,0]
+    q = lines[:,nco]
+    ulons = np.unique(lons) ; ulats = np.unique(lats)
+    qt = np.transpose(np.reshape(q, [np.size(ulons),np.size(ulats)]))
+    somemap(ulons, ulats, qt, infile+"_"+str(nco-2))
+    
 def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plot',
              fmt=None, ylog=False):
     '''
@@ -470,14 +482,27 @@ def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plo
         plt.plot(x, qlist[k], fmt[k])
     if(ylog):
         plt.yscale('log')
-    plt.xlabel(xname) ;   plt.ylabel(yname) ; plt.title(title)
+    plt.xlabel(xname, fontsize=20) ;   plt.ylabel(yname, fontsize=20) ; plt.title(title)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    plt.tight_layout()
     plt.savefig(prefix+postfix+'.eps')
     plt.savefig(prefix+postfix+'.png')
     plt.close()
+    print(prefix+postfix)
     
 # general 1D-plot of several quantities as functions of time
 def sometimes(tar, qlist, fmt=None, prefix='out/', title='', ylog=True):
     someplot(tar, qlist, xname='$t$, ms', prefix=prefix, title=title, postfix='curves', fmt=fmt, ylog=ylog)
+
+def plot_sometimes(infile="out/lcurve", ylog=True, tfilter = None):
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    tar = lines[:,0] ; f = lines[:,1]
+    if(tfilter == None):
+        someplot(tar, [f], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog)
+    else:
+        wfil = (tar<tfilter[1]) & (tar > tfilter[0])
+        someplot(tar[wfil], [f[wfil]], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog, fmt = ['k-'])
     
 ########################################################################
 # post-processing of remotely produced light curves and spectra
@@ -569,7 +594,7 @@ def dynsplot(infile="out/pds_diss", omega=None):
     print(binfreq2.min(),binfreq2.max())
     plt.clf()
     fig=plt.figure()
-    #  plt.contourf(t, fc, f2, cmap='hot')
+    # plt.pcolormesh(tc, fc, f2, cmap='hot')
     plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='hot', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
     # plt.contourf(tc, fc, np.log(f2), cmap='hot')
     #    plt.colorbar()
@@ -584,7 +609,7 @@ def dynsplot(infile="out/pds_diss", omega=None):
     plt.xlabel('$t$, s', fontsize=20)
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
-    fig.set_size_inches(8, 4)
+    fig.set_size_inches(12, 4)
     fig.tight_layout()
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
@@ -710,13 +735,21 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
 # plot_saved('titania/out_twist/run.hdf5_map0000')
+# multiplot_saved('titania/out_8LR/run.hdf5_map')
+# dynsplot(infile="titania/out_8LR/pds_newmass")
+# pdsplot(infile="titania/out_8LR/pdstots_newmass")
 # multiplot_saved('titania/out_twist/run.hdf5_map')
 # multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
 # multiplot_saved('titania/out512/run.hdf5_map', skip=0)
 # multiplot_saved('titania/out_ND/run.hdf5_map', skip=0, step=10)
 # multiplot_saved('titania/out/run.hdf5_map', skip=0, step=10)
 # FFplot(prefix='titania/out_ND/diss_')
-# dynsplot(infile="titania/out_ND/pds_diss")
+#dynsplot(infile="titania/out_3LR/pds_newmass")
+#pdsplot(infile="titania/out_3LR/pdstots_newmass")
+#dynsplot(infile="titania/out_3LR/pds_mass")
+#pdsplot(infile="titania/out_3LR/pdstots_mass")
+#dynsplot(infile="titania/out_3LR/pds_diss")
+#pdsplot(infile="titania/out_3LR/pdstots_diss")
 # dynsplot(infile="titania/out_ND/pds_mass")
 # pdsplot(infile="titania/out_ND/pdstots_diss")
 # pdsplot(infile="titania/out_ND/pdstots_mass")
