@@ -228,7 +228,7 @@ def sdotsink(sigma):
 
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source = 2.*overkepler/rsphere**1.5 * sina * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
+vort_source = 2.*overkepler/rsphere**1.5 * sina # * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
 # !!! let us try again a smooth version
 # *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
 # if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
@@ -410,9 +410,13 @@ while(t<(tmax+t0)):
         dsigdtSpec_srce = x.grid2sph(sdot)
     # source term in vorticity
     #    domega=(vort_source-vortg) # difference in net vorticity
-    
-    vortdot =  sdotplus/sig * (vort_source-vortg)
-    divdot  = -sdotplus/sig * divg
+
+    gradsdot1, gradsdot2 = x.getGrad(x.grid2sph(sdotplus/sig))
+
+    vortdot =  sdotplus/sig * (vort_source -vortg) \
+               + (vd-vg) * gradsdot1 - (ud-ug) * gradsdot2
+    divdot  =  -sdotplus/sig * divg \
+               + (ud-ug) * gradsdot1 + (vd-vg) * gradsdot2
     if(tfric>0.):
         vortdot += (vortgNS-vortg)/tfric # +sdotminus/sig*vortg
         divdot  += -divg/tfric # friction term for divergence
