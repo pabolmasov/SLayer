@@ -60,7 +60,7 @@ def omegastream_D(sthsq, omega, mdot, omega0 = 1.):
 
 def omegastream(mdot = 1.):
 
-    th1 = np.pi/3. ; th2= np.pi/2. ; nth = 200
+    th1 = np.pi/4. ; th2= np.pi/2. ; nth = 200
     o1 = 0.25 ; o2 = 1.25 ; no = 201
 
     theta = (np.arange(nth)+0.5)/np.double(nth)*(th2-th1)+th1

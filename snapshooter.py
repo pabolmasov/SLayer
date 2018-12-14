@@ -23,8 +23,10 @@ def keyshow(filename):
     showing the list of keys (entries) in a given data file
     '''
     f = h5py.File(filename,'r')
-    print(list(f.keys()))
+    keys = list(f.keys())
+    #    print(list(f.keys()))
     f.close()
+    return keys
 
 def plotnth(filename, nstep):
     '''
@@ -85,6 +87,7 @@ def plotnth(filename, nstep):
         # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
         # vortg-2.*omegaNS*np.sin(lats)
+        #        print(teff.min(), teff.max())
         plots.snapplot(lonsDeg, latsDeg, sig, accflag, teff, xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
         # plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
         gamma=4./3.
@@ -107,13 +110,26 @@ def plotnth(filename, nstep):
         plots.someplot(lats, [kappasq + nsq, -(kappasq+nsq), kappasq, nsq], xname='lats',
                        yname=r'$\varkappa^2+N^2$',
                        prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])
-# multiple diagnostic maps for making movies
-def multireader(nmin, nmax, infile):
 
+# multiple diagnostic maps for making movies
+def multireader(infile, nrange = None, nframes = None):
+
+    keys = keyshow(infile)
+    print(keys)
+    nsize=np.size(keys)-1 # last key contains parameters
+    if(nrange == None):
+        nmin = 1 ; nmax = nsize
+    else:
+        nmin, nmax = nrange
     outdir=os.path.dirname(infile)
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
+
+    if(nframes == None):
+        frames = np.linspace(nmin, nmax)
+    else:
+        frames =  np.linspace(nmin, nmax, nframes, dtype=int)
     
-    for k in np.arange(nmax-nmin)+nmin:
+    for k in frames:
         plotnth(infile, k)
         if(ifplot):
             os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')

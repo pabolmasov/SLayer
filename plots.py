@@ -339,7 +339,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
     levs=(s1-s0)*((np.arange(nlev)-0.5)/np.double(nlev-1))+s0
-    levs=np.unique(np.round(levs, 2))
+#    levs=np.unique(np.round(levs, 2))
     interactive(False)
 
     # TODO: try cartographic projections?
@@ -374,13 +374,13 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.close()
     # drawing poles:
     nlons=np.size(lons)
-    tinyover=1./np.double(nlons)
+    tinyover=0.0/np.double(nlons)
     theta=90.-lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
     tinyover=old_div(1.,np.double(nlons))
-    pc=ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, tb,cmap='hot',levels=levs)
+    pc=ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, tb, cmap='hot',levels=levs)
     #    if(accflag.max()>1e-3):
     #        ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
 #    ax.grid(color='w')

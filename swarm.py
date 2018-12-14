@@ -236,7 +236,7 @@ ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity c
 beta_acc = 1. # gas-dominated matter
 # beta_acc = 0. # radiation-dominated matter
 csqinit_acc = (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.) *0. 
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)
 
 # main loop
 time1 = time.clock() # time loop
