@@ -99,9 +99,10 @@ latspread = 0.1   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
-incle     = latspread*0.1 # inclination of initial rotation, radians
+incle     = latspread*0.25 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
+eqrot = False # if true, sets a rapidly rotating belt in the IC
 # friction time scale with the neutron star:
 tfric=0.*pspin/tscale
 # depletion of the atmosphere:

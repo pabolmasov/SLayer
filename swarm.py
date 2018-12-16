@@ -60,7 +60,7 @@ f5 = h5py.File(f5io.outdir+'/run.hdf5', "w")
 from conf import logSE # if we are working with logarithms of Sigma and Energy
 from conf import nlons, nlats # dimensions of the simulation area
 from conf import grav, rsphere, mass1 # gravity, radius of the star, mass of the star (solar)
-from conf import omega, sig0, overkepler, tscale # star rotation frequency, initial density level, deviation from Kepler for the falling matter
+from conf import omega, sig0, overkepler, tscale, eqrot # star rotation frequency, initial density level, deviation from Kepler for the falling matter
 from conf import ifscaledt, dt_cfl_factor, dt_out_factor # scaling for the time steps
 from conf import ifscalediff
 from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial perturbation parameters
@@ -98,6 +98,33 @@ betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fi
 ######################################
 
 ##################################################
+# source/sink term
+def sdotsource(lats, lons, latspread):
+    '''
+    source term for surface density:
+    lats -- latitudes, radians
+    lons -- longitudes, radians
+    latspread -- width of the accretion belt, radians
+    outputs: dSigma/dt and cosine of the angle towards the rotation direction
+    '''
+    y=np.zeros((nlats,nlons), np.float)
+    devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
+    y=sigplus*np.exp(-0.5*(devcos/latspread)**2)
+    return y, devcos
+
+def sdotsink(sigma):
+    '''
+    NOT USED NOW!
+    sink term in surface density
+    sdotsink(sigma) 
+    could be made more elaborate
+    '''
+    if(tdepl>0.):
+        return sigma/tdepl
+    else:
+        return sigma*0.
+
+##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
 x1 = Spharmt(3*conf.nlons, 3*conf.nlats, 3*conf.ntrunc, conf.rsphere, gridtype='gaussian')
@@ -111,10 +138,24 @@ print("dt(CFL) = "+str(dt_cfl)+"GM/c**3 = "+str(dt_cfl*tscale)+"s")
 dt=dt_cfl 
 dt_out=dt_out_factor*rsphere**(1.5)/np.sqrt(mass1) # time step for output (we need to resolve the dynamic time scale)
 print("dt_out = "+str(dt_out)+"GM/c**3 = "+str(dt_out*tscale)+"s")
+# sources:
+sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
+vort_source = 2.*overkepler/rsphere**1.5 * sina
+# * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
+# !!! let us try again a smooth version
+# *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
+# if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
+ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
+# beta_acc = 1. # gas-dominated matter
+beta_acc = 0. # radiation-dominated matter
+csqinit_acc = csqinit # (overkepler*latspread)**2 / rsphere
+energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)
 #######################################################
 ## initial conditions: ###
 # initial velocity field  (pure rotation)
 ug = omega*np.cos(lats)*rsphere
+if(eqrot):
+    ug = ( overkepler / rsphere**0.5 * np.exp(-(sina/latspread)**2)+omega*(1.-np.exp(-(sina/latspread)**2))) * np.cos(lats)
 vg = 0.00*omega*np.sin(lats)*np.cos(lons)
 if(iftwist):
     ug *= (lats/twistscale) / np.sqrt(1.+(lats/twistscale)**2) # twisted sphere test
@@ -199,44 +240,7 @@ vortSpec = x.grid2sph(vortg)
 # Save simulation setup to file
 f5io.saveParams(f5, conf)
 
-##################################################
-# source/sink term
-def sdotsource(lats, lons, latspread):
-    '''
-    source term for surface density:
-    lats -- latitudes, radians
-    lons -- longitudes, radians
-    latspread -- width of the accretion belt, radians
-    outputs: dSigma/dt and cosine of the angle towards the rotation direction
-    '''
-    y=np.zeros((nlats,nlons), np.float)
-    devcos=np.sin(lats)*np.cos(incle)+np.cos(lats)*np.sin(incle)*np.cos(lons-slon0)
-    y=sigplus*np.exp(-0.5*(devcos/latspread)**2)
-    return y, devcos
 
-def sdotsink(sigma):
-    '''
-    NOT USED NOW!
-    sink term in surface density
-    sdotsink(sigma) 
-    could be made more elaborate
-    '''
-    if(tdepl>0.):
-        return sigma/tdepl
-    else:
-        return sigma*0.
-
-# sources:
-sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
-vort_source = 2.*overkepler/rsphere**1.5 * sina # * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
-# !!! let us try again a smooth version
-# *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
-# if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
-ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
-beta_acc = 1. # gas-dominated matter
-# beta_acc = 0. # radiation-dominated matter
-csqinit_acc = (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)
 
 # main loop
 time1 = time.clock() # time loop

@@ -1,5 +1,6 @@
 .DS_Store
 *.png
+*.mp4
 *.pyc
 out*/
 swm.py

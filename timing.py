@@ -479,4 +479,4 @@ def meanmaps(filename, n1, n2):
         fout.write(str(lats[0,k])+" "+str(sigmean_phavg[k])+" "+str(energymean_phavg[k])+" "+str(ugmean_phavg[k])+" "+str(vgmean_phavg[k])+" "+str(csq_phavg[k])+" "+str(uvcorr_phavg[k])+" "+str(aniso_phavg[k])+"\n")
     fout.close()
 # fluxest('out_ubuntu/run.hdf5', np.pi/2., 0., ntimes=10, nbins=100)
-# meanmaps('out_ubuntu/run.hdf5', 500, 6984)
+# meanmaps('out8/runcombine.hdf5', 5000, 10000)
