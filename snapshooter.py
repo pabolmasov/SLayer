@@ -121,6 +121,7 @@ def multireader(infile, nrange = None, nframes = None):
         nmin = 1 ; nmax = nsize
     else:
         nmin, nmax = nrange
+    nmax-=1
     outdir=os.path.dirname(infile)
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
 

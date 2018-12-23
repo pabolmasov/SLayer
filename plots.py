@@ -334,7 +334,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     else:
         skx=2 ; sky=2
 
-    wpoles=np.where(np.fabs(lats)<90.)
+    wpoles=np.where(np.fabs(lats)>30.)
     s0=tb[wpoles].min() ; s1=tb[wpoles].max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
