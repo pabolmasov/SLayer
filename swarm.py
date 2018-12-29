@@ -166,6 +166,7 @@ vortSpec, divSpec = x.getVortDivSpec(ug,vg)
 vortg = x.sph2grid(vortSpec)
 # vortg += 2.*omega*rsphere*np.sin(lats)*np.cos(lons)*0.01
 vortgNS = vortg # rotation of the neutron star 
+vortSpecNS = vortSpec # rotation of the neutron star, spectral space
 divg  = x.sph2grid(divSpec)
 
 # create (hyper)diffusion factor; normal diffusion corresponds to ndiss=2 (x.lap is already nabla^2)
@@ -360,7 +361,7 @@ while(t<(tmax+t0)):
     else:
         dtscale = 1. # fixed smoothing per unit time
     if(tfric>0.):
-        dissvortSpec=vortSpec*(hyperdiff_expanded*dtscale+1./tfric) #expanded exponential diffusion term
+        dissvortSpec=vortSpec*hyperdiff_expanded*dtscale+(vortSpec-vortSpecNS)/tfric #expanded exponential diffusion term
         dissdivSpec=divSpec*(ddivfac*hyperdiff_expanded*dtscale+1./tfric) # need to incorporate for omegaNS in the friction term
     else:
         dissvortSpec=vortSpec*hyperdiff_expanded*dtscale #expanded exponential diffusion term
