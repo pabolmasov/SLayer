@@ -361,14 +361,15 @@ while(t<(tmax+t0)):
     else:
         dtscale = 1. # fixed smoothing per unit time
     if(tfric>0.):
-        dissvortSpec=vortSpec*hyperdiff_expanded*dtscale+(vortSpec-vortSpecNS)/tfric #expanded exponential diffusion term
+        dissvortSpec=(vortSpec-vortSpecNS)*(hyperdiff_expanded*dtscale+1./tfric) #expanded exponential diffusion term
         dissdivSpec=divSpec*(ddivfac*hyperdiff_expanded*dtscale+1./tfric) # need to incorporate for omegaNS in the friction term
     else:
         dissvortSpec=vortSpec*hyperdiff_expanded*dtscale #expanded exponential diffusion term
         dissdivSpec=divSpec*hyperdiff_expanded*dtscale # need to incorporate for omegaNS in the friction term
         
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
-    dissipation = (ug*dissug+vg*dissvg) # -v . dv/dt_diss  # positive if it is real dissipation, because hyperdiff_expanded is positive
+    dissipation = ((ug-ug0)*dissug+vg*dissvg) # -v . dv/dt_diss  # positive if it is real dissipation, because hyperdiff_expanded is positive
+    # !!! 
     #    lost_angmoz = sig * dissug * np.sin(lats) * rsphere # angular momentum loss (z component)
     # energy sources and sinks:   
     qplus = sig * dissipation  
