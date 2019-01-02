@@ -361,19 +361,18 @@ while(t<(tmax+t0)):
     else:
         dtscale = 1. # fixed smoothing per unit time
     if(tfric>0.):
-        dissvortSpec=(vortSpec-vortSpecNS)*(hyperdiff_expanded*dtscale+1./tfric) #expanded exponential diffusion term
+        dissvortSpec=(vortSpec-vortSpecNS)*(hyperdiff_expanded*dtscale+1./tfric) #expanded exponential diffusion term; NS rotation is subtracted to exclude negative dissipation
         dissdivSpec=divSpec*(ddivfac*hyperdiff_expanded*dtscale+1./tfric) # need to incorporate for omegaNS in the friction term
     else:
-        dissvortSpec=vortSpec*hyperdiff_expanded*dtscale #expanded exponential diffusion term
+        dissvortSpec=(vortSpec-vortSpecNS)*hyperdiff_expanded*dtscale #expanded exponential diffusion term; NS rotation is subtracted to exclude negative dissipation
         dissdivSpec=divSpec*hyperdiff_expanded*dtscale # need to incorporate for omegaNS in the friction term
         
     dissug, dissvg = x.getuv(dissvortSpec, dissdivSpec)
     dissipation = ((ug-ug0)*dissug+vg*dissvg) # -v . dv/dt_diss  # positive if it is real dissipation, because hyperdiff_expanded is positive
-    # !!! 
-    #    lost_angmoz = sig * dissug * np.sin(lats) * rsphere # angular momentum loss (z component)
+    # note that the motion of the NS is subtracted to avoid negative dissipation of the basic flow
+
     # energy sources and sinks:   
     qplus = sig * dissipation  
-    # qminus = (-geff/kappa) * energyg / (energyg+energyfloor) * (1.-beta)  # unphysical, but small energies are frozen
     qminus = (-geff/kappa) * (1.-beta) # vertical integration excludes rho or sigma; no 3 here (see section "vertical structure" in the paper)
     qns = (csqmin/cssqscale)**4  # conversion of (minimal) speed of sound to flux
     timer.stop_comp("diffusion")
@@ -382,7 +381,7 @@ while(t<(tmax+t0)):
     timer.start_comp("baroclinic")
 
     gradp1, gradp2 = x.getGrad(x.grid2sph(pressg))  
-    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig,gradp2/sig) # each nabla already has its rsphere
+    vortpressbarSpec, divpressbarSpec = x.getVortDivSpec(gradp1/sig, gradp2/sig) # each nabla already has its rsphere
     ddivdtSpec += -divpressbarSpec 
     dvortdtSpec += -vortpressbarSpec
 

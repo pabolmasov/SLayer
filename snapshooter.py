@@ -28,10 +28,11 @@ def keyshow(filename):
     f.close()
     return keys
 
-def plotnth(filename, nstep):
+def plotnth(filename, nstep, derot = False):
     '''
     plot a given time step of a given data file. To list the available nsteps (integer values), use keyshow(filename).
     If "ifplot" is off, makes an ascii map instead (useful for remote calculations)
+    derot keyword compensates for NS rotation
     '''
     global rsphere
     outdir=os.path.dirname(filename)
@@ -43,13 +44,16 @@ def plotnth(filename, nstep):
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     slats1d = np.cos(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, x.lats)
-    lonsDeg=lons*180./np.pi ; latsDeg=lats*180./np.pi
     rsphere=params.attrs["rsphere"] ; grav=params.attrs["grav"] # ; kappa=params.attrs["kappa"]
     omegaNS=params.attrs["omega"] ;   tscale=params.attrs["tscale"]
     data=f["cycle_"+str(nstep).rjust(6, '0')]
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:] ; t=data.attrs["t"]
     sig=data["sig"][:] ; energy=data["energy"][:] ; beta=data["beta"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
     qminus=data["qminus"][:]
+    if(derot):
+        #        print("lons from "+str(lons.min())+" to "+str(lons.max()))
+        lons = (lons-omegaNS * t) % (2.*np.pi)
+    lonsDeg=lons*180./np.pi ; latsDeg=lats*180./np.pi
     f.close()
     press=energy* 3. * (1.-beta/2.)
     # ascii output:

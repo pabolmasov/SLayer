@@ -16,7 +16,7 @@ ifplot = True
 ##########################
 # a switch for restart
 ifrestart = True
-nrest=4651 # number of output entry for restart
+nrest=10720 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0

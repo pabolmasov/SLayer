@@ -421,7 +421,8 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.savefig(outdir+'/southpole.eps')
     plt.savefig(outdir+'/southpole.png')
     plt.close()
-#
+    
+###########################################################################
 # post-factum visualizations from the ascii output of snapplot:
 def postmaps(infile):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
@@ -734,22 +735,15 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
-# plot_saved('titania/out_twist/run.hdf5_map0000')
-# multiplot_saved('titania/out_8LR/run.hdf5_map')
-# dynsplot(infile="titania/out_8LR/pds_newmass")
-# pdsplot(infile="titania/out_8LR/pdstots_newmass")
-# multiplot_saved('titania/out_twist/run.hdf5_map')
-# multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
-# multiplot_saved('titania/out512/run.hdf5_map', skip=0)
-# multiplot_saved('titania/out_ND/run.hdf5_map', skip=0, step=10)
-# multiplot_saved('titania/out/run.hdf5_map', skip=0, step=10)
-# FFplot(prefix='titania/out_ND/diss_')
-#dynsplot(infile="titania/out_3LR/pds_newmass")
-#pdsplot(infile="titania/out_3LR/pdstots_newmass")
-#dynsplot(infile="titania/out_3LR/pds_mass")
-#pdsplot(infile="titania/out_3LR/pdstots_mass")
-#dynsplot(infile="titania/out_3LR/pds_diss")
-#pdsplot(infile="titania/out_3LR/pdstots_diss")
-# dynsplot(infile="titania/out_ND/pds_mass")
-# pdsplot(infile="titania/out_ND/pdstots_diss")
-# pdsplot(infile="titania/out_ND/pdstots_mass")
+        
+def plotbatch():
+    outlist = ['out_3LR', 'out_3HR', 'out_8LR', 'out_8HR']
+    for k in outlist:
+        print("titania/"+k+"/...\n")
+        dynsplot(infile="titania/"+k+"/pds_mass")
+        pdsplot(infile="titania/"+k+"/pdstots_mass")
+        dynsplot(infile="titania/"+k+"/pds_diss")
+        pdsplot(infile="titania/"+k+"/pdstots_diss")
+        multiplot_saved("titania/"+k+"/run.hdf5_map")
+        FFplot(prefix="titania/"+k+"/diss_")
+
