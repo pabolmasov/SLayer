@@ -116,7 +116,7 @@ def plotnth(filename, nstep, derot = False):
                        prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])
 
 # multiple diagnostic maps for making movies
-def multireader(infile, nrange = None, nframes = None):
+def multireader(infile, nrange = None, nframes = None, derot = False):
 
     keys = keyshow(infile)
     print(keys)
@@ -135,7 +135,7 @@ def multireader(infile, nrange = None, nframes = None):
         frames =  np.linspace(nmin, nmax, nframes, dtype=int)
     
     for k in frames:
-        plotnth(infile, k)
+        plotnth(infile, k, derot = derot)
         if(ifplot):
             os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
             os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
