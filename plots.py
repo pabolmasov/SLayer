@@ -335,7 +335,7 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
         skx=2 ; sky=2
 
     wpoles=np.where(np.fabs(lats)>30.)
-    s0=tb[wpoles].min() ; s1=tb[wpoles].max()
+    s0=tb.min() ; s1=tb.max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
     levs=(s1-s0)*((np.arange(nlev)-0.5)/np.double(nlev-1))+s0
@@ -359,11 +359,12 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
         color='k',
         scale=20.0,
     )
-#    if((latrange == None) & (lonrange == None)):
+    #    if((latrange == None) & (lonrange == None)):
         #        plt.ylim(-85.,85.)
-#    else:
-#        plt.ylim(latrange[0], latrange[1])
-#        plt.xlim(lonrange[0], lonrange[1])
+        #    else:
+        #        plt.ylim(latrange[0], latrange[1])
+        #        plt.xlim(lonrange[0], lonrange[1])
+    plt.xlim(0., 360.)
     plt.xlabel('longitude')
     plt.ylabel('latitude')
     if t != None:
@@ -660,16 +661,20 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.close()
     
 # a wrapper for timangle
-def plot_timangle(prefix='out/'):
+def plot_timangle(prefix='out/', trange = None):
     '''
     plot for a timangle output
     '''
     lines1 = np.loadtxt(prefix+"tth.dat", comments="#", delimiter=" ", unpack=False)
-    t=lines1[:,0] ;  lats=lines1[:,1] ; flats=lines1[:,2]
+    t1=lines1[:,0] ;  lats=lines1[:,1] ; flats=lines1[:,2]
     lines2 = np.loadtxt(prefix+"tphi.dat", comments="#", delimiter=" ", unpack=False)
-    lons=lines2[:,1] ; flons=lines2[:,2]
+    t2=lines2[:,0] ; lons=lines2[:,1] ; flons=lines2[:,2]
+    if(trange is not None):
+        wt1 = np.where((t1 > trange[0]) & (t1<trange[1]))
+        wt2 = np.where((t2 > trange[0]) & (t2<trange[1]))
+        t1=t1[wt1] ; lats=lats[wt1] ; flats=flats[wt1] ; lons=lons[wt2] ; flons=flons[wt2]
     #    outdir=os.path.dirname(prefix)
-    t=np.unique(t)  ; ulons=np.unique(lons) ; ulats=np.unique(lats)
+    t=np.unique(t1)  ; ulons=np.unique(lons) ; ulats=np.unique(lats)
     flats=np.reshape(flats, [np.size(t), np.size(ulats)])
     lats=np.reshape(lats, [np.size(t), np.size(ulats)])
     flons=np.reshape(flons, [np.size(t), np.size(ulons)])
@@ -747,3 +752,4 @@ def plotbatch():
         multiplot_saved("titania/"+k+"/run.hdf5_map")
         FFplot(prefix="titania/"+k+"/diss_")
 
+    multireader('out/runcombine.hdf5', derot=True, nframes=1000)

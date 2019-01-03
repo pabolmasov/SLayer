@@ -50,16 +50,26 @@ def plotnth(filename, nstep, derot = False):
     vortg=data["vortg"][:] ; divg=data["divg"][:] ; ug=data["ug"][:] ; vg=data["vg"][:] ; t=data.attrs["t"]
     sig=data["sig"][:] ; energy=data["energy"][:] ; beta=data["beta"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
     qminus=data["qminus"][:]
+    nth,nphi=np.shape(lats)
     if(derot):
         #        print("lons from "+str(lons.min())+" to "+str(lons.max()))
         lons = (lons-omegaNS * t) % (2.*np.pi)
+        lonsort = lons[0,:].argsort()
+        ug -= rsphere * omegaNS * np.cos(lats)
+        vortg -= 2.* omegaNS * np.sin(lats)
+        for kth in np.arange(nth):
+            lons[kth, :] = lons[kth, lonsort]
+            sig[kth, :] = sig[kth, lonsort]
+            ug[kth, :] = ug[kth, lonsort] ;            vg[kth, :] = vg[kth, lonsort]
+            divg[kth, :] = divg[kth, lonsort] ; vortg[kth, :] = vortg[kth, lonsort]
+            energy[kth, :] = energy[kth, lonsort] ; qminus[kth, :] = qminus[kth, lonsort]
+            accflag[kth, :] = accflag[kth, lonsort]
     lonsDeg=lons*180./np.pi ; latsDeg=lats*180./np.pi
     f.close()
     press=energy* 3. * (1.-beta/2.)
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
     step=5
-    nth,nphi=np.shape(lats)
     fmap.write("# map with step = "+str(step)+"\n")
     fmap.write("# t="+str(t*tscale)+"\n")
     fmap.write("# format: lats lons sigma digv vortg ug vg E Q- accflag\n")
@@ -130,7 +140,7 @@ def multireader(infile, nrange = None, nframes = None, derot = False):
     ndigits=np.long(np.ceil(np.log10(nmax))) # number of digits
 
     if(nframes == None):
-        frames = np.linspace(nmin, nmax)
+        frames = np.linspace(nmin, nmax, dtype=int)
     else:
         frames =  np.linspace(nmin, nmax, nframes, dtype=int)
     
