@@ -400,18 +400,19 @@ while(t<(tmax+t0)):
         sdotplus = sdotmax
         energy_source = energy_source_max 
     #    sdotSpec=x.grid2sph(sdotplus/sig-1./tdepl)
-
+    if(tdepl>0.):
+        sdotminus = sig/tdepl
+    else:
+        sdotminus = 0.
+    
     if(logSE):
-        if(tdepl>0.):
-            lsdot = sdotplus/sig-1./tdepl
-        else:
-            lsdot = sdotplus/sig
+        lsdot = sdotplus/sig-sdotminus
         dsigdtSpec_srce = x.grid2sph(lsdot)
         sdot = sig * lsdot
     else:
         sdot = sdotplus
         if(tdepl > 0.):
-            sdot -= sig / tdepl
+            sdot -= sdotminus
         dsigdtSpec_srce = x.grid2sph(sdot)
     # source term in vorticity
     #    domega=(vort_source-vortg) # difference in net vorticity
@@ -470,10 +471,10 @@ while(t<(tmax+t0)):
     #    denergyg=x.sph2grid(denergydtSpec)
     if(logSE):
         dt_thermal=1./(np.abs(thermalterm)+np.abs(denergydtaddterms)).max()
-        dt_accr=1./(np.abs(sdotplus)).max()
+        dt_accr=1./(np.abs(sdotplus)+np.abs(sdotminus)).max()
     else:
         dt_thermal=1./((np.abs(thermalterm)+np.abs(denergydtaddterms))/energypos).max()
-        dt_accr=1./(np.abs(sdotplus/sig)).max()
+        dt_accr=1./(np.abs((sdotplus+sdotminus)/sig)).max()
     if(ifscaledt):
         dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
         # dt=1./(1./dt_cfl+1./dt_thermal+2./dt_accr+1./dt_out)
