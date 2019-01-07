@@ -142,9 +142,6 @@ print("dt_out = "+str(dt_out)+"GM/c**3 = "+str(dt_out*tscale)+"s")
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
 vort_source = 2.*overkepler/rsphere**1.5 * sina
 # * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
-# !!! let us try again a smooth version
-# *np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2)) # vorticity source ; divergence source is assumed zero
-# if Omega_source = Omega * (1-0.75 sin^2(a)), vort \propto sina*(1.-0.75*(2.*sina**2-1.)/(2.*latspread))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 # beta_acc = 1. # gas-dominated matter
 beta_acc = 0. # radiation-dominated matter
@@ -241,8 +238,6 @@ vortSpec = x.grid2sph(vortg)
 # Save simulation setup to file
 f5io.saveParams(f5, conf)
 
-
-
 # main loop
 time1 = time.clock() # time loop
 
@@ -255,7 +250,6 @@ timer = Timer(["total", "step", "io"],
              "diffusion","baroclinic", "source-terms",
              "passive-scalar", "time-step", "diffusion2"])
 timer.start("total")
-
 
 while(t<(tmax+t0)):
     ##################################################
@@ -394,7 +388,7 @@ while(t<(tmax+t0)):
     #    sdotminus=sdotsink(sig)
     #    sdotplus, sina = sdotsource(lats, lons, latspread, t)
     if(tturnon>0.):
-        sdotplus = sdotmax * (1.-np.exp(-t/tturnon))
+        sdotplus = sdotmax * (1.-np.exp(-t/tturnon)) 
         energy_source = energy_source_max * (1.-np.exp(-t/tturnon))
     else:
         sdotplus = sdotmax
@@ -410,9 +404,7 @@ while(t<(tmax+t0)):
         dsigdtSpec_srce = x.grid2sph(lsdot)
         sdot = sig * lsdot
     else:
-        sdot = sdotplus
-        if(tdepl > 0.):
-            sdot -= sdotminus
+        sdot = sdotplus-sdotminus
         dsigdtSpec_srce = x.grid2sph(sdot)
     # source term in vorticity
     #    domega=(vort_source-vortg) # difference in net vorticity
@@ -474,7 +466,7 @@ while(t<(tmax+t0)):
         dt_accr=1./(np.abs(sdotplus)+np.abs(sdotminus)).max()
     else:
         dt_thermal=1./((np.abs(thermalterm)+np.abs(denergydtaddterms))/energypos).max()
-        dt_accr=1./(np.abs((sdotplus+sdotminus)/sig)).max()
+        dt_accr=1./((np.abs(sdotplus)+np.abs(sdotminus))/sig).max()
     if(ifscaledt):
         dt=0.5/(np.sqrt(np.maximum(1.*cssqmax,3.*vsqmax))/dt_cfl+5./dt_thermal+5./dt_accr+1./dt_out) # dt_accr may safely equal to inf, checked
         # dt=1./(1./dt_cfl+1./dt_thermal+2./dt_accr+1./dt_out)
@@ -486,6 +478,9 @@ while(t<(tmax+t0)):
         print(" dt(thermal) = "+str(dt_thermal))
         print(" dt(accr) = "+str(dt_accr))
         print("dt = "+str(dt))
+        print(" min(E)="+str(energypos.min()))
+        print(" min(Sigma)="+str(sigpos.min()))
+        #        print("tdepl = "+str(tdepl))
         print("time from last output "+str(t-tstore+dt_out))
         f5.close()
         sys.exit()
