@@ -517,13 +517,14 @@ def pdsplot(infile="out/pdstots_diss", omega=None):
     wfin=np.where(np.isfinite(f))
     fmin=f[wfin].min() ; fmax=f[wfin].max()
     plt.clf()
-    if(omega != None):
-        plt.plot([omega/2./np.pi,omega/2./np.pi], [fmin,fmax], 'b')
-        plt.plot([omega/2./np.pi*0.5,omega/2./np.pi*0.5], [fmin,fmax], 'g', linestyle='dotted')
-        plt.plot([omega/2./np.pi*1.5,omega/2./np.pi*1.5], [fmin,fmax], 'g', linestyle='dotted')
-        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
-        plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
-        plt.plot([4.*omega/2./np.pi,4.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
+    if(omega is not None):
+        so=np.size(omega)
+        if(so<=1):
+            plt.plot([omega/2./np.pi,omega/2./np.pi], [fmin,fmax], 'b')
+        else:
+            for ko in np.arange(so):
+                plt.plot([omega[ko]/2./np.pi,omega[ko]/2./np.pi], [fmin,fmax], 'b')
+
     for kf in np.arange(nf):
         plt.plot([freq1[kf], freq2[kf]], [f[kf], f[kf]], color='k')
         plt.plot([fc[kf], fc[kf]], [f[kf]-df[kf], f[kf]+df[kf]], color='k')
@@ -592,19 +593,24 @@ def dynsplot(infile="out/pds_diss", omega=None):
     binfreq2[ntimes-1,:-1]=fun[:] ;   binfreq2[ntimes,:-1]=fun[:]
     binfreq2[:,-1]=freq2.max()
     w=np.isfinite(df2)&(df2>0.)
-    pmin=f2ma.min() ; pmax=f2ma.max()
+    pmin=(f2ma*fc**2).min() ; pmax=(f2ma*fc**2).max()
     print(binfreq2.min(),binfreq2.max())
     plt.clf()
     fig=plt.figure()
     # plt.pcolormesh(tc, fc, f2, cmap='hot')
-    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='hot', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    plt.pcolor(t2, binfreq2, np.log10(f2ma*fc**2), cmap='hot') #, vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
     # plt.contourf(tc, fc, np.log(f2), cmap='hot')
     #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
     #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
-    if(omega != None):
-        plt.plot([t2.min(), t2.max()],[omega/2./np.pi,omega/2./np.pi], 'w')
-        plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
+    if(omega is not None):
+        so=np.size(omega)
+        if(so <= 1):
+            plt.plot([t2.min(), t2.max()],[omega/2./np.pi,omega/2./np.pi], 'w')
+        else:
+           for ko in np.arange(so):
+               plt.plot([t2.min(), t2.max()],[omega[ko]/2./np.pi,omega[ko]/2./np.pi], 'w')
+        #  plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
     plt.ylim(freq2.min(), freq2.max()/2.)
     plt.yscale('log')
     plt.ylabel('$f$, Hz', fontsize=20)
@@ -742,14 +748,15 @@ def multiplot_saved(prefix, skip=0, step=1):
 
         
 def plotbatch():
-    outlist = ['out_3LR', 'out_3HR', 'out_8LR', 'out_8HR']
+    outlist = ['out_NAHR', 'out_NALR']
+        # 'out_3LR', 'out_3HR', 'out_8LR', 'out_8HR']
     for k in outlist:
         print("titania/"+k+"/...\n")
-        dynsplot(infile="titania/"+k+"/pds_mass")
-        pdsplot(infile="titania/"+k+"/pdstots_mass")
-        dynsplot(infile="titania/"+k+"/pds_diss")
-        pdsplot(infile="titania/"+k+"/pdstots_diss")
+        dynsplot(infile="titania/"+k+"/pds_mass0.785398163397")
+        pdsplot(infile="titania/"+k+"/pdstots_mass0.785398163397")
+        dynsplot(infile="titania/"+k+"/pds_diss0.785398163397")
+        pdsplot(infile="titania/"+k+"/pdstots_diss0.785398163397")
         multiplot_saved("titania/"+k+"/run.hdf5_map")
         FFplot(prefix="titania/"+k+"/diss_")
 
-    multireader('out/runcombine.hdf5', derot=True, nframes=1000)
+    # multireader('out/runcombine.hdf5', derot=True, nframes=1000)

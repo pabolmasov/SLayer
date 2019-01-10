@@ -15,7 +15,7 @@ ifplot = True
 
 ##########################
 # a switch for restart
-ifrestart = True
+ifrestart = False
 nrest=10720 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
@@ -85,7 +85,7 @@ ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
 jitterskip = 10000
 ##################################################
 #perturbation parameters
-bump_amp  = -0.5     # perturbation amplitude
+bump_amp  = 0.5     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
