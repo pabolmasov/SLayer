@@ -91,3 +91,48 @@ def twoND():
     plt.savefig('rtests.eps')
     plt.close()
     
+#############################################################
+def teffsigma():
+    '''
+    a plot showing the physical processes setting an upper limit for surface density
+    '''
+    mass1 = 1.5 # solar masses
+    rstar6 = 1.2 # radius in 10^6 cm
+
+    s1 = 1e5 ; s2 = 1e11 ; ns=100
+    sigma = (s2/s1)**(np.arange(ns)/np.double(ns-1))*s1 # surface density
+    teffscale = 2.11602e7 /(mass1 * rstar6 ** 2 )**0.25
+    t1 = 1e6 ; t2 = teffscale ; nt=101
+    teff = (t2/t1)**(np.arange(nt)/np.double(nt-1))*t1 # effective temperature
+
+    sigma2, teff2 = np.meshgrid(sigma, teff)
+
+    # pressure ratio:
+    beta = 1.-(teff2/teffscale)**4
+    
+    # internal temp:
+    tint = 1.51462e9 * ((sigma2/1e8) * mass1/rstar6**2 * (1.-beta))**0.25
+    # density:
+    rho = 53079.9 * ((sigma2/1e8) * mass1/rstar6**2)**0.75 * beta / (1.-beta)**0.25
+    # Fermi temperature:
+    TF = 6.05411e8 / np.sqrt(mass1/rstar6**2) * np.sqrt(sigma2/1e8)
+    # electrons become relativistic:
+    Trele = 5.92986e9 
+    # Coulomb coupling parameter:
+    GammaC = (1.77359e5/tint) * (rho/1.)**(1./3.)
+
+    print("maximal Coulomb coupling "+str(GammaC.max()))
+    
+    plt.clf()
+    plt.contourf(sigma2, teff2, np.log10(rho))
+    plt.colorbar()
+    cs = plt.contour(sigma2, teff2, np.log10(tint), levels=np.arange(10), linestyles='dotted', colors='k')
+    plt.clabel(cs, fmt = r'$10^{%d}$\,K', fontsize=18)
+    plt.contour(sigma2, teff2, GammaC, colors='k', levels=[1.])
+    plt.contour(sigma2, teff2, TF/tint, colors='w', levels=[1.])
+    plt.contour(sigma2, teff2, tint/Trele, colors='r', levels=[1.])
+    plt.xlabel(r'$\Sigma,\ {\rm g \, cm^{-2}}$')
+    plt.ylabel(r'$T_{\rm eff}$, K')
+    plt.xscale('log') ; plt.yscale('log')
+    plt.savefig('limits.png')
+    plt.close()

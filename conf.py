@@ -16,7 +16,7 @@ ifplot = True
 ##########################
 # a switch for restart
 ifrestart = False
-nrest=7308 # number of output entry for restart
+nrest=10720 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
@@ -52,7 +52,7 @@ cssqscale = 2.89591e-06 * sigmascale**0.25 / mu * mass1**0.25 # = (4/5) (k/m_p c
 betamin=1e-10 # beta is solved for in the range betamin .. 1-betamin
 # there is a singularity near beta=1, not sure about beta=0
 
-sig0       = 1e2/sigmascale             # own neutron star atmosphere scale
+sig0  = 1e8/sigmascale             # own neutron star atmosphere scale
 print("rotation is about "+str(omega*np.sqrt(rsphere**3))+"Keplerian")
 dt_cfl_factor = 0.5 #  Courant-Friedrichs-Levy's multiplier (<~1) for the time step
 dt_out_factor = 0.25 # output step, in dynamical times
@@ -67,7 +67,7 @@ gammainit = 0. # artificially very stiff EOS, because we want density contrasts 
 kinit = 1e-8 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
 
 # minimal physical surface density and energy density:
-sigmafloor = 10./kappa
+sigmafloor = 1./kappa
 energyfloor = sigmafloor * csqmin
 
 print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
@@ -77,7 +77,7 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 100. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc = 50. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
 # ktrunc >~ Nx/|\ln e_M|**(1./Ndiss) (see Parfrey et al. 2012, formula 32 and after) -- condition for preserving the overall solution
 ktrunc_diss = 0.5 # smoothing the dissipation term when used as a heat source
 ndiss = 2.     # order for hyperdiffusion (2 is normal diffusion)
@@ -85,7 +85,7 @@ ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
 jitterskip = 10000
 ##################################################
 #perturbation parameters
-bump_amp  = -0.05     # perturbation amplitude
+bump_amp  = 0.5     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
@@ -93,17 +93,18 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 1e-8 # Msun/yr, intended mass accretion rate
+mdotfinal = 0. # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-latspread = 0.5   # spread in radians
+latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
-incle     = latspread*0.1 # inclination of initial rotation, radians
+incle     = latspread*0.25 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
+eqrot = False # if true, sets a rapidly rotating belt in the IC
 # friction time scale with the neutron star:
-tfric=0.*pspin/tscale
+tfric=10.*pspin/tscale
 # depletion of the atmosphere:
 tdepl=0.*pspin/tscale
 # turning on the source smoothly

@@ -4,7 +4,7 @@ from __future__ import division
 import numpy as np
 import scipy.interpolate as si
 
-kpower = 3
+kpower = 1
 
 # jitter block
 def jitterturn(vort0, div0, sig0, energy0, accflag0, dlon, grid, grid1): #, back=False):

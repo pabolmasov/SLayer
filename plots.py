@@ -334,12 +334,12 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     else:
         skx=2 ; sky=2
 
-    wpoles=np.where(np.fabs(lats)<90.)
-    s0=tb[wpoles].min() ; s1=tb[wpoles].max()
+    wpoles=np.where(np.fabs(lats)>30.)
+    s0=tb.min() ; s1=tb.max()
     #    s0=0.1 ; s1=10. # how to make a smooth estimate?
     nlev=30
     levs=(s1-s0)*((np.arange(nlev)-0.5)/np.double(nlev-1))+s0
-    levs=np.unique(np.round(levs, 2))
+#    levs=np.unique(np.round(levs, 2))
     interactive(False)
 
     # TODO: try cartographic projections?
@@ -359,11 +359,12 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
         color='k',
         scale=20.0,
     )
-#    if((latrange == None) & (lonrange == None)):
+    #    if((latrange == None) & (lonrange == None)):
         #        plt.ylim(-85.,85.)
-#    else:
-#        plt.ylim(latrange[0], latrange[1])
-#        plt.xlim(lonrange[0], lonrange[1])
+        #    else:
+        #        plt.ylim(latrange[0], latrange[1])
+        #        plt.xlim(lonrange[0], lonrange[1])
+    plt.xlim(0., 360.)
     plt.xlabel('longitude')
     plt.ylabel('latitude')
     if t != None:
@@ -374,13 +375,13 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.close()
     # drawing poles:
     nlons=np.size(lons)
-    tinyover=1./np.double(nlons)
+    tinyover=0.0/np.double(nlons)
     theta=90.-lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
     #    wnorth=np.where(lats>0.)
     tinyover=old_div(1.,np.double(nlons))
-    pc=ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, tb,cmap='hot',levels=levs)
+    pc=ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, tb, cmap='hot',levels=levs)
     #    if(accflag.max()>1e-3):
     #        ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
 #    ax.grid(color='w')
@@ -421,7 +422,8 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.savefig(outdir+'/southpole.eps')
     plt.savefig(outdir+'/southpole.png')
     plt.close()
-#
+    
+###########################################################################
 # post-factum visualizations from the ascii output of snapplot:
 def postmaps(infile):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
@@ -515,13 +517,14 @@ def pdsplot(infile="out/pdstots_diss", omega=None):
     wfin=np.where(np.isfinite(f))
     fmin=f[wfin].min() ; fmax=f[wfin].max()
     plt.clf()
-    if(omega != None):
-        plt.plot([omega/2./np.pi,omega/2./np.pi], [fmin,fmax], 'b')
-        plt.plot([omega/2./np.pi*0.5,omega/2./np.pi*0.5], [fmin,fmax], 'g', linestyle='dotted')
-        plt.plot([omega/2./np.pi*1.5,omega/2./np.pi*1.5], [fmin,fmax], 'g', linestyle='dotted')
-        plt.plot([2.*omega/2./np.pi,2.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
-        plt.plot([3.*omega/2./np.pi,3.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
-        plt.plot([4.*omega/2./np.pi,4.*omega/2./np.pi], [fmin,fmax], 'b', linestyle='dotted')
+    if(omega is not None):
+        so=np.size(omega)
+        if(so<=1):
+            plt.plot([omega/2./np.pi,omega/2./np.pi], [fmin,fmax], 'b')
+        else:
+            for ko in np.arange(so):
+                plt.plot([omega[ko]/2./np.pi,omega[ko]/2./np.pi], [fmin,fmax], 'b')
+
     for kf in np.arange(nf):
         plt.plot([freq1[kf], freq2[kf]], [f[kf], f[kf]], color='k')
         plt.plot([fc[kf], fc[kf]], [f[kf]-df[kf], f[kf]+df[kf]], color='k')
@@ -590,19 +593,24 @@ def dynsplot(infile="out/pds_diss", omega=None):
     binfreq2[ntimes-1,:-1]=fun[:] ;   binfreq2[ntimes,:-1]=fun[:]
     binfreq2[:,-1]=freq2.max()
     w=np.isfinite(df2)&(df2>0.)
-    pmin=f2ma.min() ; pmax=f2ma.max()
+    pmin=(f2ma*fc**2).min() ; pmax=(f2ma*fc**2).max()
     print(binfreq2.min(),binfreq2.max())
     plt.clf()
     fig=plt.figure()
     # plt.pcolormesh(tc, fc, f2, cmap='hot')
-    plt.pcolor(t2, binfreq2, np.log(f2ma), cmap='hot', vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    plt.pcolor(t2, binfreq2, np.log10(f2ma*fc**2), cmap='hot') #, vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
     # plt.contourf(tc, fc, np.log(f2), cmap='hot')
     #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
     #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
-    if(omega != None):
-        plt.plot([t2.min(), t2.max()],[omega/2./np.pi,omega/2./np.pi], 'w')
-        plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
+    if(omega is not None):
+        so=np.size(omega)
+        if(so <= 1):
+            plt.plot([t2.min(), t2.max()],[omega/2./np.pi,omega/2./np.pi], 'w')
+        else:
+           for ko in np.arange(so):
+               plt.plot([t2.min(), t2.max()],[omega[ko]/2./np.pi,omega[ko]/2./np.pi], 'w')
+        #  plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
     plt.ylim(freq2.min(), freq2.max()/2.)
     plt.yscale('log')
     plt.ylabel('$f$, Hz', fontsize=20)
@@ -659,16 +667,20 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.close()
     
 # a wrapper for timangle
-def plot_timangle(prefix='out/'):
+def plot_timangle(prefix='out/', trange = None):
     '''
     plot for a timangle output
     '''
     lines1 = np.loadtxt(prefix+"tth.dat", comments="#", delimiter=" ", unpack=False)
-    t=lines1[:,0] ;  lats=lines1[:,1] ; flats=lines1[:,2]
+    t1=lines1[:,0] ;  lats=lines1[:,1] ; flats=lines1[:,2]
     lines2 = np.loadtxt(prefix+"tphi.dat", comments="#", delimiter=" ", unpack=False)
-    lons=lines2[:,1] ; flons=lines2[:,2]
+    t2=lines2[:,0] ; lons=lines2[:,1] ; flons=lines2[:,2]
+    if(trange is not None):
+        wt1 = np.where((t1 > trange[0]) & (t1<trange[1]))
+        wt2 = np.where((t2 > trange[0]) & (t2<trange[1]))
+        t1=t1[wt1] ; lats=lats[wt1] ; flats=flats[wt1] ; lons=lons[wt2] ; flons=flons[wt2]
     #    outdir=os.path.dirname(prefix)
-    t=np.unique(t)  ; ulons=np.unique(lons) ; ulats=np.unique(lats)
+    t=np.unique(t1)  ; ulons=np.unique(lons) ; ulats=np.unique(lats)
     flats=np.reshape(flats, [np.size(t), np.size(ulats)])
     lats=np.reshape(lats, [np.size(t), np.size(ulats)])
     flons=np.reshape(flons, [np.size(t), np.size(ulons)])
@@ -734,22 +746,17 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
 
-# plot_saved('titania/out_twist/run.hdf5_map0000')
-# multiplot_saved('titania/out_8LR/run.hdf5_map')
-# dynsplot(infile="titania/out_8LR/pds_newmass")
-# pdsplot(infile="titania/out_8LR/pdstots_newmass")
-# multiplot_saved('titania/out_twist/run.hdf5_map')
-# multiplot_saved('titania/out_NA/runcombine.hdf5_map', skip=0)
-# multiplot_saved('titania/out512/run.hdf5_map', skip=0)
-# multiplot_saved('titania/out_ND/run.hdf5_map', skip=0, step=10)
-# multiplot_saved('titania/out/run.hdf5_map', skip=0, step=10)
-# FFplot(prefix='titania/out_ND/diss_')
-#dynsplot(infile="titania/out_3LR/pds_newmass")
-#pdsplot(infile="titania/out_3LR/pdstots_newmass")
-#dynsplot(infile="titania/out_3LR/pds_mass")
-#pdsplot(infile="titania/out_3LR/pdstots_mass")
-#dynsplot(infile="titania/out_3LR/pds_diss")
-#pdsplot(infile="titania/out_3LR/pdstots_diss")
-# dynsplot(infile="titania/out_ND/pds_mass")
-# pdsplot(infile="titania/out_ND/pdstots_diss")
-# pdsplot(infile="titania/out_ND/pdstots_mass")
+        
+def plotbatch():
+    outlist = ['out_NAHR', 'out_NALR']
+        # 'out_3LR', 'out_3HR', 'out_8LR', 'out_8HR']
+    for k in outlist:
+        print("titania/"+k+"/...\n")
+        dynsplot(infile="titania/"+k+"/pds_mass0.785398163397")
+        pdsplot(infile="titania/"+k+"/pdstots_mass0.785398163397")
+        dynsplot(infile="titania/"+k+"/pds_diss0.785398163397")
+        pdsplot(infile="titania/"+k+"/pdstots_diss0.785398163397")
+        multiplot_saved("titania/"+k+"/run.hdf5_map")
+        FFplot(prefix="titania/"+k+"/diss_")
+
+    # multireader('out/runcombine.hdf5', derot=True, nframes=1000)
