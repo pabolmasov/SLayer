@@ -55,6 +55,7 @@ def omegastream_dth(sthsq, omega, mdot):
 
 def omegastream_N(sthsq, omega, mdot):
     return 1.-omega**2 * sthsq
+
 def omegastream_D(sthsq, omega, mdot, omega0 = 1.):
     return omega0-omega * sthsq
 
@@ -78,7 +79,7 @@ def omegastream(mdot = 1.):
     fig=plt.figure()
     plt.plot((np.pi/2.-theta)*180./np.pi, 1./np.sin(theta), color='r')
     plt.plot((np.pi/2.-theta)*180./np.pi, omega0/np.sin(theta)**2, color='r')
-    plt.streamplot((np.pi/2.-theta2)*180./np.pi, omega2, dome_D, -sthsq*dome_N/mdot * np.pi/180., color='k',integration_direction='backward')
+    plt.streamplot((np.pi/2.-theta2)*180./np.pi, omega2, dome_D, -sthsq*rsphere*dome_N/mdot * np.pi/180., color='k',integration_direction='backward')
     #    plt.plot((np.pi/2.-theta)*180./np.pi, omega0 - np.sqrt(2.*(1.-omega0**2)*((np.pi/2.-theta)/2.+0.25*np.sin(theta*2.))/mdot), color='g')
     plt.ylim(omega.min(),omega.max())
     #    plt.yscale('log')

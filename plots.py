@@ -374,70 +374,10 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.savefig(outdir+'/snapshot.eps')
     plt.close()
     # drawing poles:
-    nlons=np.size(lons)
-    tinyover=0.0/np.double(nlons)
-    theta=90.-lats
-    plt.clf()
-    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    #    wnorth=np.where(lats>0.)
-    tinyover=old_div(1.,np.double(nlons))
-    pc=ax.contourf(lons*np.pi/180.*(tinyover+1.), theta, tb, cmap='hot',levels=levs)
-    #    if(accflag.max()>1e-3):
-    #        ax.contour(lons*np.pi/180.*(tinyover+1.), theta, accflag,colors='w',levels=[0.5])
-#    ax.grid(color='w')
-    plt.colorbar(pc,ax=ax)
-    ax.set_rticks([30., 60.])
-    ax.grid(color='w')
-    ax.set_rmax(70.)
-    if t != None:
-       # plt.title(r'North pole, $t={:8.3f}$ms'.format(t), loc='left') #, t='+str(nstep))
-        plt.text(90., 95.,r'North pole, $t={:8.3f}$ms'.format(t), fontsize=18)
-    else:
-        plt.title('North pole', loc='left')
-#    ax.axis('equal') # never! it ruins polar coordinates!
-    plt.tight_layout(pad=3)
-    fig.set_size_inches(5, 4)
-    plt.savefig(outdir+'/northpole.eps')
-    plt.savefig(outdir+'/northpole.png')
-    plt.close()
-    plt.clf()
-    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    #    wnorth=np.where(lats>0.)
-#    tinyover=0./np.double(nlons)
-    pc=ax.contourf(lons*np.pi/180.*(tinyover+1.), 180.*(tinyover+1.)-theta, tb,cmap='hot', levels=levs) #,color='w')
-    #    if(accflag.max()>1e-3):
-    #        ax.contour(lons*np.pi/180.*(tinyover+1.), 180.*(1.+tinyover)-theta, accflag,colors='w',levels=[0.5])
-    plt.colorbar(pc,ax=ax)
-    ax.set_rticks([30., 60.])
-    ax.grid(color='w')
-    ax.set_rmax(70.)
-    #    ax.axis('equal') ruins polar scale
-    fig.set_size_inches(5, 4)
-    if t != None:
-        # plt.title(r'South pole, $t={:8.3f}$ms'.format(t), loc='left')
-        plt.text(90., 95.,r'South pole, $t={:8.3f}$ms'.format(t), fontsize=18)
-    else:
-        plt.title('South pole', loc='left')
-    plt.tight_layout(pad=3)
-    plt.savefig(outdir+'/southpole.eps')
-    plt.savefig(outdir+'/southpole.png')
-    plt.close()
-    
+    somepoles(lons, lats, tb, outname, t=t)
+   
 ###########################################################################
 # post-factum visualizations from the ascii output of snapplot:
-def postmaps(infile):
-    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
-    lats=lines[:,0] ;   lons=lines[:,1] ; sigma=lines[:,2] ; energy=lines[:,5]
-    ug=lines[:,3] ; vg=lines[:,4] ; diss=lines[:,6] ; accflag=lines[:,7]
-    nlats=np.size(np.unique(lats)) ;   nlons=np.size(np.unique(lons))
-    lats=np.reshape(lats,[nlats, nlons]) ;   lons=np.reshape(lons,[nlats, nlons])
-    sigma=np.reshape(sigma,[nlats, nlons]) ;   energy=np.reshape(energy,[nlats, nlons])
-    ug=np.reshape(ug,[nlats, nlons]) ;   vg=np.reshape(vg,[nlats, nlons])
-    diss=np.reshape(diss,[nlats, nlons]) ;   accflag=np.reshape(accflag,[nlats, nlons])
-    #    print(lats[0,:].std())
-    vv=np.sqrt(ug**2+vg**2)
-    snapplot(lons, lats, sigma, accflag, energy/sigma, ug/vv.mean()*100., -vg/vv.mean()*100., [2,2], outdir=os.path.dirname(infile))
-    
 #    
 # general framework for a post-processed map of some quantity q
 def somemap(lons, lats, q, outname):
@@ -457,7 +397,49 @@ def somemap(lons, lats, q, outname):
     fig.tight_layout()
     plt.savefig(outname)
     plt.close()
-#
+    #
+def somepoles(lons, lats, q, outname, t = None):
+    '''
+    draws the maps of the polar regions
+    '''
+    wpoles = np.where(np.fabs(lats)>(np.pi/6.)) ; nlevs=30
+    levs = np.linspace(q[wpoles].min(), q[wpoles].max(), nlevs)
+    theta = np.pi/2.-lats
+    plt.clf()
+    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
+    pc=ax.contourf(lons, theta*180./np.pi, q, cmap='hot' ,levels=levs)
+    plt.colorbar(pc,ax=ax)
+    ax.set_rticks([30., 60.])
+    ax.grid(color='w')
+    ax.set_rmax(70.)
+    if t != None:
+        plt.text(90., 95.,r'North pole, $t={:8.3f}$ms'.format(t), fontsize=18)
+    else:
+        plt.title('North pole', loc='left')
+    plt.tight_layout(pad=3)
+    fig.set_size_inches(5, 4)
+    plt.savefig(outname+'_north.eps')
+    plt.savefig(outname+'_north.png')
+    plt.close()
+    plt.clf()
+    fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
+    pc=ax.contourf(lons, 180.-theta*180./np.pi, q,cmap='hot', levels=levs) #,color='w')
+    plt.colorbar(pc,ax=ax)
+    ax.set_rticks([30., 60.])
+    ax.grid(color='w')
+    ax.set_rmax(70.)
+    #    ax.axis('equal') ruins polar scale
+    fig.set_size_inches(5, 4)
+    if t != None:
+        plt.text(90., 95.,r'South pole, $t={:8.3f}$ms'.format(t), fontsize=18)
+    else:
+        plt.title('South pole', loc='left')
+    plt.tight_layout(pad=3)
+    plt.savefig(outname+'_south.eps')
+    plt.savefig(outname+'_south.png')
+    plt.close()
+    print(outname+'_north.png ; '+outname+'_south.png')
+    
 def plot_somemap(infile, nco):
     '''
     plots a map from a lons -- lats -- ... ascii data file
@@ -727,6 +709,7 @@ def plot_saved(infile):
     somemap(lons, lats, sig, infile+"_sig.png")
     somemap(lons, lats, qminus, infile+"_qminus.png")
     somemap(lons, lats, vortg, infile+"_vort.png")
+    somepoles(lons, lats, qminus, infile)
     
 def multiplot_saved(prefix, skip=0, step=1):
 
@@ -745,18 +728,35 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_sig.png"+" "+outdir+'/sig{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
+        os.system("mv "+flist[k]+"_north.png"+" "+outdir+'/n{:05d}'.format(k)+".png")
+        os.system("mv "+flist[k]+"_south.png"+" "+outdir+'/s{:05d}'.format(k)+".png")
 
-        
+#
+def plot_meanmap(infile = "out/meanmap_phavg"):
+    '''
+    designed for meanmap_phavg
+    draws Reynolds's stress and other quantities averaged over multiple frames
+    '''
+    lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
+    lats = lines[:,0] ; sig = lines[:,1]; energy = lines[:,2]
+    ug = lines[:,3] ; vg = lines[:,4] ;  csq = lines[:,5]
+    cuv = lines[:,6]; aniso = lines[:,7]
+    
+    someplot(lats, [cuv, -cuv, ug*vg, -ug*vg,  csq], xname=r'$\theta$', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
+
+    
 def plotbatch():
-    outlist = ['out_NAHR', 'out_NALR']
+    outlist = ['out_3LR', 'out_3HR', 'out_8LR', 'out_8HR', 'out_anc', 'out_NALR', 'out_NAHR']
+    # ['out_8HR', 'out_8LR']
         # 'out_3LR', 'out_3HR', 'out_8LR', 'out_8HR']
     for k in outlist:
         print("titania/"+k+"/...\n")
-        dynsplot(infile="titania/"+k+"/pds_mass0.785398163397")
-        pdsplot(infile="titania/"+k+"/pdstots_mass0.785398163397")
-        dynsplot(infile="titania/"+k+"/pds_diss0.785398163397")
-        pdsplot(infile="titania/"+k+"/pdstots_diss0.785398163397")
+#        dynsplot(infile="titania/"+k+"/pds_mass0.785398163397")
+#        pdsplot(infile="titania/"+k+"/pdstots_mass0.785398163397")
+#        dynsplot(infile="titania/"+k+"/pds_diss0.785398163397")
+#        pdsplot(infile="titania/"+k+"/pdstots_diss0.785398163397")
         multiplot_saved("titania/"+k+"/run.hdf5_map")
-        FFplot(prefix="titania/"+k+"/diss_")
+#        FFplot(prefix="titania/"+k+"/diss_")
 
     # multireader('out/runcombine.hdf5', derot=True, nframes=1000)
+# ffmpeg -f image2 -r 35 -pattern_type glob -i 'titania/out_8HR/q*.png' -pix_fmt yuv420p -b 4096k titania/out_8HR/q.mp4
