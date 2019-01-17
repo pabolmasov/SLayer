@@ -410,12 +410,19 @@ def meanmaps(filename, n1, n2):
     qpstd_phavg = np.sqrt(qpstd.mean(axis=1)+qpmean.std(axis=1)**2)
     ugmean_phavg = ugmean.mean(axis=1) ; vgmean_phavg = vgmean.mean(axis=1)
     uvcorr_phavg = uvcorr.mean(axis=1)+(ugmean*vgmean).mean(axis=1)-ugmean_phavg*vgmean_phavg
-    csq_phavg = energymean_phavg / sigmean_phavg
+    csq_phavg = energymean_phavg / sigmean_phavg * 4./9. # for radiation-pressure-dominated case!
+    kappa_tmp1 = 2.*ugmean_phavg / np.tan(ulats)/rsphere
+    kappa_tmp2 = ugmean_phavg * np.sin(ulats)/rsphere
+    kappa = (kappa_tmp1[1:]+kappa_tmp1[:-1])/2. * (kappa_tmp2[1:]-kappa_tmp2[:-1])/(np.cos(ulats)[1:]-np.cos(ulats)[:-1])
+    rossby = np.sqrt(csq_phavg[1:-1]/np.abs(kappa[1:]+kappa[:-1]))
+    # In general, Rossby radius is sensitive to epicyclic frequency
+    # kappa = 2.*Omega * cot(theta) * d/dtheta(Omega sin^2theta)
     aniso_phavg = ((vgdisp-ugdisp)/(vgdisp+ugdisp)).mean(axis=1)
     if(ifplot):
-        plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname='latitude', yname='$u$, $v$', prefix=outdir+'/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
-        plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg], xname='latitude', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
-        plots.someplot(ulats, [qmmean_phavg, qpmean_phavg, qmstd_phavg, qpstd_phavg], xname='latitude', yname="$Q^{\pm}$", prefix=outdir+'/qpm', fmt = ['k-', 'r-', 'k:', 'r:'], ylog=True)
+        plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname=r'$\theta$', yname='$u$, $v$', prefix=outdir+'/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
+        plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg], xname=r'$\theta$', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
+        plots.someplot(ulats, [qmmean_phavg, qpmean_phavg, qmstd_phavg, qpstd_phavg], xname=r'$\theta$', yname="$Q^{\pm}$", prefix=outdir+'/qpm', fmt = ['k-', 'r-', 'k:', 'r:'], ylog=True)
+        plots.someplot(ulats[1:-1], [rossby/rsphere, np.abs(ulats[1:-1]-np.pi/2.)], xname=r'$\theta$', yname=r'$R_{\rm Rossby}/R_*$', prefix=outdir+'/ro', fmt=['k-', 'r:'], ylog=True)
     fout=open(outdir+'/meanmap_phavg.dat', 'w')
     fout.write("# lats -- sig -- energy -- ug -- vg -- csq -- Cuv -- aniso\n")
     for k in np.arange(nlats):
@@ -426,3 +433,9 @@ def meanmaps(filename, n1, n2):
     for k in np.arange(nlats):
         fout.write(str(ulats[k])+" "+str(qmmean_phavg[k])+" "+str(qpmean_phavg[k])+" "+str(qmstd_phavg[k])+" "+str(qpstd_phavg[k])+"\n")
     fout.close()
+    fout=open(outdir+'/meanmap_ro.dat', 'w')
+    fout.write("# lats -- Ro -- kappa\n")
+    for k in np.arange(nlats):
+        fout.write(str(ulats[k])+" "+str(rossby[k])+" "+str(kappa[k])+"\n")
+    fout.close()
+    
