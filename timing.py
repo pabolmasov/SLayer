@@ -52,6 +52,7 @@ def lightcurves(filename, lat0, lon0):
 
     nsize=np.size(keys)-1 # last key contains parameters
     print(str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2]))
+    #    ipoints = input("keys")
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
     newmass_total=np.zeros(nsize) 
     flux=np.zeros(nsize)  ;  lumtot=np.zeros(nsize) ;  heattot=np.zeros(nsize)
@@ -75,8 +76,8 @@ def lightcurves(filename, lat0, lon0):
         print("beta from "+str(beta.min())+"  to "+str(beta.max()))
         press = energy / (3. * (1.-beta/2.))
         uvcorr =  ug*vg
-        for k in np.arange(nlats):
-            uvcorr[k,:] = (ug[k,:]-ug[k,:].mean()) * (vg[k,:]-vg[k,:].mean())
+        for klat in np.arange(nlats):
+            uvcorr[klat,:] = (ug[klat,:]-ug[klat,:].mean()) * (vg[klat,:]-vg[klat,:].mean())
         dimsequal = (np.shape(sig)[0] == nlats) & (np.shape(sig)[1] == nlons)
         if dimsequal:
             x1= x
@@ -213,6 +214,8 @@ def lightcurves(filename, lat0, lon0):
                        np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega/1e3/tscale)
         plots.timangle(tar*1e3, lats, lons, omeaver,
                        np.log(omeaver_lon), prefix=outdir+'/ome')
+        plots.timangle(tar*1e3, lats, lons, rxyaver,
+                       np.log(omeaver_lon), prefix=outdir+'/rxy', nolon=True)
         plots.sometimes(tar*1e3, [mdot, mdot*0.+mdotfinal], fmt=['k.', 'r-']
                         , prefix=outdir+'/mdot', title='mass accretion rate')
         plots.sometimes(tar*1e3, [maxdiss, -mindiss], fmt=['k', 'r'],
@@ -259,19 +262,19 @@ def specmaker(infile='out/lcurve', nbins = 10, logbinning = False):
     '''
     lines = np.loadtxt(infile+".dat")
     t = lines[:,0] ; x = lines[:,1]
-    nt = np.size(t)
-    dt = tspan / np.double(np.size(t)) ; tspan = t.max() - t.min()
-    pdsbin=np.zeros([ntimes, nbins]) ; dpdsbin=np.zeros([ntimes, nbins])
-    freq1 =1./tspan/2. ; freq2=freq1*np.double(nt)/np.double(ntimes)/2.
+    nt = np.size(t) ;    tspan = t.max() - t.min() 
+    dt = tspan / np.double(nt) 
+    pdsbin=np.zeros(nbins) ; dpdsbin=np.zeros(nbins)
+    freq1 =1./tspan/2. ; freq2=freq1*np.double(nt)/2.
     # binning:
     if(logbinning):
         binfreq=(freq2/freq1)**((np.arange(nbins+1)/np.double(nbins)))*freq1
     else:
         binfreq=(freq2-freq1)*((np.arange(nbins+1)/np.double(nbins)))+freq1
     # what about removing some trend? linear or polynomial?
-    fsp=np.fft.rfft(flux-flux.mean(), norm="ortho")/flux.std()
+    fsp=np.fft.rfft(x-x.mean(), norm="ortho")/x.std()
     pds=np.abs(fsp)**2
-    freq = np.fft.rfftfreq(nsize, dt)
+    freq = np.fft.rfftfreq(nt, dt)
     for kb in np.arange(nbins):
         freqrange=(freq>=binfreq[kb])&(freq<binfreq[kb+1])
         pdsbin[kb]=pds[freqrange].mean() 
@@ -415,14 +418,16 @@ def meanmaps(filename, n1, n2):
     kappa_tmp2 = ugmean_phavg * np.sin(ulats)/rsphere
     kappa = (kappa_tmp1[1:]+kappa_tmp1[:-1])/2. * (kappa_tmp2[1:]-kappa_tmp2[:-1])/(np.cos(ulats)[1:]-np.cos(ulats)[:-1])
     rossby = np.sqrt(csq_phavg[1:-1]/np.abs(kappa[1:]+kappa[:-1]))
+    ekappa = np.sqrt(np.abs((kappa[:-1]+kappa[1:])/2.))/tscale/2./np.pi 
     # In general, Rossby radius is sensitive to epicyclic frequency
-    # kappa = 2.*Omega * cot(theta) * d/dtheta(Omega sin^2theta)
+    # kappa^2 = 2.*Omega * cot(theta) * d/dtheta(Omega sin^2theta)
     aniso_phavg = ((vgdisp-ugdisp)/(vgdisp+ugdisp)).mean(axis=1)
     if(ifplot):
         plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname=r'$\theta$', yname='$u$, $v$', prefix=outdir+'/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
         plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg], xname=r'$\theta$', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
         plots.someplot(ulats, [qmmean_phavg, qpmean_phavg, qmstd_phavg, qpstd_phavg], xname=r'$\theta$', yname="$Q^{\pm}$", prefix=outdir+'/qpm', fmt = ['k-', 'r-', 'k:', 'r:'], ylog=True)
         plots.someplot(ulats[1:-1], [rossby/rsphere, np.abs(ulats[1:-1]-np.pi/2.)], xname=r'$\theta$', yname=r'$R_{\rm Rossby}/R_*$', prefix=outdir+'/ro', fmt=['k-', 'r:'], ylog=True)
+        plots.someplot(ulats[1:-1], [ekappa, (ugmean_phavg/rsphere/np.sin(ulats)/2./np.pi)[1:-1]/tscale], xname=r'$\theta$', yname=r'$f$, Hz', prefix=outdir+'/ekappa', fmt=['k-', 'r:'], ylog=True)
     fout=open(outdir+'/meanmap_phavg.dat', 'w')
     fout.write("# lats -- sig -- energy -- ug -- vg -- csq -- Cuv -- aniso\n")
     for k in np.arange(nlats):
@@ -434,8 +439,8 @@ def meanmaps(filename, n1, n2):
         fout.write(str(ulats[k])+" "+str(qmmean_phavg[k])+" "+str(qpmean_phavg[k])+" "+str(qmstd_phavg[k])+" "+str(qpstd_phavg[k])+"\n")
     fout.close()
     fout=open(outdir+'/meanmap_ro.dat', 'w')
-    fout.write("# lats -- Ro -- kappa\n")
-    for k in np.arange(nlats):
-        fout.write(str(ulats[k])+" "+str(rossby[k])+" "+str(kappa[k])+"\n")
+    fout.write("# lats -- Ro/R* -- kappa \n")
+    for k in np.arange(nlats-2)+1:
+        fout.write(str(ulats[k])+" "+str(rossby[k-1]/rsphere)+" "+str(ekappa[k-1])+"\n")
     fout.close()
     

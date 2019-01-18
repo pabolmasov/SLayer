@@ -25,6 +25,8 @@ from matplotlib import interactive
 
 import glob
 
+from conf import rsphere, tscale
+
 plt.ioff()
 # compound and special plots for the paper
 
@@ -67,7 +69,7 @@ def twoND():
     '''
     error growth for the no-accretion, rigid-body test (NDLR, NDHR)
     '''
-    file1='out_NDLR/rtest.dat'
+    file1='titania/out_NDLR/rtest.dat'
     file2='titania/out_NDHR/rtest.dat'
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
     lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
@@ -89,6 +91,65 @@ def twoND():
     fig.set_size_inches(4, 8)
     plt.tight_layout()
     plt.savefig('rtests.eps')
+    plt.close()
+#
+def threecurves():
+    '''
+    three light curves for the whistler plot
+    '''
+    outdir = "titania/out_3LR/"
+    file1 = outdir+"lcurve0.0.dat"
+    file2 = outdir+"lcurve0.785398163397.dat"
+    file3 = outdir+"lcurve1.57079632679.dat"
+    lines = np.loadtxt(file1)
+    t1=lines[:,0] ; l1=lines[:,1]
+    lines = np.loadtxt(file2)
+    t2=lines[:,0] ; l2=lines[:,1]
+    lines = np.loadtxt(file3)
+    t3=lines[:,0] ; l3=lines[:,1]
+
+    plt.clf()
+    fig = plt.figure()
+    plt.plot(t1, l1, 'k-')
+    plt.plot(t2, l2, 'g--')
+    plt.plot(t3, l3, 'b:')    
+    #    plt.yscale('log')
+    plt.xlim(t1.min(), t1.max())
+    plt.ylabel(r'$L_{\rm obs}$, $10^{37}{\rm \, erg \, s^{-1}}$', fontsize=20)
+    plt.xlabel('$t$, s', fontsize=20)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    fig.set_size_inches(12, 4)
+    fig.tight_layout()
+    plt.savefig(outdir+'forpaper_3lc.png')
+    plt.savefig(outdir+'forpaper_3lc.eps')
+    plt.close()
+
+#
+def ekappa():
+    omega = 2.*np.pi/0.003 
+    outdir = "titania/out_3LR/"
+    infile = outdir + "meanmap_ro.dat"
+    lines = np.loadtxt(infile)
+    theta=lines[:,0] ; fe=lines[:,2]
+    ugfile = outdir + "meanmap_phavg.dat"
+    lines = np.loadtxt(ugfile)
+    oloc=(lines[:,3])[1:-1]/rsphere/np.sin(theta)/tscale
+    
+    plt.clf()
+    fig = plt.figure()
+    plt.plot(theta, fe, 'k-')
+    plt.plot(theta, oloc/2./np.pi, 'r:')
+    plt.plot(theta, oloc*0.+omega/2./np.pi, 'g--')
+    plt.plot(theta, oloc*0.+2.*omega/2./np.pi, 'g--')
+    plt.xlabel(r'$\theta$', fontsize=20)
+    plt.ylabel(r'$\varkappa_{\rm e}$, Hz', fontsize=20)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    fig.set_size_inches(5, 4)
+    fig.tight_layout()
+    plt.savefig("forpaper/ekappa.png")
+    plt.savefig("forpaper/ekappa.eps")
     plt.close()
     
 #############################################################

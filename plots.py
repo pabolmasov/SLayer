@@ -606,7 +606,7 @@ def dynsplot(infile="out/pds_diss", omega=None):
     plt.close()
 
 # makes the t-phi and t-th plots for a selected pair of quantities
-def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
+def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
     '''
     plots time+theta and time+phi 2D maps for quantity qth,qphi (first is a function of theta, second depends on phi)
     '''
@@ -629,27 +629,28 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None):
     plt.savefig(prefix+'_tth.eps')
     plt.savefig(prefix+'_tth.png')
     plt.close()
-    plt.clf()
-    fig=plt.figure()
-    plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30),cmap='hot')
-    if(omega != None):
-        tnorm=omega*tar
-        for k in np.arange(np.floor(tnorm.max())):
-            plt.plot(tar, tnorm*180./np.pi-360.*k, color='k')
-    #    plt.colorbar()
-    plt.ylim(0.,360.)
-    plt.xlabel('$t$, ms', fontsize=20)
-    plt.ylabel('longitude', fontsize=20)
-    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
-    plt.tick_params(labelsize=18, length=6, width=2., which='major')
-    fig.set_size_inches(8, 4)
-    fig.tight_layout()
-    plt.savefig(prefix+'_tphi.eps')
-    plt.savefig(prefix+'_tphi.png')
-    plt.close()
+    if not(nolon):
+        plt.clf()
+        fig=plt.figure()
+        plt.contourf(tar, lonsmean*180./np.pi, qphi, levels=np.linspace(qphi.min(), qphi.max(), 30),cmap='hot')
+        if(omega != None):
+            tnorm=omega*tar
+            for k in np.arange(np.floor(tnorm.max())):
+                plt.plot(tar, tnorm*180./np.pi-360.*k, color='k')
+        #    plt.colorbar()
+        plt.ylim(0.,360.)
+        plt.xlabel('$t$, ms', fontsize=20)
+        plt.ylabel('longitude', fontsize=20)
+        plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+        plt.tick_params(labelsize=18, length=6, width=2., which='major')
+        fig.set_size_inches(8, 4)
+        fig.tight_layout()
+        plt.savefig(prefix+'_tphi.eps')
+        plt.savefig(prefix+'_tphi.png')
+        plt.close()
     
 # a wrapper for timangle
-def plot_timangle(prefix='out/', trange = None):
+def plot_timangle(prefix='out/', trange = None, nolon = False):
     '''
     plot for a timangle output
     '''
@@ -668,7 +669,7 @@ def plot_timangle(prefix='out/', trange = None):
     flons=np.reshape(flons, [np.size(t), np.size(ulons)])
     lons=np.reshape(lons, [np.size(t), np.size(ulons)])
     #    print(lons[:,0])
-    timangle(t*1e3, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots')
+    timangle(t*1e3, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots', nolon=nolon)
 
 # vdKlis's plot: frequency as a function of flux
 def FFplot(prefix='out/'):
@@ -746,9 +747,8 @@ def plot_meanmap(infile = "out/meanmap_phavg"):
 
     
 def plotbatch():
-    outlist = ['out_3LR', 'out_3HR', 'out_8LR', 'out_8HR', 'out_anc', 'out_NALR', 'out_NAHR']
-    # ['out_8HR', 'out_8LR']
-        # 'out_3LR', 'out_3HR', 'out_8LR', 'out_8HR']
+    outlist = ['out_3LR']
+    # , 'out_3HR', 'out_8LR', 'out_8HR', 'out_anc', 'out_NALR', 'out_NAHR']
     for k in outlist:
         print("titania/"+k+"/...\n")
 #        dynsplot(infile="titania/"+k+"/pds_mass0.785398163397")
