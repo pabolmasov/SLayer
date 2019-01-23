@@ -435,6 +435,8 @@ def somepoles(lons, lats, q, outname, t = None):
     else:
         plt.title('South pole', loc='left')
     plt.tight_layout(pad=3)
+    fig.set_size_inches(5, 4)
+    fig.tight_layout()
     plt.savefig(outname+'_south.eps')
     plt.savefig(outname+'_south.png')
     plt.close()
@@ -450,6 +452,22 @@ def plot_somemap(infile, nco):
     ulons = np.unique(lons) ; ulats = np.unique(lats)
     qt = np.transpose(np.reshape(q, [np.size(ulons),np.size(ulats)]))
     somemap(ulons, ulats, qt, infile+"_"+str(nco-2))
+
+def crosses(x, dx, y, dy, xlabel='', ylabel='', outfilename = 'crossplot'):
+    '''
+    plots a two-dimensional plot with error bars
+    '''
+    plt.clf()
+    fig=plt.figure()
+    plt.errorbar(x, y, xerr=dx, yerr=dy, fmt='k.')
+    plt.xlabel(xlabel, fontsize=20) ; plt.ylabel(ylabel, fontsize=20)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    fig.set_size_inches(5, 4)
+    fig.tight_layout()
+    plt.savefig(outfilename+'.png')
+    plt.savefig(outfilename+'.eps')
+    plt.close()
     
 def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plot',
              fmt=None, ylog=False):
@@ -746,17 +764,3 @@ def plot_meanmap(infile = "out/meanmap_phavg"):
     someplot(lats, [cuv, -cuv, ug*vg, -ug*vg,  csq], xname=r'$\theta$', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
 
     
-def plotbatch():
-    outlist = ['out_3LR']
-    # , 'out_3HR', 'out_8LR', 'out_8HR', 'out_anc', 'out_NALR', 'out_NAHR']
-    for k in outlist:
-        print("titania/"+k+"/...\n")
-#        dynsplot(infile="titania/"+k+"/pds_mass0.785398163397")
-#        pdsplot(infile="titania/"+k+"/pdstots_mass0.785398163397")
-#        dynsplot(infile="titania/"+k+"/pds_diss0.785398163397")
-#        pdsplot(infile="titania/"+k+"/pdstots_diss0.785398163397")
-        multiplot_saved("titania/"+k+"/run.hdf5_map")
-#        FFplot(prefix="titania/"+k+"/diss_")
-
-    # multireader('out/runcombine.hdf5', derot=True, nframes=1000)
-# ffmpeg -f image2 -r 35 -pattern_type glob -i 'titania/out_8HR/q*.png' -pix_fmt yuv420p -b 4096k titania/out_8HR/q.mp4

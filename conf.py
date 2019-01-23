@@ -15,14 +15,14 @@ ifplot = True
 
 ##########################
 # a switch for restart
-ifrestart = False
-nrest=10720 # number of output entry for restart
+ifrestart = True
+nrest=672 # number of output entry for restart
 restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 256          # number of longitudes
+nlons  = 512          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -72,7 +72,6 @@ energyfloor = sigmafloor * csqmin
 
 print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 # print("vertical scaleheight is ~ "+str(old_div(csqmin,grav))+" = "+str(csqmin/grav/dx)+"dx")
-
 ##################################################
 
 # Hyperdiffusion
@@ -85,7 +84,7 @@ ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
 jitterskip = 10000
 ##################################################
 #perturbation parameters
-bump_amp  = 0.5     # perturbation amplitude
+bump_amp  = 0.05     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
@@ -93,18 +92,18 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 0. # Msun/yr, intended mass accretion rate
+mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
-latspread = 0.2   # spread in radians
+latspread = 0.1   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 print("conf: sigplus = "+str(sigplus))
-incle     = latspread*0.25 # inclination of initial rotation, radians
+incle     = np.pi/4. # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 eqrot = False # if true, sets a rapidly rotating belt in the IC
 # friction time scale with the neutron star:
-tfric=10.*pspin/tscale
+tfric=0.*pspin/tscale
 # depletion of the atmosphere:
 tdepl=0.*pspin/tscale
 # turning on the source smoothly

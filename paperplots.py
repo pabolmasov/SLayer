@@ -26,6 +26,7 @@ from matplotlib import interactive
 import glob
 
 from conf import rsphere, tscale
+import plots
 
 plt.ioff()
 # compound and special plots for the paper
@@ -127,6 +128,9 @@ def threecurves():
 
 #
 def ekappa():
+    '''
+    plots epicyclic and rotation velocities from meanmap longitudinally-averaged data
+    '''
     omega = 2.*np.pi/0.003 
     outdir = "titania/out_3LR/"
     infile = outdir + "meanmap_ro.dat"
@@ -151,6 +155,45 @@ def ekappa():
     plt.savefig("forpaper/ekappa.png")
     plt.savefig("forpaper/ekappa.eps")
     plt.close()
+
+#
+def threecrosses():
+    outdir = '/home/pasha/SLayer/titania/out_3LR/'
+    infile1 = outdir + 'lcurve0.0_ffreq.dat'
+    lines1 = np.loadtxt(infile1, unpack=True)
+    print(np.shape(lines1))
+    flux1 = lines1[1, :] ; dflux1 = lines1[2, :] ; freq1 = lines1[3,:]; dfreq1 = lines1[4,:]
+    infile2 = outdir + 'lcurve0.785398163397_ffreq.dat'
+    lines2 = np.loadtxt(infile2, unpack=True)
+    flux2 = lines2[1, :] ; dflux2 = lines2[2, :] ; freq2 = lines2[3,:]; dfreq2 = lines2[4,:]
+    infile3 = outdir + 'lcurve1.57079632679_ffreq.dat'
+    lines3 = np.loadtxt(infile3, unpack=True)
+    flux3 = lines3[1, :] ; dflux3 = lines3[2, :] ; freq3 = lines3[3,:]; dfreq3 = lines3[4,:]
+
+    xlabel=r'$L_{\rm obs}$, ${\rm erg\,s^{-1}}$' ;   ylabel=r'$f_{\rm peak}$, Hz'
+    plt.clf()
+    fig=plt.figure()
+    plt.plot([flux1.min(), flux1.max()], [1./0.003, 1./0.003], 'g:')
+    plt.errorbar(flux1, freq1, xerr=dflux1, yerr=dfreq1, fmt='ko')
+    plt.errorbar(flux2, freq2, xerr=dflux2, yerr=dfreq2, fmt='rd')
+    plt.errorbar(flux3, freq3, xerr=dflux3, yerr=dfreq3, fmt='b^')
+    plt.xlabel(xlabel, fontsize=20) ; plt.ylabel(ylabel, fontsize=20)
+    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    plt.ylim(0.,1000.) 
+    fig.set_size_inches(5, 4)
+    fig.tight_layout()
+    plt.savefig(outdir+'ffreq3.png')
+    plt.savefig(outdir+'ffreq3.eps')
+    plt.close()
+
+def qpmplot():
+
+    outdir = 'titania/out_3LR/'
+    lats, qmmean, qpmean, qmstd, qpstd = np.loadtxt(outdir+'meanmap_qphavg.dat', unpack=True)
+    
+    plots.someplot(lats, [qmmean/qmmean.max(), qmstd/qmmean.max()], xname=r'$\theta$', yname="$Q^{-}$", prefix=outdir+'qminus', fmt = ['k-', 'r:'], ylog=False)
+    plots.someplot(lats, [qpmean/qpmean.max(), qpstd/qpmean.max()], xname=r'$\theta$', yname="$Q^{+}$", prefix=outdir+'qplus', fmt = ['k-', 'r:'], ylog=False)
     
 #############################################################
 def teffsigma():
@@ -197,3 +240,4 @@ def teffsigma():
     plt.xscale('log') ; plt.yscale('log')
     plt.savefig('limits.png')
     plt.close()
+

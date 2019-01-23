@@ -28,7 +28,7 @@ def keyshow(filename):
     f.close()
     return keys
 
-def plotnth(filename, nstep, derot = False):
+def plotnth(filename, nstep, derot = False, step = 1):
     '''
     plot a given time step of a given data file. To list the available nsteps (integer values), use keyshow(filename).
     If "ifplot" is off, makes an ascii map instead (useful for remote calculations)
@@ -69,7 +69,6 @@ def plotnth(filename, nstep, derot = False):
     press=energy* 3. * (1.-beta/2.)
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
-    step=5
     fmap.write("# map with step = "+str(step)+"\n")
     fmap.write("# t="+str(t*tscale)+"\n")
     fmap.write("# format: lats lons sigma digv vortg ug vg E Q- accflag\n")
@@ -126,7 +125,7 @@ def plotnth(filename, nstep, derot = False):
                        prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])
 
 # multiple diagnostic maps for making movies
-def multireader(infile, nrange = None, nframes = None, derot = False):
+def multireader(infile, nrange = None, nframes = None, derot = False, step = 5):
 
     keys = keyshow(infile)
     print(keys)
@@ -145,7 +144,7 @@ def multireader(infile, nrange = None, nframes = None, derot = False):
         frames =  np.linspace(nmin, nmax, nframes, dtype=int)
     
     for k in frames:
-        plotnth(infile, k, derot = derot)
+        plotnth(infile, k, derot = derot, step = step)
         if(ifplot):
             os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
             os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')

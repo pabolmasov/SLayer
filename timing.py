@@ -332,14 +332,24 @@ def dynspec_maker(infile='out/lcurve', ntimes = 30, nbins = 150, logbinning = Fa
         plots.dynsplot(infile=infile+'_pds', omega = [2.*np.pi/0.003, 10733.7])
         # if we want a vdK plot
     if(fmaxout):
+        xmeans = np.zeros(ntimes) ; dxmeans = np.zeros(ntimes)
+        fmaxs = np.zeros(ntimes) ; dfmaxs = np.zeros(ntimes)
         fout=open(infile+'_ffreq.dat', 'w')
         for k in np.arange(ntimes):
-            wmax = pdsbin[k,:].argmax()
+            binfreqc=(binfreq[1:]+binfreq[:-1])/2.
+            binfreqs=(binfreq[1:]-binfreq[:-1])/2.
+            wmax = (pdsbin[k,:]*binfreqc).argmax()
             wtime = np.where((t>tbins[k])*(t<tbins[k+1]))
-            xmean = x[wtime].mean()
-            fout.write(str(tcenter[k])+" "+str(xmean)+" "+str((binfreq[wmax]+binfreq[wmax])/2.)+"\n")
+            xmean = x[wtime].mean() ; dxmean = x[wtime].std()
+            fout.write(str(tcenter[k])+" "+str(xmean)+" "+str(dxmean)+" "+str(binfreqc[wmax])+" "+str(binfreqs[wmax])+"\n")
+            xmeans[k]=xmean ; dxmeans = dxmean
+            fmaxs[k] = binfreqc[wmax] ;    dfmaxs[k] = binfreqs[wmax]
         fout.flush()
         fout.close()
+        if(ifplot):
+            plots.crosses(xmeans, dxmeans*10., fmaxs, dfmaxs,
+                          xlabel=r'$L_{\rm obs}$, ${\rm erg\,s^{-1}}$',
+                          ylabel=r'$f_{\rm peak}$, Hz', outfilename = infile + '_ffreq')
         #
         
 ####################################################################################################
