@@ -3,7 +3,6 @@ from __future__ import division
 # module for all the visualization tools & functions
 
 from builtins import str
-from past.utils import old_div
 import numpy as np
 import scipy.ndimage as spin
 import matplotlib.pyplot as plt
@@ -94,11 +93,11 @@ def twoND():
     plt.savefig('rtests.eps')
     plt.close()
 #
-def threecurves():
+def threecurves(outdir = "titania/out_3LR/"):
     '''
     three light curves for the whistler plot
     '''
-    outdir = "titania/out_3LR/"
+    
     file1 = outdir+"lcurve0.0.dat"
     file2 = outdir+"lcurve0.785398163397.dat"
     file3 = outdir+"lcurve1.57079632679.dat"
@@ -155,10 +154,45 @@ def ekappa():
     plt.savefig("forpaper/ekappa.png")
     plt.savefig("forpaper/ekappa.eps")
     plt.close()
+#
+def threePDS(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
+    infile1 = outdir + 'lcurve0.0_pdstot.dat'
+    lines1 = np.loadtxt(infile1, unpack=True)
+    freqstart1=lines1[0,:] ; freqend1=lines1[1,:]
+    flux1=lines1[2,:] ; dflux1=lines1[3,:]
+
+    infile2 = outdir + 'lcurve0.785398163397_pdstot.dat'
+    lines2 = np.loadtxt(infile2, unpack=True)
+    freqstart2=lines2[0,:] ; freqend2=lines2[1,:]
+    flux2=lines2[2,:] ; dflux2=lines2[3,:]
+   
+    infile3 = outdir + 'lcurve1.57079632679_pdstot.dat'
+    lines3 = np.loadtxt(infile3, unpack=True)
+    freqstart3=lines3[0,:] ; freqend3=lines3[1,:]
+    flux3=lines3[2,:] ; dflux3=lines3[3,:]
+
+    xlabel = r'$f$, Hz' ; ylabel = r'PDS, relative units'
+
+    plt.clf()
+    fig=plt.figure()
+    plt.plot([1./0.003, 1./0.003], [flux1.min(), flux1.max()], color='b')
+    plt.errorbar((freqstart1+freqend1)/2., flux1, xerr=(-freqstart1+freqend1)/2., yerr=dflux1, fmt='ko')
+    plt.errorbar((freqstart2+freqend2)/2., flux2, xerr=(-freqstart2+freqend2)/2., yerr=dflux2, fmt='rd')
+    plt.errorbar((freqstart3+freqend3)/2., flux3, xerr=(-freqstart3+freqend3)/2., yerr=dflux3, fmt='g^')
+    plt.xlim(200.,1700.) ; plt.ylim(flux1.min(), flux1.max())
+    plt.xlabel(xlabel, fontsize=18) ; plt.ylabel(ylabel, fontsize=18)
+    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=16, length=6, width=2., which='major')
+    plt.yscale('log')
+    fig.set_size_inches(8, 6)
+    fig.tight_layout()
+    plt.savefig(outdir+'pds3.png')
+    plt.savefig(outdir+'pds3.eps')
+    plt.close()
 
 #
-def threecrosses():
-    outdir = '/home/pasha/SLayer/titania/out_3LR/'
+def threecrosses(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
+    
     infile1 = outdir + 'lcurve0.0_ffreq.dat'
     lines1 = np.loadtxt(infile1, unpack=True)
     print(np.shape(lines1))

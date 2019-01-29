@@ -3,7 +3,6 @@ from __future__ import division
 # module for all the visualization tools & functions
 
 from builtins import str
-from past.utils import old_div
 import numpy as np
 import scipy.ndimage as spin
 import matplotlib.pyplot as plt
@@ -24,6 +23,9 @@ matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"]
 from matplotlib import interactive
 
 import glob
+
+def old_div(x, y):
+    return np.double(x)/np.double(y)
 
 ##################################################
 
@@ -508,7 +510,7 @@ def plot_sometimes(infile="out/lcurve", ylog=True, tfilter = None):
     
 ########################################################################
 # post-processing of remotely produced light curves and spectra
-def pdsplot(infile="out/pdstots_diss", omega=None):
+def pdsplot(infile="out/pdstots_diss", omega=None, freqrange = None):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
     freq1=lines[:,0] ; freq2=lines[:,1]
     fc=(freq1+freq2)/2. # center of frequency interval
@@ -528,10 +530,13 @@ def pdsplot(infile="out/pdstots_diss", omega=None):
     for kf in np.arange(nf):
         plt.plot([freq1[kf], freq2[kf]], [f[kf], f[kf]], color='k')
         plt.plot([fc[kf], fc[kf]], [f[kf]-df[kf], f[kf]+df[kf]], color='k')
-        
+
+    if(freqrange is not None):
+        plt.xlim(freqrange[0], freqrange[1])
     plt.xlabel(r'$f$, Hz')
     plt.ylabel(r'PDS, relative units')
-    plt.xscale('log') ;    plt.yscale('log')
+    # plt.xscale('log')
+    plt.yscale('log')
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
     plt.close()
@@ -736,8 +741,10 @@ def multiplot_saved(prefix, skip=0, step=1):
     flist1 = np.sort(glob.glob(prefix+"[0-9][0-9].dat"))
     flist2 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9].dat"))
     flist3 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9].dat"))
-    flist=np.concatenate((flist0, flist1, flist2, flist3))
-    print(flist)
+    flist4 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9][0-9].dat"))
+    flist=np.concatenate((flist0, flist1, flist2, flist3, flist4))
+    #    print(flist)
+    #    ff=input('f')
     nlist = np.size(flist)
     outdir=os.path.dirname(prefix)
     

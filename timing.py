@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from builtins import str
-from past.utils import old_div
 import os.path
 import numpy as np
 import time
@@ -15,6 +14,9 @@ from conf import ifplot
 
 if(ifplot):
     import plots
+
+def old_div(x, y):
+    return np.double(x)/np.double(y)
     
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
@@ -256,12 +258,15 @@ def lightcurves(filename, lat0, lon0):
 
 #################################################################################################
 #
-def specmaker(infile='out/lcurve', nbins = 10, logbinning = False):
+def specmaker(infile='out/lcurve', nbins = 10, logbinning = False, trange = None):
     '''
     makes a Fourier PDS out of a light curve
     '''
     lines = np.loadtxt(infile+".dat")
     t = lines[:,0] ; x = lines[:,1]
+    if(trange is not None):
+        w=np.where((t<trange[1])&(t>trange[0]))
+        t=t[w] ; x=x[w]
     nt = np.size(t) ;    tspan = t.max() - t.min() 
     dt = tspan / np.double(nt) 
     pdsbin=np.zeros(nbins) ; dpdsbin=np.zeros(nbins)
@@ -272,7 +277,9 @@ def specmaker(infile='out/lcurve', nbins = 10, logbinning = False):
     else:
         binfreq=(freq2-freq1)*((np.arange(nbins+1)/np.double(nbins)))+freq1
     # what about removing some trend? linear or polynomial?
-    fsp=np.fft.rfft(x-x.mean(), norm="ortho")/x.std()
+    m,b = np.polyfit(t, x, 1)
+    x1=x-t*m-b
+    fsp=np.fft.rfft(x1, norm="ortho")/x1.std()
     pds=np.abs(fsp)**2
     freq = np.fft.rfftfreq(nt, dt)
     for kb in np.arange(nbins):
@@ -285,7 +292,7 @@ def specmaker(infile='out/lcurve', nbins = 10, logbinning = False):
         fpds.write(str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbin[k])+' '+str(dpdsbin[k])+"\n")
     fpds.close()
     if(ifplot):
-        plots.pdsplot(infile=infile+'_pdstot', omega = [2.*np.pi/0.003, 10733.7])
+        plots.pdsplot(infile=infile+'_pdstot', omega = [2.*np.pi/0.003, 10733.7], freqrange=[200., 1700.])
         
 #
 def dynspec_maker(infile='out/lcurve', ntimes = 30, nbins = 150, logbinning = False, fmaxout = False):
