@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from builtins import str
-from past.utils import old_div
 import numpy as np
 import shtns
 import scipy.ndimage as nd
@@ -39,7 +38,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
     f = h5py.File(filename,'r')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; tscale=params.attrs["tscale"]
-    x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
+    x = Spharmt(int(nlons),int(nlats),int(np.double(nlons)/3.),rsphere,gridtype='gaussian')
     lons1d = x.lons # (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     slats1d = np.cos(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
@@ -94,8 +93,8 @@ def plotnth(filename, nstep, derot = False, step = 1):
         vv=np.sqrt(xx**2+yy**2)
         vvmax=vv.max()
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
-        xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
-        yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
+        xx = nd.filters.gaussian_filter(xx, np.double(skx)/2., mode='constant')*500./vvmax
+        yy = nd.filters.gaussian_filter(yy, np.double(sky)/2., mode='constant')*500./vvmax
         tbottom=339.6*((1.-beta)*sig*(sigmascale/1e8)/mass1/rsphere**2)**0.25
         # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV

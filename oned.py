@@ -1,6 +1,5 @@
 from __future__ import division
 from builtins import str
-from past.utils import old_div
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -24,11 +23,11 @@ def levisol():
     old model without viscous energy transfer
     '''
     mdot1=0. ; mdot2=10. ; nmdot=5
-    mdot=(mdot2-mdot1)*(old_div(np.arange(nmdot),np.double(nmdot-1)))+mdot1
+    mdot=(mdot2-mdot1)*(np.arange(nmdot)/np.double(nmdot-1))+mdot1
     mdot = [0.2, 1., 5.]
     nmdot=np.size(mdot)
     Kcoeff=1.-overkepler**2
-    th1=0. ; th2=old_div(np.pi,2.) ;  nth=100
+    th1=0. ; th2=(np.pi/2.) ;  nth=100
     th=np.arange(nth)/np.double(nth)*(th2-th1)+th1
     costh=np.cos(th) ; sinth=np.sin(th)
     cmap = matplotlib.cm.get_cmap('hot')
@@ -37,10 +36,10 @@ def levisol():
     sub1=plt.subplot(211)
     sub2=plt.subplot(212)
     for k in np.arange(nmdot):
-        v=np.sqrt(old_div((1.-Kcoeff*np.exp(2./3.*mdot[k]/rsphere*costh)),rsphere))
+        v=np.sqrt(((1.-Kcoeff*np.exp(2./3.*mdot[k]/rsphere*costh))/rsphere))
         omega=(costh+(mdot[k]/3.*sinth**2-costh)*(1.-rsphere*v**2))/v/rsphere**2/sinth
-        sub1.plot(th, v*np.sqrt(rsphere), color=cmap(old_div(np.double(k),np.double(nmdot))),label='$\dot{m}='+str(mdot[k])+'$')
-        sub2.plot(th, omega*rsphere**1.5*sinth, color=cmap(old_div(np.double(k),np.double(nmdot))))
+        sub1.plot(th, v*np.sqrt(rsphere), color=cmap(np.double(k)/np.double(nmdot)),label='$\dot{m}='+str(mdot[k])+'$')
+        sub2.plot(th, omega*rsphere**1.5*sinth, color=cmap(np.double(k)/np.double(nmdot)))
     #    sub1.legend()
     sub1.set_ylabel(r'$v/v_{\rm K}$')
     sub2.set_ylabel(r'$\omega\sin\theta/\Omega_{\rm K} $')

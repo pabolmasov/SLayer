@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from builtins import str
-from past.utils import old_div
 import h5py
 import numpy as np
 import os
@@ -79,7 +78,7 @@ def saveSim(f5, nout, t,
             vortg, divg, ug, vg, sig, energy, beta,
             accflag, dissipation, qminus, qplus, sdot,
             conf):
-    x = Spharmt(int(conf.nlons),int(conf.nlats),int(old_div(conf.nlons,3)),conf.rsphere,gridtype='gaussian')
+    x = Spharmt(int(conf.nlons),int(conf.nlats),int(np.double(conf.nlons)/3.),conf.rsphere,gridtype='gaussian')
     lons1d = x.lons
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     dlons=2.*np.pi/np.double(conf.nlons) ; dlats=2./np.double(conf.nlats)
@@ -90,7 +89,6 @@ def saveSim(f5, nout, t,
     heattot=np.trapz(qplus.sum(axis=1), x=-clats1d)*dlons
     print("f5io: lumtot = "+str(lumtot)+"; heattot = "+str(heattot))
     mdot=np.trapz(sdot.sum(axis=1), x=-clats1d)*dlons
-    #    totenergy=(sig*energy+old_div((ug**2+vg**2),2.)).sum()*sarea
 
     scycle = str(nout).rjust(6, '0')
     grp = f5.create_group("cycle_"+scycle)
@@ -126,7 +124,7 @@ def restart(restartfile, nrest, conf):
     params=f5['params/']
     nlons1 =int(params.attrs["nlons"])
     nlats1 =int(params.attrs["nlats"])
-    ntrunc1 = int(old_div(nlons1,3)) 
+    ntrunc1 = int(np.double(nlons1)/3.) 
     rsphere=params.attrs["rsphere"]
     
     data  = f5["cycle_"+str(nrest).rjust(6, '0')]
@@ -150,7 +148,7 @@ def restart(restartfile, nrest, conf):
         accflagfun =  si.interp2d(x1.lons, x1.lats, accflag1, kind='linear')
         vortg = -vortfun(x.lons, x.lats) ; divg = divfun(x.lons, x.lats) ; sig = np.exp(sigfun(x.lons, x.lats)) ; energyg = np.exp(energyfun(x.lons, x.lats)) ; accflag = accflagfun(x.lons, x.lats)
         # accflag may be smoothed without any loss of generality or stability
-        dlats=old_div(np.pi,np.double(conf.nlats)) ;  dlons=2.*np.pi/np.double(conf.nlons) # approximate size in latitudinal and longitudinal directions
+        dlats=np.pi/np.double(conf.nlats) ;  dlons=2.*np.pi/np.double(conf.nlons) # approximate size in latitudinal and longitudinal directions
         print("smoothing accflag")
         w1=np.where(accflag > 1.) ; w0=np.where(accflag <0.)
         if(np.size(w1)>0):

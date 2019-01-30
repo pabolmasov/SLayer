@@ -14,9 +14,6 @@ from conf import ifplot
 
 if(ifplot):
     import plots
-
-def old_div(x, y):
-    return np.double(x)/np.double(y)
     
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
@@ -41,11 +38,11 @@ def lightcurves(filename, lat0, lon0):
     cssqscale=2.89591e-06 * sigmascale**0.25 / mu * mass1**0.25
     # NSmass=params.attrs["mass"]
     #    print(type(nlons))
-    x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian') # coordinate mesh
+    x = Spharmt(int(nlons),int(nlats),int(np.double(nlons)/3.),rsphere,gridtype='gaussian') # coordinate mesh
     lons1d = x.lons ; lats1d = x.lats
     clats1d = np.sin(x.lats) 
     lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
-    dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
+    dlons=2.*np.pi/np.size(lons1d) ; dlats=(2./np.double(nlats))
     # viewing angle:
     cosa=np.cos(lats)*np.cos(lat0)+np.sin(lats)*np.sin(lat0)*np.cos(lons-lon0)
     cosa=(cosa+np.fabs(cosa))/2. # viewing angle positive (visible) or zero (invisible side)
@@ -92,11 +89,11 @@ def lightcurves(filename, lat0, lon0):
             # if the sizes of individual entries are unequal
             #            print("dimensions changed to "+str(np.shape(sig)))
             nlats1, nlons1 = np.shape(sig)
-            x1 = Spharmt(int(nlons1),int(nlats1),int(old_div(nlons1,3)),rsphere,gridtype='gaussian')
+            x1 = Spharmt(int(nlons1),int(nlats1),int(np.double(nlons1)/3.),rsphere,gridtype='gaussian')
             lons1d1 = x1.lons ; lats1d1 = x1.lats
             clats1d1 = np.sin(x1.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
             lons1,lats1 = np.meshgrid(lons1d1, np.arccos(clats1d1))
-            dlons1=2.*np.pi/np.size(lons1d1) ; dlats1=old_div(2.,np.double(nlats1))
+            dlons1=2.*np.pi/np.size(lons1d1) ; dlats1=(2./np.double(nlats1))
             cosa1=np.cos(lats1)*np.cos(lat0)+np.sin(lats1)*np.sin(lat0)*np.cos(lons1-lon0)
             cosa1=(cosa1+np.fabs(cosa1))/2. # viewing angle positive (visible) or zero (invisible side)
 

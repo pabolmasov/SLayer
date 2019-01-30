@@ -69,8 +69,8 @@ def twoND():
     '''
     error growth for the no-accretion, rigid-body test (NDLR, NDHR)
     '''
-    file1='titania/out_NDLR/rtest.dat'
-    file2='titania/out_NDHR/rtest.dat'
+    file1='titania/ND/rtest_LR.dat'
+    file2='titania/ND/rtest_HR.dat'
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
     lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
     
@@ -80,17 +80,25 @@ def twoND():
     plt.clf()
     fig=plt.figure()
     plt.subplot(211)
-    plt.plot(tar1, err1, '.k')
-    plt.plot(tar2, err2, '.r')
-    plt.ylabel('random error, $\Delta \Sigma/\Sigma$')
+    plt.plot(tar1, err1, 'k')
+    plt.plot(tar2, err2, 'r')
+    plt.yscale('log')
+    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=16, length=6, width=2., which='major')
+    plt.ylabel('random error, $\Delta \Sigma/\Sigma$', fontsize=18)
+    plt.xlabel('$t$, s', fontsize=18)
     plt.subplot(212)
-    plt.plot(tar1, serr1, 'k')
-    plt.plot(tar2, serr2, 'r')
-    plt.ylabel('systematic error, $\Delta \Sigma/\Sigma$')
-    plt.xlabel('$t$, s')
-    fig.set_size_inches(4, 8)
+    plt.plot(tar1, abs(serr1), 'k')
+    plt.plot(tar2, abs(serr2), 'r')
+    plt.yscale('log')
+    plt.ylabel('systematic error, $\Delta \Sigma/\Sigma$', fontsize=18)
+    plt.xlabel('$t$, s', fontsize=18)
+    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=16, length=6, width=2., which='major')
+    fig.set_size_inches(5, 6)
     plt.tight_layout()
     plt.savefig('rtests.eps')
+    plt.savefig('rtests.png')
     plt.close()
 #
 def threecurves(outdir = "titania/out_3LR/"):

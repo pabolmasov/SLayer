@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from builtins import str
-from past.utils import old_div
 import os.path
 import numpy as np
 import time
@@ -27,11 +26,11 @@ def comparetwoshots(run1, n1, run2, n2):
     data1=f1[keys1[n1]]
     sig1=data1["sig"][:]
     rsphere=params.attrs["rsphere"]; nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"]
-    x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
+    x = Spharmt(int(nlons),int(nlats),int(np.double(nlons)/3.),rsphere,gridtype='gaussian')
     lons1d = x.lons ; lats1d = x.lats
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
-    dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
+    dlons = 2.*np.pi/np.size(lons1d) ; dlats = (2. / np.double(nlats))
     f2 = h5py.File(run2,'r')
     keys2=list(f2.keys())
     data2=f2[keys2[n2]]
@@ -54,11 +53,11 @@ def comparot(infile):
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"]
     omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"]
     tscale=params.attrs["tscale"] ; mass1=params.attrs["NSmass"]
-    x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
+    x = Spharmt(int(nlons),int(nlats),int(np.double(nlons)/3.),rsphere,gridtype='gaussian')
     lons1d = x.lons ; lats1d = x.lats
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     lons,lats = np.meshgrid(lons1d, np.arccos(clats1d))
-    dlons=2.*np.pi/np.size(lons1d) ; dlats=old_div(2.,np.double(nlats))
+    dlons=2.*np.pi/np.size(lons1d) ; dlats = 2. / np.double(nlats)
 
     keys=list(f.keys())
     nsize=np.size(keys)-1 # last key contains parameters

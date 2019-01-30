@@ -13,7 +13,6 @@ from __future__ import division
 
 from builtins import input
 from builtins import str
-from past.utils import old_div
 import numpy as np
 import scipy.ndimage as spin
 import shtns
@@ -75,6 +74,7 @@ from conf import ifrestart, nrest, restartfile # restart setup
 from conf import tfric, tdepl # interaction with the NS surface: friction and depletion times
 from conf import iftwist, twistscale # twist test parameters
 from conf import eps_deformation
+from conf import noq
 # from conf import sigmascale # not used directly
 
 if(ifplot):
@@ -88,7 +88,7 @@ bmin=betamin ; bmax=1.-betamin ; nb=10000
 # hard limits for stability; bmin\sim 1e-7 approximately corresponds to Coulomb coupling G\sim 1,
 # hence there is even certain physical meaning in bmin
 # "beta" part of the main loop is little-time-consuming independently of nb
-b = (bmax-bmin)*(old_div((np.arange(nb)+0.5),np.double(nb)))+bmin
+b = (bmax-bmin)*((np.arange(nb)+0.5)/np.double(nb))+bmin
 bx = b/(1.-b)**0.25
 b[0]=0. ; bx[0]=0.0  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
 betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
@@ -433,6 +433,8 @@ while(t<(tmax+t0)):
             denergydtaddterms -= 1./tdepl
         else:
             denergydtaddterms -= energyg/tdepl
+    if (noq):
+        thermalterm *= 0.
     if(ktrunc_diss>0.):
         diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt * dtscale)
         denergydtSpec_srce = x.grid2sph( thermalterm ) *diss_diff  + x.grid2sph( denergydtaddterms)  

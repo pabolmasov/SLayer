@@ -24,47 +24,12 @@ from matplotlib import interactive
 
 import glob
 
-def old_div(x, y):
-    return np.double(x)/np.double(y)
-
 ##################################################
-
-# converts two components to an angle (change to some implemented function!)
-def tanrat(x,y):
-    sx=np.size(x) ; sy=np.size(y)
-    if(sx>1):
-        if(sx!=sy):
-            print("tanrat: array sizes do not match, "+str(sx)+" !="+str(sy))
-            sx=minimum(sx,sy)
-        z=np.zeros(sx, dtype=np.double)
-        for k in np.arange(sx):
-            z[k]=tanrat(x[k],y[k])
-        return z
-    else:
-        z=0.
-        if((x*y)>0.):
-            z=np.arctan(old_div(y,x))
-            if(x<0.):
-                z+=np.pi
-        elif((x*y)<0.):
-            z=np.arctan(old_div(y,x))+np.pi
-            if(y<0.):
-                z+=np.pi
-        else:
-            if(x==0.):
-                if(y<0.):
-                    return 1.5*np.pi
-                else:
-                    return np.pi*0.5
-            else:
-                if(x<0.):
-                    return np.pi
-        return z
 
 def visualizePoles(ax, angmo):
     # axes and angular momentum components (3-tuple)
     x,y,z=angmo
-    polelon = tanrat(x, y)
+    polelon = np.arctan2(y,x)
     polelat = np.arcsin(z/np.sqrt(x**2+y**2+z**2))
     polelonDeg=180.*(polelon/np.pi-1.) ; polelatDeg=polelat/np.pi*180.
     ax.plot([polelonDeg], [polelatDeg], '.r')
@@ -151,7 +116,7 @@ def visualizeMapVecs(ax, lonsDeg, latsDeg, xx, yy, title=""):
     nlons=np.size(np.unique(lonsDeg))
     sk = int(np.floor(5.*np.double(nlons)/128.))
     #    print "nlons="+str(nlons)
-    sigma = [old_div(sk,2.), old_div(sk,2.)]
+    sigma = [(sk/2.), (sk/2.)]
     xx = spin.filters.gaussian_filter(xx, sigma, mode='constant')*30./vvmax
     yy = spin.filters.gaussian_filter(yy, sigma, mode='constant')*30./vvmax
     
@@ -202,7 +167,7 @@ def visualize(t, nout,
     #    mass_acc=(sig*accflag).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     #    mass_native=(sig*(1.-accflag)).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     thenergy=trapz(energy.mean(axis=1), x=clats)
-    kenergy=old_div(trapz((sig*(ug**2+vg**2)).mean(axis=1), x=clats),2.)
+    kenergy=trapz((sig*(ug**2+vg**2)).mean(axis=1), x=clats)/2.
 #    (sig*engy).sum()*4.*np.pi/np.double(nlons*nlats)*rsphere**2
     angmoz=trapz((sig*ug*np.cos(lats)).mean(axis=1), x=clats)*cf.rsphere
     angmox=trapz((sig*(vg*np.sin(lons)-ug*np.sin(lats)*np.cos(lons))).mean(axis=1), x=clats)*cf.rsphere
@@ -211,26 +176,8 @@ def visualize(t, nout,
 
     print("t = "+str(t))
     print("simulation running with ktrunc = "+str(cf.ktrunc)+", ktrunc_diss = "+str(cf.ktrunc_diss)+", Ndiss = "+str(cf.ndiss))
-#    print("angular momentum "+str(vangmo)+", inclined wrt z by "+str(np.arccos(old_div(angmoz,vangmo))*180./np.pi)+"deg")
-#    print("net angular momentum "+str(old_div(vangmo,mass)))
-#    print("vorticity: "+str(vortg.min())+" to "+str(vortg.max()))
-#    print("divergence: "+str(divg.min())+" to "+str(divg.max()))
-#    print("azimuthal U: "+str(ug.min())+" to "+str(ug.max()))
-#    print("polar V: "+str(vg.min())+" to "+str(vg.max()))
-#    print("Sigma: "+str(sig.min())+" to "+str(sig.max()))
-#    print("Pi: "+str(press.min())+" to "+str(press.max()))
-#    print("accretion flag: "+str(accflag.min())+" to "+str(accflag.max()))
-#    print("maximal Q^- "+str(qminus.max()))
-#    print("minimal Q^- "+str(qminus.min()))
-#    print("maximal Q^+ "+str(qplus.max()))
-#    print("minimal Q^+ "+str(qplus.min()))
-#    print("total mass = "+str(mass))
-#    print("accreted mass = "+str(mass_acc))
-#    print("native mass = "+str(mass_native))
-#    print("total energy = "+str(thenergy)+"(thermal) + "+str(kenergy)+"(kinetic)")
-#    print("net energy = "+str(old_div((thenergy+kenergy),mass)))
 
-    cspos=old_div((old_div(press,sig)+np.fabs(old_div(press,sig))),2.)
+    cspos = ((press/sig)+np.fabs((press/sig)))/2.
     
     #vorticity
     visualizeMap(axs[0], 
@@ -300,8 +247,8 @@ def visualize(t, nout,
     du=ug # -cf.omega*cf.rsphere*np.cos(lats)
     dv=vg
     vabs=du**2+dv**2
-    dunorm=old_div(du,vabs)
-    dvnorm=old_div(dv,vabs)
+    dunorm = (du/vabs)
+    dvnorm = (dv/vabs)
 
     visualizeMapVecs(axs[8], 
                      lonsDeg, latsDeg, 
