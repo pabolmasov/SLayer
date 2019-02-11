@@ -186,13 +186,17 @@ def threePDS(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
 
     xlabel = r'$f$, Hz' ; ylabel = r'PDS, relative units'
 
+    
+    freqmin = 200. ; freqmax = 1700.
+    win = np.where((freqstart1> freqmin) * (freqend1 < freqmax))
+    
     plt.clf()
     fig=plt.figure()
     plt.plot([1./0.003, 1./0.003], [flux1.min(), flux1.max()], color='b')
     plt.errorbar((freqstart1+freqend1)/2., flux1, xerr=(-freqstart1+freqend1)/2., yerr=dflux1, fmt='ko')
     plt.errorbar((freqstart2+freqend2)/2., flux2, xerr=(-freqstart2+freqend2)/2., yerr=dflux2, fmt='rd')
     plt.errorbar((freqstart3+freqend3)/2., flux3, xerr=(-freqstart3+freqend3)/2., yerr=dflux3, fmt='g^')
-    plt.xlim(200.,1700.) ; plt.ylim(flux1.min(), flux1.max())
+    plt.xlim(200.,1700.) ; plt.ylim(flux1[win].min()*0.1, flux1[win].max()*10.)
     plt.xlabel(xlabel, fontsize=18) ; plt.ylabel(ylabel, fontsize=18)
     plt.tick_params(labelsize=16, length=3, width=1., which='minor')
     plt.tick_params(labelsize=16, length=6, width=2., which='major')

@@ -356,7 +356,8 @@ def somepoles(lons, lats, q, outname, t = None):
     draws the maps of the polar regions
     '''
     wpoles = np.where(np.fabs(lats)>(np.pi/6.)) ; nlevs=30
-    levs = np.linspace(q[wpoles].min(), q[wpoles].max(), nlevs)
+    levs = np.linspace(q.min(), q.max(), nlevs)
+#    print(levs)
     theta = np.pi/2.-lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
@@ -732,6 +733,6 @@ def plot_meanmap(infile = "out/meanmap_phavg"):
     ug = lines[:,3] ; vg = lines[:,4] ;  csq = lines[:,5]
     cuv = lines[:,6]; dcuv = lines[:,7]; aniso = lines[:,8]
     
-    someplot(90.-lats*180./np.pi, [cuv, -cuv, ug*vg, -ug*vg,  csq], xname=r'latitude, deg', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True, latmode=True)
+    someplot(90.-lats*180./np.pi, [cuv, -cuv, ug*vg, -ug*vg,  csq, abs(cuv+dcuv), abs(cuv-dcuv)], xname=r'latitude, deg', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:', 'k:', 'k:'], ylog=True, latmode=True)
 
     
