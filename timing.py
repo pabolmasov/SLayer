@@ -378,6 +378,10 @@ def meanmaps(filename, n1, n2):
     ugmean=np.zeros([nlats, nlons], dtype=np.double) ;   vgmean=np.zeros([nlats, nlons], dtype=np.double)
     ugdisp=np.zeros([nlats, nlons], dtype=np.double) ;   vgdisp=np.zeros([nlats, nlons], dtype=np.double)
     uvcorr=np.zeros([nlats, nlons], dtype=np.double)
+    uvgdisp=np.zeros([nlats, nlons], dtype=np.double)
+    u2vmean=np.zeros([nlats, nlons], dtype=np.double)
+    uv2mean=np.zeros([nlats, nlons], dtype=np.double)
+  
     qmmean=np.zeros([nlats, nlons], dtype=np.double) ; qpmean=np.zeros([nlats, nlons], dtype=np.double)
     qmstd=np.zeros([nlats, nlons], dtype=np.double) ; qpstd=np.zeros([nlats, nlons], dtype=np.double)
     keys=list(f.keys())
@@ -389,16 +393,25 @@ def meanmaps(filename, n1, n2):
         qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
         sigmean+=sig ; energymean+=energy ; ugmean+=ug ; vgmean+=vg ; ugdisp+=ug**2 ; vgdisp+=vg**2
         uvcorr += ug * vg
-        qmmean+=qminus ; qpmean+=qplus
+        uvgdisp += ug**2 * vg**2 ; u2vmean += ug**2 * vg ; uv2mean += ug * vg**2
+        qmmean += qminus ; qpmean += qplus
         qmstd += qminus**2 ; qpstd += qplus**2
     f.close()
     sigmean/=np.double(n2-n1) ; energymean/=np.double(n2-n1) ; ugmean/=np.double(n2-n1); vgmean/=np.double(n2-n1)
     qmmean/=np.double(n2-n1) ; qpmean/=np.double(n2-n1)
     ugdisp=(ugdisp/np.double(n2-n1)-ugmean**2) ; vgdisp=(vgdisp/np.double(n2-n1)-vgmean**2)
-    qmstd = (qmstd/np.double(n2-n1)-qmmean**2)
-    qpstd = (qpstd/np.double(n2-n1)-qpmean**2)
+    qmstd = (qmstd/np.double(n2-n1)-qmmean**2) ; qpstd = (qpstd/np.double(n2-n1)-qpmean**2)
     
     uvcorr=uvcorr/np.double(n2-n1)-ugmean*vgmean
+    uvgdisp /= np.double(n2-n1) # <u^2v^2>
+    u2vmean /= np.double(n2-n1) # <u^2v>
+    uv2mean /= np.double(n2-n1) # <uv^2>
+    # covariance dispersion
+    duvcorr = uvgdisp + 3. * ugmean**2 * vgmean**2 + \
+              ugmean**2 * vgdisp + ugdisp * vgmean**2 - \
+              2. * ugmean * uv2mean - 2. * u2vmean * vgmean + \
+              4. * ugmean * vgmean * uvcorr - uvcorr**2              
+    
     print("maximal Reynolds stress "+str(uvcorr.max()))
     print("maximal speed of sound "+str((energymean/sigmean).max()))
     
@@ -427,6 +440,8 @@ def meanmaps(filename, n1, n2):
     qpstd_phavg = np.sqrt(qpstd.mean(axis=1)+qpmean.std(axis=1)**2)
     ugmean_phavg = ugmean.mean(axis=1) ; vgmean_phavg = vgmean.mean(axis=1)
     uvcorr_phavg = uvcorr.mean(axis=1)+(ugmean*vgmean).mean(axis=1)-ugmean_phavg*vgmean_phavg
+    duvcorr_phavg = np.sqrt(duvcorr.mean(axis=1) + uvcorr.std(axis=1)**2)
+    
     csq_phavg = energymean_phavg / sigmean_phavg * 4./9. # for radiation-pressure-dominated case!
     kappa_tmp1 = 2.*ugmean_phavg / np.tan(ulats)/rsphere
     kappa_tmp2 = ugmean_phavg * np.sin(ulats)/rsphere
@@ -438,15 +453,15 @@ def meanmaps(filename, n1, n2):
     aniso_phavg = ((vgdisp-ugdisp)/(vgdisp+ugdisp)).mean(axis=1)
     if(ifplot):
         plots.someplot(ulats, [omega*rsphere*np.sin(ulats), ugmean_phavg, vgmean_phavg], xname=r'$\theta$', yname='$u$, $v$', prefix=outdir+'/uvmeans', title='', postfix='plot', fmt=['k:','r:', 'k-'])
-        plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg], xname=r'$\theta$', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
+        plots.someplot(ulats, [uvcorr_phavg, -uvcorr_phavg, ugmean_phavg*vgmean_phavg, -ugmean_phavg*vgmean_phavg,  csq_phavg, uvcorr_phavg+duvcorr_phavg, uvcorr_phavg-duvcorr_phavg, -uvcorr_phavg+duvcorr_phavg, -uvcorr_phavg-duvcorr_phavg], xname=r'$\theta$', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=outdir+'/uvcorr', title='', postfix='plot', fmt=['k-', 'k-', 'b-', 'b--', 'r:', 'k:', 'k:', 'k:', 'k:'], ylog=True)
         plots.someplot(ulats, [qmmean_phavg, qpmean_phavg, qmstd_phavg, qpstd_phavg], xname=r'$\theta$', yname="$Q^{\pm}$", prefix=outdir+'/qpm', fmt = ['k-', 'r-', 'k:', 'r:'], ylog=True)
         plots.someplot(ulats[1:-1], [rossby/rsphere, np.abs(ulats[1:-1]-np.pi/2.)], xname=r'$\theta$', yname=r'$R_{\rm Rossby}/R_*$', prefix=outdir+'/ro', fmt=['k-', 'r:'], ylog=True)
         plots.someplot(ulats[1:-1], [ekappa, (ugmean_phavg/rsphere/np.sin(ulats)/2./np.pi)[1:-1]/tscale], xname=r'$\theta$', yname=r'$f$, Hz', prefix=outdir+'/ekappa', fmt=['k-', 'r:'], ylog=True)
     fout=open(outdir+'/meanmap_phavg.dat', 'w')
-    fout.write("# lats -- sig -- energy -- ug -- vg -- csq -- Cuv -- aniso\n")
+    fout.write("# lats -- sig -- energy -- ug -- vg -- csq -- Cuv -- dCuv -- aniso\n")
     for k in np.arange(nlats):
-        fout.write(str(ulats[k])+" "+str(sigmean_phavg[k])+" "+str(energymean_phavg[k])+" "+str(ugmean_phavg[k])+" "+str(vgmean_phavg[k])+" "+str(csq_phavg[k])+" "+str(uvcorr_phavg[k])+" "+str(aniso_phavg[k])+"\n")
-    fout.close()
+        fout.write(str(ulats[k])+" "+str(sigmean_phavg[k])+" "+str(energymean_phavg[k])+" "+str(ugmean_phavg[k])+" "+str(vgmean_phavg[k])+" "+str(csq_phavg[k])+" "+str(uvcorr_phavg[k])+" "+str(duvcorr_phavg[k])+" "+str(aniso_phavg[k])+"\n")
+    fout.close()    
     fout=open(outdir+'/meanmap_qphavg.dat', 'w')
     fout.write("# lats -- qmmean -- qpmean -- qmstd -- qpstd\n")
     for k in np.arange(nlats):

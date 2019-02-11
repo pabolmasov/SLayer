@@ -34,8 +34,8 @@ def twotwists():
     '''
     picture for the split-sphere test
     '''
-    file1 = "out_twist/ecurve1.5707963267948966.dat"
-    file2 = "titania/out_twist/ecurve1.57079632679.dat"
+    file1 = "titania/out_twistLR/ecurve1.57079632679.dat"
+    file2 = "titania/out_twistHR/ecurve1.57079632679.dat"
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
     lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
 
@@ -46,7 +46,7 @@ def twotwists():
 
     rsphere=6.04606
     twistscale=0.2
-    pspin=0.03
+    pspin=0.01
     dvdr = 2.*np.pi/pspin
     
     plt.clf()
@@ -57,10 +57,13 @@ def twotwists():
     plt.plot(tar2, eu2, 'r')
     plt.plot(tar1, np.exp((tar1-0.05)*dvdr), 'b--')
     plt.yscale('log')
-    plt.xlabel('$t$, s')
+    plt.xlabel('$t$, s', fontsize=18)
     plt.ylim(ev1[ev1>0.].min()+ev2[ev2>0.].min(), (eth1).max()+eth2.max())
-    plt.ylabel('$E$, $10^{35}$erg')
+    plt.ylabel('$E$, $10^{35}$erg', fontsize=18)
+    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=16, length=6, width=2., which='major')
     fig.set_size_inches(5, 4)
+    fig.tight_layout()
     plt.savefig('twotwists.png')
     plt.savefig('twotwists.eps')
     plt.close()
@@ -90,12 +93,13 @@ def twoND():
     plt.subplot(212)
     plt.plot(tar1, abs(serr1), 'k')
     plt.plot(tar2, abs(serr2), 'r')
+    plt.plot([tar1[0]+0.1,tar1[0]+0.13], [1e-8, 1e-8], 'b')
     plt.yscale('log')
-    plt.ylabel('systematic error, $\Delta \Sigma/\Sigma$', fontsize=18)
-    plt.xlabel('$t$, s', fontsize=18)
-    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
-    plt.tick_params(labelsize=16, length=6, width=2., which='major')
-    fig.set_size_inches(5, 6)
+    plt.ylabel('systematic error, $\Delta \Sigma/\Sigma$', fontsize=16)
+    plt.xlabel('$t$, s', fontsize=16)
+    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=14, length=6, width=2., which='major')
+    fig.set_size_inches(5, 8)
     plt.tight_layout()
     plt.savefig('rtests.eps')
     plt.savefig('rtests.png')
@@ -146,17 +150,18 @@ def ekappa():
     ugfile = outdir + "meanmap_phavg.dat"
     lines = np.loadtxt(ugfile)
     oloc=(lines[:,3])[1:-1]/rsphere/np.sin(theta)/tscale
-    
+
+    latDeg = 180./np.pi*(np.pi/2.-theta)
     plt.clf()
     fig = plt.figure()
-    plt.plot(theta, fe, 'k-')
-    plt.plot(theta, oloc/2./np.pi, 'r:')
-    plt.plot(theta, oloc*0.+omega/2./np.pi, 'g--')
-    plt.plot(theta, oloc*0.+2.*omega/2./np.pi, 'g--')
-    plt.xlabel(r'$\theta$', fontsize=20)
-    plt.ylabel(r'$\varkappa_{\rm e}$, Hz', fontsize=20)
-    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
-    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    plt.plot(latDeg, fe, 'k-')
+    plt.plot(latDeg, oloc/2./np.pi, 'r:')
+    plt.plot(latDeg, oloc*0.+omega/2./np.pi, 'g--')
+    plt.plot(latDeg, oloc*0.+2.*omega/2./np.pi, 'g--')
+    plt.xlabel(r'latitude, deg', fontsize=18)
+    plt.ylabel(r'$\varkappa_{\rm e}$, Hz', fontsize=18)
+    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=14, length=6, width=2., which='major')
     fig.set_size_inches(5, 4)
     fig.tight_layout()
     plt.savefig("forpaper/ekappa.png")
@@ -192,7 +197,7 @@ def threePDS(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
     plt.tick_params(labelsize=16, length=3, width=1., which='minor')
     plt.tick_params(labelsize=16, length=6, width=2., which='major')
     plt.yscale('log')
-    fig.set_size_inches(8, 6)
+    fig.set_size_inches(5, 4)
     fig.tight_layout()
     plt.savefig(outdir+'pds3.png')
     plt.savefig(outdir+'pds3.eps')
@@ -233,9 +238,10 @@ def qpmplot():
 
     outdir = 'titania/out_3LR/'
     lats, qmmean, qpmean, qmstd, qpstd = np.loadtxt(outdir+'meanmap_qphavg.dat', unpack=True)
+    latsDeg = 180./np.pi * (np.pi/2.-lats)
     
-    plots.someplot(lats, [qmmean/qmmean.max(), qmstd/qmmean.max()], xname=r'$\theta$', yname="$Q^{-}$", prefix=outdir+'qminus', fmt = ['k-', 'r:'], ylog=False)
-    plots.someplot(lats, [qpmean/qpmean.max(), qpstd/qpmean.max()], xname=r'$\theta$', yname="$Q^{+}$", prefix=outdir+'qplus', fmt = ['k-', 'r:'], ylog=False)
+    plots.someplot(latsDeg, [qmmean/qmmean.max(), qmstd/qmmean.max()], xname=r'latitude, deg', yname="$Q^{-}$", prefix=outdir+'qminus', fmt = ['k-', 'r:'], ylog=False)
+    plots.someplot(latsDeg, [qpmean/qpmean.max(), qpstd/qpmean.max()], xname=r'latitude, deg', yname="$Q^{+}$", prefix=outdir+'qplus', fmt = ['k-', 'r:'], ylog=False)
     
 #############################################################
 def teffsigma():

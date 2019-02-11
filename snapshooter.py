@@ -146,6 +146,6 @@ def multireader(infile, nrange = None, nframes = None, derot = False, step = 5):
         plotnth(infile, k, derot = derot, step = step)
         if(ifplot):
             os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
-            os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
-            os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/polemap_north.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/polemap_south.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
         print('shot'+str(k).rjust(ndigits, '0'))

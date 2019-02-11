@@ -323,13 +323,13 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
     plt.savefig(outdir+'/snapshot.eps')
     plt.close()
     # drawing poles:
-    somepoles(lons, lats, tb, outname, t=t)
+    somepoles(lons*np.pi/180., lats*np.pi/180., tb, outdir+'/polemap', t=t)
    
 ###########################################################################
 # post-factum visualizations from the ascii output of snapplot:
 #    
 # general framework for a post-processed map of some quantity q
-def somemap(lons, lats, q, outname):
+def somemap(lons, lats, q, outname, latrange = None):
     wnan=np.where(np.isnan(q))
     nnan=np.size(wnan)
     nlevs=30
@@ -340,9 +340,13 @@ def somemap(lons, lats, q, outname):
     fig=plt.figure()
     plt.pcolormesh(lons*180./np.pi, lats*180./np.pi, q, cmap='hot') #,levels=levs)
     plt.colorbar()
-    plt.xlabel('longitude, deg',fontsize=12)
-    plt.ylabel('latitude, deg', fontsize=12)
-    fig.set_size_inches(5, 4)
+    if(latrange is not None):
+        plt.ylim(latrange[0],latrange[1])
+    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=14, length=6, width=2., which='major')    
+    plt.xlabel('longitude, deg',fontsize=16)
+    plt.ylabel('latitude, deg', fontsize=16)
+    fig.set_size_inches(5, 3)
     fig.tight_layout()
     plt.savefig(outname)
     plt.close()
@@ -391,7 +395,7 @@ def somepoles(lons, lats, q, outname, t = None):
     plt.close()
     print(outname+'_north.png ; '+outname+'_south.png')
     
-def plot_somemap(infile, nco):
+def plot_somemap(infile, nco, latrange = None):
     '''
     plots a map from a lons -- lats -- ... ascii data file
     '''
@@ -400,7 +404,7 @@ def plot_somemap(infile, nco):
     q = lines[:,nco]
     ulons = np.unique(lons) ; ulats = np.unique(lats)
     qt = np.transpose(np.reshape(q, [np.size(ulons),np.size(ulats)]))
-    somemap(ulons, ulats, qt, infile+"_"+str(nco-2))
+    somemap(ulons, ulats, qt, infile+"_"+str(nco-2), latrange = latrange)
 
 def crosses(x, dx, y, dy, xlabel='', ylabel='', outfilename = 'crossplot'):
     '''
@@ -419,7 +423,7 @@ def crosses(x, dx, y, dy, xlabel='', ylabel='', outfilename = 'crossplot'):
     plt.close()
     
 def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plot',
-             fmt=None, ylog=False):
+             fmt=None, ylog=False, latmode=False):
     '''
     a very general one-dimensional plot for several quantities
     x is an array, qlist is a list of arrays
@@ -429,14 +433,17 @@ def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plo
     if(fmt == None):
         fmt=np.repeat('k,', nq)
     plt.clf()
+    fig, ax = plt.subplots()
     for k in np.arange(nq):
-        plt.plot(x, qlist[k], fmt[k])
+        ax.plot(x, qlist[k], fmt[k])
     if(ylog):
         plt.yscale('log')
-    plt.xlabel(xname, fontsize=20) ;   plt.ylabel(yname, fontsize=20) ; plt.title(title)
-    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
-    plt.tick_params(labelsize=18, length=6, width=2., which='major')
-    plt.tight_layout()
+    plt.xlabel(xname, fontsize=18) ;   plt.ylabel(yname, fontsize=18) ; plt.title(title)
+    ax.tick_params(labelsize=16, length=3, width=1., which='minor')
+    ax.tick_params(labelsize=16, length=6, width=2., which='major')
+    if(latmode):
+        ax.set_xticks([-90,-60,-30, 0, 30, 60, 90])
+    fig.tight_layout()
     plt.savefig(prefix+postfix+'.eps')
     plt.savefig(prefix+postfix+'.png')
     plt.close()
@@ -592,10 +599,13 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
     else:
         lonsmean=lons
     plt.clf()
+    fig=plt.figure()
     plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=np.linspace(qth.min(), qth.max(), 30), cmap='hot')
     plt.colorbar()
     plt.xlabel('$t$, ms')
     plt.ylabel('latitude')
+    fig.set_size_inches(8, 4)
+    fig.tight_layout()
     plt.savefig(prefix+'_tth.eps')
     plt.savefig(prefix+'_tth.png')
     plt.close()
@@ -626,18 +636,25 @@ def plot_timangle(prefix='out/', trange = None, nolon = False):
     '''
     lines1 = np.loadtxt(prefix+"tth.dat", comments="#", delimiter=" ", unpack=False)
     t1=lines1[:,0] ;  lats=lines1[:,1] ; flats=lines1[:,2]
-    lines2 = np.loadtxt(prefix+"tphi.dat", comments="#", delimiter=" ", unpack=False)
-    t2=lines2[:,0] ; lons=lines2[:,1] ; flons=lines2[:,2]
+    if(not nolon):
+        lines2 = np.loadtxt(prefix+"tphi.dat", comments="#", delimiter=" ", unpack=False)
+        t2=lines2[:,0] ; lons=lines2[:,1] ; flons=lines2[:,2]
     if(trange is not None):
         wt1 = np.where((t1 > trange[0]) & (t1<trange[1]))
-        wt2 = np.where((t2 > trange[0]) & (t2<trange[1]))
-        t1=t1[wt1] ; lats=lats[wt1] ; flats=flats[wt1] ; lons=lons[wt2] ; flons=flons[wt2]
+        t1=t1[wt1] ; lats=lats[wt1] ; flats=flats[wt1]
+        if(not nolon):
+            wt2 = np.where((t2 > trange[0]) & (t2<trange[1]))
+            flons=flons[wt2] ; lons=lons[wt2]
     #    outdir=os.path.dirname(prefix)
-    t=np.unique(t1)  ; ulons=np.unique(lons) ; ulats=np.unique(lats)
+    t=np.unique(t1)  ; ulats=np.unique(lats)
     flats=np.reshape(flats, [np.size(t), np.size(ulats)])
     lats=np.reshape(lats, [np.size(t), np.size(ulats)])
-    flons=np.reshape(flons, [np.size(t), np.size(ulons)])
-    lons=np.reshape(lons, [np.size(t), np.size(ulons)])
+    if (not nolon):
+        ulons=np.unique(lons)
+        flons=np.reshape(flons, [np.size(t), np.size(ulons)])
+        lons=np.reshape(lons, [np.size(t), np.size(ulons)])
+    else:
+        ulons = ulats ; flons = flats
     #    print(lons[:,0])
     timangle(t*1e3, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots', nolon=nolon)
 
@@ -661,7 +678,7 @@ def FFplot(prefix='out/'):
     plt.close()
 
 # plot of a saved ascii map produced by plotnth
-def plot_saved(infile):
+def plot_saved(infile, latrange = None):
     '''
     plots maps from a saved, aliased ascii map produced by plotnth (infile)
     '''
@@ -677,9 +694,9 @@ def plot_saved(infile):
     qminus=np.reshape(qminus, [np.size(ulats), np.size(ulons)])
     vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
 
-    somemap(lons, lats, sig, infile+"_sig.png")
-    somemap(lons, lats, qminus, infile+"_qminus.png")
-    somemap(lons, lats, vortg, infile+"_vort.png")
+    somemap(lons, lats, sig, infile+"_sig.png", latrange = latrange)
+    somemap(lons, lats, qminus, infile+"_qminus.png", latrange = latrange)
+    somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange)
     somepoles(lons, lats, qminus, infile)
     
 def multiplot_saved(prefix, skip=0, step=1):
@@ -713,8 +730,8 @@ def plot_meanmap(infile = "out/meanmap_phavg"):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
     lats = lines[:,0] ; sig = lines[:,1]; energy = lines[:,2]
     ug = lines[:,3] ; vg = lines[:,4] ;  csq = lines[:,5]
-    cuv = lines[:,6]; aniso = lines[:,7]
+    cuv = lines[:,6]; dcuv = lines[:,7]; aniso = lines[:,8]
     
-    someplot(lats, [cuv, -cuv, ug*vg, -ug*vg,  csq], xname=r'$\theta$', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True)
+    someplot(90.-lats*180./np.pi, [cuv, -cuv, ug*vg, -ug*vg,  csq], xname=r'latitude, deg', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:'], ylog=True, latmode=True)
 
     

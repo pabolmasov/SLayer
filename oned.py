@@ -58,7 +58,7 @@ def omegastream_N(sthsq, omega, mdot):
 def omegastream_D(sthsq, omega, mdot, omega0 = 1.):
     return omega0-omega * sthsq
 
-def omegastream(mdot = 1.):
+def omegastream(mdot = 10.):
 
     th1 = np.pi/4. ; th2= np.pi/2. ; nth = 200
     o1 = 0.25 ; o2 = 1.25 ; no = 201
@@ -82,8 +82,11 @@ def omegastream(mdot = 1.):
     #    plt.plot((np.pi/2.-theta)*180./np.pi, omega0 - np.sqrt(2.*(1.-omega0**2)*((np.pi/2.-theta)/2.+0.25*np.sin(theta*2.))/mdot), color='g')
     plt.ylim(omega.min(),omega.max())
     #    plt.yscale('log')
-    plt.xlabel(r'latitude, deg') ; plt.ylabel(r'$\omega$')
+    plt.xlabel(r'latitude, deg', fontsize=16) ; plt.ylabel(r'$w$', fontsize=16)
+    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=14, length=6, width=2., which='major')
     fig.set_size_inches(5, 4)
+    fig.tight_layout()
     plt.savefig('dome.png')
     plt.savefig('dome.eps')
     plt.close('all')
