@@ -361,7 +361,7 @@ def somepoles(lons, lats, q, outname, t = None):
     theta = np.pi/2.-lats
     plt.clf()
     fig, ax = plt.subplots(subplot_kw=dict(projection='polar'))
-    pc=ax.contourf(lons, theta*180./np.pi, q, cmap='hot' ,levels=levs)
+    pc=ax.contourf(lons, theta*180./np.pi, q, cmap='hot', levels=levs)
     plt.colorbar(pc,ax=ax)
     ax.set_rticks([30., 60.])
     ax.grid(color='w')
@@ -698,7 +698,8 @@ def plot_saved(infile, latrange = None):
     somemap(lons, lats, sig, infile+"_sig.png", latrange = latrange)
     somemap(lons, lats, qminus, infile+"_qminus.png", latrange = latrange)
     somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange)
-    somepoles(lons, lats, qminus, infile)
+    if(qminus.max()>qminus.min()):
+        somepoles(lons, lats, qminus, infile)
     
 def multiplot_saved(prefix, skip=0, step=1):
 

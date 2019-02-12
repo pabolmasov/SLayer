@@ -21,7 +21,7 @@ def keyshow(filename):
     '''
     showing the list of keys (entries) in a given data file
     '''
-    f = h5py.File(filename,'r')
+    f = h5py.File(filename,'r', libver='latest')
     keys = list(f.keys())
     #    print(list(f.keys()))
     f.close()
@@ -35,7 +35,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
     '''
     global rsphere
     outdir=os.path.dirname(filename)
-    f = h5py.File(filename,'r')
+    f = h5py.File(filename,'r', libver='latest')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; tscale=params.attrs["tscale"]
     x = Spharmt(int(nlons),int(nlats),int(np.double(nlons)/3.),rsphere,gridtype='gaussian')

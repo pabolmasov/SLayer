@@ -24,7 +24,7 @@ def lightcurves(filename, lat0, lon0):
     """
     outdir=os.path.dirname(filename)
     print("writing output to "+outdir)
-    f = h5py.File(filename,'r')
+    f = h5py.File(filename,'r', libver='latest')
     params=f["params"]
     # loading global parameters from the hdf5 file
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"]
@@ -208,11 +208,11 @@ def lightcurves(filename, lat0, lon0):
         if k % kalias ==0:
             for kth in np.arange(nlats):
                 ftth_sigma.write(str(tar[k])+" "+str(lats[kth,0])+" "+str(sigmaver[kth, k])+"\n")
-                ftth_omega.write(str(tar[k])+" "+str(lats[kth,0])+" "+str(omegaver[kth, k])+"\n")
+                ftth_omega.write(str(tar[k])+" "+str(lats[kth,0])+" "+str(omeaver[kth, k])+"\n")
                 frey.write(str(tar[k])+" "+str(lats[kth,0])+" "+str(rxyaver[kth, k])+"\n")
             for kphi in np.arange(nlons):
                 ftphi_sigma.write(str(tar[k])+" "+str(lons[0,kphi])+" "+str(sigmaver_lon[kphi, k])+"\n")
-                ftphi_omega.write(str(tar[k])+" "+str(lons[0,kphi])+" "+str(omegaver_lon[kphi, k])+"\n")
+                ftphi_omega.write(str(tar[k])+" "+str(lons[0,kphi])+" "+str(omeaver_lon[kphi, k])+"\n")
     ftth_sigma.close() ; ftth_omega.close() ; frey.close() ; ftphi_sigma.close() ; ftphi_omega.close()
     
     # plots:
@@ -371,7 +371,7 @@ def meanmaps(filename, n1, n2):
     '''
     outdir=os.path.dirname(filename)
     print("writing output in "+outdir)
-    f = h5py.File(filename,'r')
+    f = h5py.File(filename,'r', libver='latest')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; rsphere=params.attrs["rsphere"] ; tscale=params.attrs["tscale"]
     # NSmass=params.attrs["mass"]
