@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from builtins import str
-from past.utils import old_div
 import numpy as np
 import shtns
 import scipy.ndimage as nd
@@ -22,13 +21,13 @@ def keyshow(filename):
     '''
     showing the list of keys (entries) in a given data file
     '''
-    f = h5py.File(filename,'r')
+    f = h5py.File(filename,'r', libver='latest')
     keys = list(f.keys())
     #    print(list(f.keys()))
     f.close()
     return keys
 
-def plotnth(filename, nstep, derot = False):
+def plotnth(filename, nstep, derot = False, step = 1):
     '''
     plot a given time step of a given data file. To list the available nsteps (integer values), use keyshow(filename).
     If "ifplot" is off, makes an ascii map instead (useful for remote calculations)
@@ -36,10 +35,10 @@ def plotnth(filename, nstep, derot = False):
     '''
     global rsphere
     outdir=os.path.dirname(filename)
-    f = h5py.File(filename,'r')
+    f = h5py.File(filename,'r', libver='latest')
     params=f["params"]
     nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; tscale=params.attrs["tscale"]
-    x = Spharmt(int(nlons),int(nlats),int(old_div(nlons,3)),rsphere,gridtype='gaussian')
+    x = Spharmt(int(nlons),int(nlats),int(np.double(nlons)/3.),rsphere,gridtype='gaussian')
     lons1d = x.lons # (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
     slats1d = np.cos(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
@@ -69,7 +68,6 @@ def plotnth(filename, nstep, derot = False):
     press=energy* 3. * (1.-beta/2.)
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
-    step=5
     fmap.write("# map with step = "+str(step)+"\n")
     fmap.write("# t="+str(t*tscale)+"\n")
     fmap.write("# format: lats lons sigma digv vortg ug vg E Q- accflag\n")
@@ -95,8 +93,8 @@ def plotnth(filename, nstep, derot = False):
         vv=np.sqrt(xx**2+yy**2)
         vvmax=vv.max()
         skx = 8 ; sky=8 # we do not need to output every point; these are the steps for the output in two dimensions
-        xx = nd.filters.gaussian_filter(xx, old_div(skx,2.), mode='constant')*500./vvmax
-        yy = nd.filters.gaussian_filter(yy, old_div(sky,2.), mode='constant')*500./vvmax
+        xx = nd.filters.gaussian_filter(xx, np.double(skx)/2., mode='constant')*500./vvmax
+        yy = nd.filters.gaussian_filter(yy, np.double(sky)/2., mode='constant')*500./vvmax
         tbottom=339.6*((1.-beta)*sig*(sigmascale/1e8)/mass1/rsphere**2)**0.25
         # (50.59*((1.-beta)*energy*sigmascale/mass1)**0.25)
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
@@ -126,7 +124,7 @@ def plotnth(filename, nstep, derot = False):
                        prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])
 
 # multiple diagnostic maps for making movies
-def multireader(infile, nrange = None, nframes = None, derot = False):
+def multireader(infile, nrange = None, nframes = None, derot = False, step = 5):
 
     keys = keyshow(infile)
     print(keys)
@@ -145,9 +143,9 @@ def multireader(infile, nrange = None, nframes = None, derot = False):
         frames =  np.linspace(nmin, nmax, nframes, dtype=int)
     
     for k in frames:
-        plotnth(infile, k, derot = derot)
+        plotnth(infile, k, derot = derot, step = step)
         if(ifplot):
             os.system('cp '+outdir+'/snapshot.png '+outdir+'/shot'+str(k).rjust(ndigits, '0')+'.png')
-            os.system('cp '+outdir+'/northpole.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
-            os.system('cp '+outdir+'/southpole.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/polemap_north.png '+outdir+'/north'+str(k).rjust(ndigits, '0')+'.png')
+            os.system('cp '+outdir+'/polemap_south.png '+outdir+'/south'+str(k).rjust(ndigits, '0')+'.png')
         print('shot'+str(k).rjust(ndigits, '0'))

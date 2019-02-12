@@ -3,8 +3,12 @@
 *.mp4
 *.pyc
 out*/
+forpaper/
 swm.py
 *.fig
 *.eps
 conf_*.py
 timing_batch.py
+plot_batch.py
+paperplots.py
+*.sh
