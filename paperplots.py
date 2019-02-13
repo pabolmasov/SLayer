@@ -184,8 +184,7 @@ def threePDS(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
     freqstart3=lines3[0,:] ; freqend3=lines3[1,:]
     flux3=lines3[2,:] ; dflux3=lines3[3,:]
 
-    xlabel = r'$f$, Hz' ; ylabel = r'PDS, relative units'
-
+    xlabel = r'$f$, Hz' ; ylabel = r'fractional PDS'
     
     freqmin = 200. ; freqmax = 1700.
     win = np.where((freqstart1> freqmin) * (freqend1 < freqmax))

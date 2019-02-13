@@ -284,13 +284,14 @@ def specmaker(infile='out/lcurve', nbins = 10, logbinning = False, trange = None
     # what about removing some trend? linear or polynomial?
     m,b = np.polyfit(t, x, 1)
     x1=x-t*m-b
-    fsp=np.fft.rfft(x1, norm="ortho")/x1.std()
+    fsp=2.*np.fft.rfft(x1)/x.sum() # this gives a fractional amplitude
     pds=np.abs(fsp)**2
     freq = np.fft.rfftfreq(nt, dt)
     for kb in np.arange(nbins):
         freqrange=(freq>=binfreq[kb])&(freq<binfreq[kb+1])
-        pdsbin[kb]=pds[freqrange].mean() 
-        dpdsbin[kb]=pds[freqrange].std()/np.sqrt(np.double(freqrange.sum())-1.)
+        pdsbin[kb]=pds[freqrange].sum() 
+        dpdsbin[kb]=pds[freqrange].std()
+        # /np.sqrt(np.double(freqrange.sum())-1.)
     # ascii output:
     fpds = open(infile+'_pdstot.dat', 'w')
     for k in np.arange(nbins):
@@ -324,13 +325,13 @@ def dynspec_maker(infile='out/lcurve', ntimes = 30, nbins = 150, logbinning = Fa
         wtime = np.where((t>tbins[k])*(t<tbins[k+1]))
         t1 = t[wtime] ; x1=x[wtime]
         m,b = np.polyfit(t1, x1, 1)
-        x1 -= (m*t1+b)
-        fsp = np.fft.rfft(x1, norm="ortho")/x1.std()
+        #        x1 -= (m*t1+b)
+        fsp = 2.*np.fft.rfft(x1-(m*t1+b))/x1.sum() # fractional amplitude
         pds = np.abs(fsp)**2
         freq = np.fft.rfftfreq(np.size(wtime), dt)
         for kb in np.arange(nbins):
             freqrange=(freq>=binfreq[kb])&(freq<binfreq[kb+1])
-            pdsbin[k,kb]=pds[freqrange].mean()
+            pdsbin[k,kb]=pds[freqrange].sum()
             dpdsbin[k,kb]=pds[freqrange].std()
             nbin[k,kb] = (freqrange).sum()
             
