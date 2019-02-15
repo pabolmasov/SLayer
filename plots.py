@@ -489,7 +489,7 @@ def pdsplot(infile="out/pdstots_diss", omega=None, freqrange = None):
     if(freqrange is not None):
         plt.xlim(freqrange[0], freqrange[1])
     plt.xlabel(r'$f$, Hz')
-    plt.ylabel(r'PDS, relative units')
+    plt.ylabel(r'fractional PDS')
     # plt.xscale('log')
     plt.yscale('log')
     plt.savefig(infile+'.png')
