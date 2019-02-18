@@ -170,7 +170,9 @@ divg  = x.sph2grid(divSpec)
 # print(x.lap)
 lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
 lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
-hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive! let us care somehow about the mean flow
+# hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive! let us care somehow about the mean flow
+poslap = (abs(x.lap)>=0.)
+hyperdiff_expanded = np.minimum((-(x.lap-x.lap[poslap].max())/(lapmax*ktrunc**2))**(ndiss/2), 0.)
 # hyperdiff_expanded = hyperdiff_expanded - hyperdiff_expanded[hyperdiff_expanded>0.].min()
 # hyperdiff_expanded[0] = 0. # care for the overall rotation trend 
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
@@ -400,7 +402,7 @@ while(t<(tmax+t0)):
         sdotminus = 0.
     
     if(logSE):
-        lsdot = sdotplus/sig-sdotminus
+        lsdot = (sdotplus-sdotminus)/sig
         dsigdtSpec_srce = x.grid2sph(lsdot)
         sdot = sig * lsdot
     else:

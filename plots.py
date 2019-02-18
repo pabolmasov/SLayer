@@ -629,7 +629,13 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
         plt.savefig(prefix+'_tphi.eps')
         plt.savefig(prefix+'_tphi.png')
         plt.close()
-    
+    # extreme values:
+    nt = np.size(tar)
+    fext = open(prefix+"_tthmm.dat", 'w')
+    for kt in np.arange(nt):
+        fext.write(str(tar[kt])+" "+str(qth[:,kt].min())+" "+str(qth[:,kt].max())+"\n")
+    fext.close()
+        
 # a wrapper for timangle
 def plot_timangle(prefix='out/', trange = None, nolon = False):
     '''
