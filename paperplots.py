@@ -168,6 +168,50 @@ def ekappa():
     plt.savefig("forpaper/ekappa.eps")
     plt.close()
 #
+def fourPDS(outdir = '/home/pasha/SLayer/titania/out_8LR4s/'):
+    infile1 = outdir + 'lcurve0.0_pdstot.dat'
+    lines1 = np.loadtxt(infile1, unpack=True)
+    freqstart1=lines1[0,:] ; freqend1=lines1[1,:]
+    flux1=lines1[2,:] ; dflux1=lines1[3,:]
+
+    infile2 = outdir + 'lcurve0.785398163397_pdstot.dat'
+    lines2 = np.loadtxt(infile2, unpack=True)
+    freqstart2=lines2[0,:] ; freqend2=lines2[1,:]
+    flux2=lines2[2,:] ; dflux2=lines2[3,:]
+   
+    infile3 = outdir + 'lcurve1.57079632679_pdstot.dat'
+    lines3 = np.loadtxt(infile3, unpack=True)
+    freqstart3=lines3[0,:] ; freqend3=lines3[1,:]
+    flux3=lines3[2,:] ; dflux3=lines3[3,:]
+
+    infile4 = outdir + 'lcurve3.14159265359_pdstot.dat'
+    lines4 = np.loadtxt(infile4, unpack=True)
+    freqstart4=lines4[0,:] ; freqend4=lines4[1,:]
+    flux4=lines4[2,:] ; dflux4=lines4[3,:]
+
+    xlabel = r'$f$, Hz' ; ylabel = r'fractional PDS'
+    
+    freqmin = 200. ; freqmax = 1500.
+    win = np.where((freqstart1> freqmin) * (freqend1 < freqmax))
+    
+    plt.clf()
+    fig=plt.figure()
+    plt.plot([1./0.003, 1./0.003], [flux4.min(), flux1.max()], color='gray')
+    plt.errorbar((freqstart1+freqend1)/2., flux1, xerr=(-freqstart1+freqend1)/2., yerr=dflux1, fmt='ko')
+    plt.errorbar((freqstart2+freqend2)/2., flux2, xerr=(-freqstart2+freqend2)/2., yerr=dflux2, fmt='rd')
+    plt.errorbar((freqstart3+freqend3)/2., flux3, xerr=(-freqstart3+freqend3)/2., yerr=dflux3, fmt='g^')
+    plt.errorbar((freqstart4+freqend4)/2., flux4, xerr=(-freqstart4+freqend4)/2., yerr=dflux4, fmt='bv')
+    plt.xlim(freqmin, freqmax) ; plt.ylim(flux4[win].min()*0.5, flux1[win].max()*2.)
+    plt.xlabel(xlabel, fontsize=18) ; plt.ylabel(ylabel, fontsize=18)
+    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=16, length=6, width=2., which='major')
+    plt.yscale('log')
+    fig.set_size_inches(6, 5)
+    fig.tight_layout()
+    plt.savefig(outdir+'pds4.png')
+    plt.savefig(outdir+'pds4.eps')
+    plt.close()
+#
 def threePDS(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
     infile1 = outdir + 'lcurve0.0_pdstot.dat'
     lines1 = np.loadtxt(infile1, unpack=True)
@@ -186,7 +230,7 @@ def threePDS(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
 
     xlabel = r'$f$, Hz' ; ylabel = r'fractional PDS'
     
-    freqmin = 200. ; freqmax = 1700.
+    freqmin = 200. ; freqmax = 1500.
     win = np.where((freqstart1> freqmin) * (freqend1 < freqmax))
     
     plt.clf()
@@ -195,12 +239,12 @@ def threePDS(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
     plt.errorbar((freqstart1+freqend1)/2., flux1, xerr=(-freqstart1+freqend1)/2., yerr=dflux1, fmt='ko')
     plt.errorbar((freqstart2+freqend2)/2., flux2, xerr=(-freqstart2+freqend2)/2., yerr=dflux2, fmt='rd')
     plt.errorbar((freqstart3+freqend3)/2., flux3, xerr=(-freqstart3+freqend3)/2., yerr=dflux3, fmt='g^')
-    plt.xlim(200.,1700.) ; plt.ylim(flux1[win].min()*0.1, flux1[win].max()*10.)
+    plt.xlim(freqmin,freqmax) ; plt.ylim(flux1[win].min()*0.5, flux1[win].max()*10.)
     plt.xlabel(xlabel, fontsize=18) ; plt.ylabel(ylabel, fontsize=18)
     plt.tick_params(labelsize=16, length=3, width=1., which='minor')
     plt.tick_params(labelsize=16, length=6, width=2., which='major')
     plt.yscale('log')
-    fig.set_size_inches(5, 4)
+    fig.set_size_inches(6, 4)
     fig.tight_layout()
     plt.savefig(outdir+'pds3.png')
     plt.savefig(outdir+'pds3.eps')

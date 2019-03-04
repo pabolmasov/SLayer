@@ -82,10 +82,10 @@ ktrunc = 50. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-of
 ktrunc_diss = 0.5 # smoothing the dissipation term when used as a heat source
 ndiss = 2.     # order for hyperdiffusion (2 is normal diffusion)
 ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
-jitterskip = 0
+jitterskip = 10000
 ##################################################
 #perturbation parameters
-bump_amp  = -0.05     # perturbation amplitude
+bump_amp  = -0.95     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)

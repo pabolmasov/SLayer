@@ -127,7 +127,7 @@ def sdotsink(sigma):
 ##################################################
 # setup up spherical harmonic instance, set lats/lons of grid
 x = Spharmt(conf.nlons, conf.nlats, conf.ntrunc, conf.rsphere, gridtype='gaussian')
-x1 = Spharmt(3*conf.nlons, 3*conf.nlats, 3*conf.ntrunc, conf.rsphere, gridtype='gaussian')
+x1 = Spharmt(4*conf.nlons, 4*conf.nlats, 4*conf.ntrunc, conf.rsphere, gridtype='gaussian')
 lons,lats = np.meshgrid(x.lons, x.lats)
 ############
 # time steps

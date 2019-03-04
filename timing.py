@@ -460,7 +460,7 @@ def meanmaps(filename, n1, n2):
     qpstd_phavg = np.sqrt(qpstd.mean(axis=1)+qpmean.std(axis=1)**2)
     ugmean_phavg = ugmean.mean(axis=1) ; vgmean_phavg = vgmean.mean(axis=1)
     uvcorr_phavg = uvcorr.mean(axis=1)+(ugmean*vgmean).mean(axis=1)-ugmean_phavg*vgmean_phavg
-    duvcorr_phavg = np.sqrt(duvcorr.mean(axis=1) + uvcorr.std(axis=1)**2)
+    duvcorr_phavg = np.sqrt(duvcorr.mean(axis=1)/np.double(n2-n1-1) + uvcorr.std(axis=1)**2/np.double(nlons-1))
     
     csq_phavg = energymean_phavg / sigmean_phavg * 4./9. # for radiation-pressure-dominated case!
     kappa_tmp1 = 2.*ugmean_phavg / np.tan(ulats)/rsphere
