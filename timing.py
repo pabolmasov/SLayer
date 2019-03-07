@@ -347,10 +347,10 @@ def dynspec_maker(infile='out/lcurve', ntimes = 30, nbins = 150, logbinning = Fa
             nbin[k,kb] = (freqrange).sum()
             
     fpds=open(infile+'_pds.dat', 'w')
-    fpds.write("# time -- frequency1 -- frequency2 -- PDS -- dPDS \n")
+    fpds.write("# time1 -- time2 -- frequency1 -- frequency2 -- PDS -- dPDS \n")
     for k in np.arange(nbins):
         for kt in np.arange(ntimes):
-            fpds.write(str(tcenter[kt])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbin[kt,k])+' '+str(dpdsbin[kt,k])+' '+str(nbin[kt,k])+"\n")
+            fpds.write(str(tbins[kt])+' '+str(tbins[kt+1])+' '+str(binfreq[k])+' '+str(binfreq[k+1])+' '+str(pdsbin[kt,k])+' '+str(dpdsbin[kt,k])+' '+str(nbin[kt,k])+"\n")
     fpds.close() 
     if(ifplot):
         plots.dynsplot(infile=infile+'_pds', omega = [2.*np.pi/0.003, 10733.7])
@@ -362,7 +362,7 @@ def dynspec_maker(infile='out/lcurve', ntimes = 30, nbins = 150, logbinning = Fa
         for k in np.arange(ntimes):
             binfreqc=(binfreq[1:]+binfreq[:-1])/2.
             binfreqs=(binfreq[1:]-binfreq[:-1])/2.
-            wmax = (pdsbin[k,:]*binfreqc).argmax()
+            wmax = (pdsbin[k,:]*binfreqc * (binfreqc> 100.) * (binfreqc < 2000.)).argmax()
             wtime = np.where((t>tbins[k])*(t<tbins[k+1]))
             xmean = x[wtime].mean() ; dxmean = x[wtime].std()
             fout.write(str(tcenter[k])+" "+str(xmean)+" "+str(dxmean)+" "+str(binfreqc[wmax])+" "+str(binfreqs[wmax])+"\n")

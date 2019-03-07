@@ -93,7 +93,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 0. # Msun/yr, intended mass accretion rate
+mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
@@ -108,7 +108,7 @@ tfric=0.*pspin/tscale
 # depletion of the atmosphere:
 tdepl=0.*pspin/tscale
 # turning on the source smoothly
-tturnon=0.*pspin/tscale
+tturnon=10.*pspin/tscale
 
 noq = False
 
