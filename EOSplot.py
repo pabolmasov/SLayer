@@ -19,11 +19,11 @@ matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"]
 
 def allview():
 
-    bmin=1e-5 ; bmax=1e5 ; nb=100
-    smin=1. ; smax=1e10 ; ns=29
+    bmin=1e-3 ; bmax=1.-bmin ; nb=1000
+    smin=1e5 ; smax=1e10 ; ns=29
     beta1d=(bmax/bmin)**(arange(nb)/double(nb-1))*bmin
-    beta1d=beta1d/(1.-beta1d)
-    sig1d=((smax/smin))**(np.arange(ns)/np.double(ns-1))*smin
+    #    beta1d=beta1d/(1.-beta1d)
+    sig1d=((smax/smin))**(arange(ns)/double(ns-1))*smin
     beta, sig=meshgrid(beta1d, sig1d)
     
     bcom=beta/(1.-beta)**0.25/(1.-(beta/2.))
@@ -31,13 +31,22 @@ def allview():
     etos=8.7e-6/mu*(grav*mass1*sig)**0.25/bcom
     rho=1.87066*mu*beta/(1.-beta)**0.25*(grav*sig)**0.75
     gammae=0.006347*(beta/(1.-beta))**(1./3.)
+    eden = 1.38772 * beta/(1.-beta)**0.25 *(grav*sig)**0.75 # in 1e24 cm^{-3}
+
+    ef = 7.13593e-05 * eden**(2./3.) # in me*c**2
+    kt = etos
+    
+    fluxratio = 1.80904e-06/sqrt(etos)*eden * (maximum(ef, kt)/ kt)**1.5
     
     plt.clf()
-    plt.contourf(beta, sig, etos, nlevels=100)
-    plt.contour(beta, sig, levels=[1.], colors='k')
+    plt.contourf(beta, sig, log10(rho))
+    plt.colorbar()
+    plt.contour(beta, sig, ef/kt, levels=[1.], colors='r')
+    plt.contour(beta, sig, fluxratio, levels=[1.], colors='k')
     plt.contour(beta, sig, gammae, levels=[1.,10.,100.], colors='w', linestyles='dotted')
-    plt.xscale('log')
+    #    plt.xscale('log')
     plt.yscale('log')
     plt.xlabel(r'$\beta$')
-    plt.ylabel(r'$\Sigma {\rm \,g\,cm^{-2}}$')
+    plt.ylabel(r'$\Sigma,\, {\rm \,g\,cm^{-2}}$')
     plt.savefig('allview.eps')
+    plt.savefig('allview.png')

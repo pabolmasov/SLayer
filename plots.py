@@ -291,7 +291,6 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
 #    levs=np.unique(np.round(levs, 2))
     interactive(False)
 
-    # TODO: try cartographic projections?
     plt.clf()
     fig=plt.figure()
     pc=plt.pcolormesh(lons, lats, sig, cmap='hot') # ,levels=levs)
@@ -523,7 +522,7 @@ def twopdss(file1, file2):
     plt.close()
     
 #
-def dynsplot(infile="out/pds_diss", omega=None):
+def dynsplot(infile="out/pds_diss", omega=None, binnorm=True):
     '''
     plots dynamical spectrum using timing.py ascii output 
     '''
@@ -546,22 +545,21 @@ def dynsplot(infile="out/pds_diss", omega=None):
         if(kt<ntimes):
             t2[kt,:-1]= tun[kt] #tun[kt]-(tun[kt+1]-tun[kt])/2.
         else:
-            t2[kt, :-1] = tar2.max()
+            t2[kt,:-1] = tar2.max()
         binfreq2[kt,:-1]=fun[:]
-    #    t2[ntimes,:]=tar2.max()
+    t2[:-1,-1]=tun[:] ; t2[-1,-1]=tar2.max()
     f2ma=ma.masked_invalid(f2)
-    #    f2tot=f2ma.sum(axis=1)
-    #    for kt in np.arange(ntimes):
-    #        f2ma[kt,:]/=f2tot[kt]
-    #    t2[ntimes-1,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])/2.
-    #    t2[ntimes,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])*3./2.
-    binfreq2[ntimes-1,:-1]=fun[:] ;   binfreq2[ntimes,:-1]=fun[:]
+    if(binnorm):
+        f2tot=f2ma.sum(axis=1)
+        for kt in np.arange(ntimes):
+            f2ma[kt,:]/=f2tot[kt]
+    binfreq2[ntimes-1,:-1]=fun[:] ;  binfreq2[ntimes,:-1]=fun[:]
     binfreq2[:,-1]=freq2.max()
     w=np.isfinite(df2)&(df2>0.)
     p = np.log10(f2ma*fc**2)
     pmin=(f2ma*fc**2).min() ; pmax=(f2ma*fc**2).max()
     #    print(binfreq2.min(),binfreq2.max())
-    #    print(t2[:,0])
+    print("T = "+str(t2.min())+" "+str(t2.max()))
     #    ii=input('T')
     #    print(f2)
     plt.clf()
@@ -582,7 +580,7 @@ def dynsplot(infile="out/pds_diss", omega=None):
                plt.plot([t2.min(), t2.max()],[omega[ko]/2./np.pi,omega[ko]/2./np.pi], 'w')
         #  plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
     plt.ylim(freq2.min(), freq2.max()/2.)
-    plt.xlim(tar1.min(), tar2.max())
+    plt.xlim(t2.min(), t2.max())
     plt.yscale('log')
     plt.ylabel('$f$, Hz', fontsize=20)
     plt.xlabel('$t$, s', fontsize=20)
@@ -725,7 +723,7 @@ def multiplot_saved(prefix, skip=0, step=1):
     flist2 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9].dat"))
     flist3 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9].dat"))
     flist4 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9][0-9].dat"))
-    flist=np.concatenate((flist0, flist1, flist2, flist3, flist4))
+    flist = np.concatenate((flist0, flist1, flist2, flist3, flist4))
     #    print(flist)
     #    ff=input('f')
     nlist = np.size(flist)

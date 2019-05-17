@@ -34,8 +34,8 @@ def twotwists():
     '''
     picture for the split-sphere test
     '''
-    file1 = "titania/out_twistLR/ecurve1.57079632679.dat"
-    file2 = "titania/out_twistHR/ecurve1.57079632679.dat"
+    file1 = "titania/out_stwistLR/ecurve1.57079632679.dat"
+    file2 = "titania/out_stwistHR/ecurve1.57079632679.dat"
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
     lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
 
@@ -55,7 +55,7 @@ def twotwists():
     plt.plot(tar2, ev2, 'k')
     plt.plot(tar1, eu1, 'r:')
     plt.plot(tar2, eu2, 'r')
-    plt.plot(tar1, np.exp((tar1-0.05)*dvdr), 'b--')
+    plt.plot(tar1, np.exp(0.67*(tar1-0.025)*dvdr), 'b--')
     plt.yscale('log')
     plt.xlabel('$t$, s', fontsize=18)
     plt.ylim(ev1[ev1>0.].min()+ev2[ev2>0.].min(), (eth1).max()+eth2.max())
@@ -64,8 +64,8 @@ def twotwists():
     plt.tick_params(labelsize=16, length=6, width=2., which='major')
     fig.set_size_inches(5, 4)
     fig.tight_layout()
-    plt.savefig('twotwists.png')
-    plt.savefig('twotwists.eps')
+    plt.savefig('twostwists.png')
+    plt.savefig('twostwists.eps')
     plt.close()
     
 def twoND():
@@ -159,10 +159,10 @@ def ekappa():
     plt.plot(latDeg, oloc/2./np.pi, 'r:')
     plt.plot(latDeg, oloc*0.+omega/2./np.pi, 'g--')
     plt.plot(latDeg, oloc*0.+2.*omega/2./np.pi, 'g--')
-    plt.xlabel(r'latitude, deg', fontsize=20)
-    plt.ylabel(r'$\varkappa_{\rm e}$, Hz', fontsize=20)
-    plt.tick_params(labelsize=18, length=3, width=1., which='minor')
-    plt.tick_params(labelsize=18, length=6, width=2., which='major')
+    plt.xlabel(r'latitude, deg', fontsize=16)
+    plt.ylabel(r'$\varkappa_{\rm e}/2\pi$, Hz', fontsize=16)
+    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=14, length=6, width=2., which='major')
     fig.set_size_inches(6, 5)
     fig.tight_layout()
     plt.savefig("forpaper/ekappa.png")
@@ -282,9 +282,8 @@ def threecrosses(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
     plt.savefig(outdir+'ffreq3.eps')
     plt.close()
 
-def qpmplot():
-
-    outdir = 'titania/out_3LR/'
+def qpmplot(outdir = 'titania/out_3LR/'):
+    
     lats, qmmean, qpmean, qmstd, qpstd = np.loadtxt(outdir+'meanmap_qphavg.dat', unpack=True)
     latsDeg = 180./np.pi * (np.pi/2.-lats)
     

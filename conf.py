@@ -16,8 +16,8 @@ ifplot = True
 ##########################
 # a switch for restart
 ifrestart = False
-nrest=10720 # number of output entry for restart
-restartfile='out/runOLD.hdf5' 
+nrest=800 # number of output entry for restart
+restartfile='out_9LR/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
@@ -59,9 +59,9 @@ dt_out_factor = 0.25 # output step, in dynamical times
 ifscaledt = True # if we change the value of the time step (including thermal-timescale processes etc. )
 ifscalediff = False # change dissipation with dt
 tmax=200.*pspin/tscale # we are going to run the simulation for some multiple of spin periods
-csqmin=1e-6 # speed of sound squared (minimal or isothermal)
+csqmin=3e-6 # speed of sound squared (minimal or isothermal)
 # 1e-6 is about 1keV...
-csqinit=1e-6*(sig0*kappa)**0.25 # initial speed of sound squared
+csqinit=csqmin*(sig0*kappa)**0.25 # initial speed of sound squared
 isothermal = False # if we use isothermal or polytropic initial conditions
 gammainit = 0. # artificially very stiff EOS, because we want density contrasts to be lower
 kinit = 1e-8 # proportionality coefficient in initial EOS, Pi=kinit * Sigma^gammainit; of the order c_s^2
@@ -77,15 +77,15 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 50. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc = 40. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
 # ktrunc >~ Nx/|\ln e_M|**(1./Ndiss) (see Parfrey et al. 2012, formula 32 and after) -- condition for preserving the overall solution
-ktrunc_diss = 0.5 # smoothing the dissipation term when used as a heat source
+ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
 ndiss = 2.     # order for hyperdiffusion (2 is normal diffusion)
 ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
 jitterskip = 10000
 ##################################################
 #perturbation parameters
-bump_amp  = -0.95     # perturbation amplitude
+bump_amp  = -0.05     # perturbation amplitude
 bump_lat0  = old_div(np.pi,6.) # perturbation latitude
 bump_lon0  = old_div(np.pi,3.) # perturbation longitude
 bump_dlon = old_div(np.pi,15.) # size of the perturbed region (longitude)
@@ -93,7 +93,7 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
+mdotfinal = 0. # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
