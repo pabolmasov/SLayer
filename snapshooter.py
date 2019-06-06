@@ -66,6 +66,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
     lonsDeg=lons*180./np.pi ; latsDeg=lats*180./np.pi
     f.close()
     press=energy* 3. * (1.-beta/2.)
+    hvert = 5./abs(geff) * press/sig # vertical thickness
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
     fmap.write("# map with step = "+str(step)+"\n")
@@ -119,6 +120,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
                        xname='latitude, deg', yname=r'$\lambda_{\rm KH}$', prefix=outdir+'/KH',
                        fmt=['k.', 'r-'], title='$t = {:6.2f}$\,ms'.format( t*tscale*1e3))
         plots.someplot(lats, [j], xname='lats', yname='$j$', prefix=outdir+'/jacc')
+        plots.someplot(lats, [j], xname='lats', yname='$j$', prefix=outdir+'/hvert')
         plots.someplot(lats, [kappasq + nsq, -(kappasq+nsq), kappasq, nsq], xname='lats',
                        yname=r'$\varkappa^2+N^2$',
                        prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])
