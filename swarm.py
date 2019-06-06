@@ -66,7 +66,7 @@ from conf import bump_amp, bump_lat0, bump_lon0, bump_dlon, bump_dlat  #initial 
 from conf import ktrunc, ndiss, ktrunc_diss # e-folding time scale for the hyper-diffusion, order of hyper-diffusion, e-folding time for dissipation smoothing
 from conf import ddivfac, jitterskip # numerical tricks to suppress certain numerical instabilities
 from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin, sigmafloor, energyfloor # physical parameters 
-from conf import isothermal, gammainit, kinit # initial EOS
+# from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax # frequency of diagnostic outputs, maximal time
 from conf import ifplot # if we make plots
 from conf import sigplus, latspread, incle, slon0, tturnon # source term
@@ -162,11 +162,11 @@ lapmin=np.abs(x.lap[np.abs(x.lap.real)>0.]).min()
 lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
 # hyperdiff_expanded = (-x.lap/(lapmax*ktrunc**2))**(ndiss/2) # positive! let us care somehow about the mean flow
 poslap = (abs(x.lap)>=0.)
-hyperdiff_expanded = np.minimum((-(x.lap-x.lap[poslap].max())/(lapmax*ktrunc**2))**(ndiss/2), 0.)
+hyperdiff_expanded = np.minimum(((x.lap-x.lap[poslap].max())/(lapmax*ktrunc**2))**(ndiss/2), 0.)
 # hyperdiff_expanded = hyperdiff_expanded - hyperdiff_expanded[hyperdiff_expanded>0.].min()
 # hyperdiff_expanded[0] = 0. # care for the overall rotation trend 
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
-print(hyperdiff_expanded)
+print(x.lap)
 input('fdslkjsa')
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
@@ -428,8 +428,6 @@ while(t<(tmax+t0)):
             denergydtaddterms -= 1./tdepl
         else:
             denergydtaddterms -= energyg/tdepl
-    if (noq):
-        thermalterm *= 0.
     if(ktrunc_diss>0.):
         diss_diff = np.exp(-hyperdiff_expanded * (ktrunc / ktrunc_diss)**ndiss * dt * dtscale)
         denergydtSpec_srce = x.grid2sph( thermalterm ) *diss_diff  + x.grid2sph( denergydtaddterms)  

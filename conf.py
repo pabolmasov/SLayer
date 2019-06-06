@@ -111,7 +111,8 @@ tturnon=10.*pspin/tscale
 # turning off physics:
 nocool = False # no radiative cooling
 noheat = False # no dissipation heating
-fixedeos = False # fixed EOS
+fixedEOS = False # fixed EOS
+gammaEOS = 4./3.
 
 #####################################################
 # twist test
