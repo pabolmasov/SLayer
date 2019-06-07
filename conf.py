@@ -109,9 +109,9 @@ satsink = False # saturation sink (depletion grows non-linearly with Sigma)
 tturnon=10.*pspin/tscale
 
 # turning off physics:
-nocool = False # no radiative cooling
-noheat = False # no dissipation heating
-fixedEOS = False # fixed EOS
+nocool = True # no radiative cooling
+noheat = True # no dissipation heating
+fixedEOS = True # fixed EOS
 gammaEOS = 4./3.
 
 #####################################################

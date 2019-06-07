@@ -98,6 +98,14 @@ betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fi
 # as a function of energy
 ######################################
 
+#############################################################
+# fixed EOS:
+def pEOS(sig):
+    return sig0 * csqinit * (sig/sig0)**gammaEOS
+
+def eEOS(sig):
+    return sig0 * csqinit * (sig/sig0)**gammaEOS / (gammaEOS-1.)
+
 ##################################################
 # source/sink term
 def sdotsource(lats, lons, latspread):
@@ -166,8 +174,8 @@ hyperdiff_expanded = np.minimum(((x.lap-x.lap[poslap].max())/(lapmax*ktrunc**2))
 # hyperdiff_expanded = hyperdiff_expanded - hyperdiff_expanded[hyperdiff_expanded>0.].min()
 # hyperdiff_expanded[0] = 0. # care for the overall rotation trend 
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
-print(x.lap)
-input('fdslkjsa')
+# print(x.lap)
+# input('fdslkjsa')
 div_diff =  np.exp(-ddivfac*hyperdiff_expanded*dt)# divergence factor enhanced
 sigma_diff = hyperdiff_fact # sigma and energy are also artificially smoothed
 if(ktrunc_diss>0.):
@@ -196,6 +204,8 @@ else:
     # density perturbation
     hbump = bump_amp*np.exp(-((lons-bump_lon0)/bump_dlon)**2/2.)*np.exp(-((lats-bump_lat0)/bump_dlat)**2/2.)
     sig*=hbump+1. # entropy disturbance 
+    if(fixedEOS):
+        pressg *= (hbump+1.)**gammaEOS
     print("sigma = "+str(sig.min())+" to "+str(sig.max()))
     print("press = "+str(pressg.min())+" to "+str(pressg.max()))
     #    sig=x.sph2grid(x.grid2sph(sig))
@@ -206,6 +216,8 @@ else:
     sigpos=(sig+np.fabs(sig))/2. # we need to exclude negative sigma points from calculation (should there be any? just in case!)
     beta = betasolve_p(cssqscale*sig/pressg*np.sqrt(np.sqrt(-geff*sigpos))) # beta as a function of sigma, press, geff
     energyg = pressg * 3. * (1.-beta/2.)
+    energy_init = energyg
+    sig_init = sig
     accflag = hbump*0. # initially, the tracer is 0 everywhere
 
 # spectral arrays...
@@ -257,7 +269,7 @@ while(t<(tmax+t0)):
         #        sig+=sigmafloor # making sure there are no negative points
         lsig = np.log(sigpos) # do we use lsig/lenergyg?
         if(fixedEOS):
-            energyg = energy_init * (sigpos/sig_init)**gammaEOS # we replace all the thermal transfer by a fixed EOS
+            energyg = eEOS(sig) # we replace all the thermal transfer by a fixed EOS
             energypos = energyg
         else:
             energyg  = x.sph2grid(energySpec)
@@ -300,7 +312,10 @@ while(t<(tmax+t0)):
                       vortg, divg, ug, vg, sig, pressg, beta, accflag, qminus, qplus+qns, 
                       conf, f5io.outdir) # crash visualization
         sys.exit()
-    pressg = energyg / 3. / (1.-beta/2.) # beta is not the source of all evil
+    if(fixedEOS):
+        pressg = pEOS(sig)
+    else:
+        pressg = energyg / 3. / (1.-beta/2.) # beta is not the source of all evil
     cssqmax = (pressg/sig).max() # estimate for maximal speed of sound
     vsqmax = (ug**2+vg**2).max()
 
