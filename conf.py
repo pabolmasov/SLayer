@@ -16,13 +16,13 @@ ifplot = True
 ##########################
 # a switch for restart
 ifrestart = False
-nrest=800 # number of output entry for restart
-restartfile='out_9LR/runOLD.hdf5' 
+nrest=2582 # number of output entry for restart
+restartfile='out/runOLD.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
 # grid, time step info
-nlons  = 128          # number of longitudes
+nlons  = 256          # number of longitudes
 ntrunc = int(nlons/3) # spectral truncation (to make it alias-free)
 nlats  = int(nlons/2) # for gaussian grid #
 # dt=1e-9
@@ -78,7 +78,8 @@ ktrunc = 40. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-of
 ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
 ndiss = 2.    # order for hyperdiffusion (2 is normal diffusion)
 ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
-jitterskip = 0
+jitterskip = 10000
+decosine = True # special trick avoiding smoothing out the rigid-body rotation component
 ##################################################
 #perturbation parameters
 bump_amp  = -0.05     # perturbation amplitude
@@ -111,7 +112,7 @@ tturnon=10.*pspin/tscale
 # turning off physics:
 nocool = True # no radiative cooling
 noheat = True # no dissipation heating
-fixedEOS = True # fixed EOS
+fixedEOS = False # fixed EOS
 gammaEOS = 4./3.
 
 #####################################################
