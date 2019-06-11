@@ -105,6 +105,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
         gamma=4./3.
         j=ug*rsphere*np.cos(lats)
         geff=1./rsphere**2-(ug**2+vg**2)/rsphere
+        hvert = 5./np.abs(geff) * press/sig # vertical thickness
         s=np.log(press/sig)-(1.-1./gamma)*np.log(geff)
         sgrad1, sgrad2 = x.getGrad(x.grid2sph(s))
         jgrad1, jgrad2 = x.getGrad(x.grid2sph(j))
@@ -119,6 +120,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
                        xname='latitude, deg', yname=r'$\lambda_{\rm KH}$', prefix=outdir+'/KH',
                        fmt=['k.', 'r-'], title='$t = {:6.2f}$\,ms'.format( t*tscale*1e3))
         plots.someplot(lats, [j], xname='lats', yname='$j$', prefix=outdir+'/jacc')
+        plots.someplot(lats, [hvert*1.47676*mass1], xname='lats', yname='$H$, km', prefix=outdir+'/hvert', ylog=(hvert.max() > (hvert.min()*10.)))
         plots.someplot(lats, [kappasq + nsq, -(kappasq+nsq), kappasq, nsq], xname='lats',
                        yname=r'$\varkappa^2+N^2$',
                        prefix=outdir+'/kappa', ylog=True, fmt=['k,', 'g,', 'b,', 'r,'])

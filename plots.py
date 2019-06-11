@@ -291,7 +291,6 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
 #    levs=np.unique(np.round(levs, 2))
     interactive(False)
 
-    # TODO: try cartographic projections?
     plt.clf()
     fig=plt.figure()
     pc=plt.pcolormesh(lons, lats, sig, cmap='hot') # ,levels=levs)
@@ -489,7 +488,7 @@ def pdsplot(infile="out/pdstots_diss", omega=None, freqrange = None):
     if(freqrange is not None):
         plt.xlim(freqrange[0], freqrange[1])
     plt.xlabel(r'$f$, Hz')
-    plt.ylabel(r'PDS, relative units')
+    plt.ylabel(r'fractional PDS')
     # plt.xscale('log')
     plt.yscale('log')
     plt.savefig(infile+'.png')
@@ -523,42 +522,51 @@ def twopdss(file1, file2):
     plt.close()
     
 #
-def dynsplot(infile="out/pds_diss", omega=None):
+def dynsplot(infile="out/pds_diss", omega=None, binnorm=True):
     '''
     plots dynamical spectrum using timing.py ascii output 
     '''
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
-    freq1=lines[:,1] ; freq2=lines[:,2] ;  t=lines[:,0] 
-    fc=(freq1+freq2)/2. # center of frequency interval
-    f=lines[:,3] ; df=lines[:,4] # replace df with quantiles!
-    tun=np.unique(t) ; fun=np.unique(freq1)
+    freq1=lines[:,2] ; freq2=lines[:,3] ;  tar1=lines[:,0] ;  tar2=lines[:,1] 
+    fc = np.copy(freq1+freq2)/2. # center of frequency interval
+    tc = np.copy(tar1+tar2)/2.
+    f=lines[:,4] ; df=lines[:,5] # replace df with quantiles!
+    tun=np.unique(tar1) ; fun=np.unique(freq1)
     ntimes=np.size(tun) ;    nbins=np.size(fun)
-    print("ntimes = "+str(ntimes))
-    print("nbins = "+str(nbins))
+  #  print("ntimes = "+str(ntimes))
+  #  print("nbins = "+str(nbins))
     t2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     binfreq2=np.zeros([ntimes+1, nbins+1], dtype=np.double)
     f2=np.transpose(np.reshape(f, [nbins, ntimes]))
     df2=np.transpose(np.reshape(df, [nbins, ntimes]))
-    tc=np.transpose(np.reshape(t, [nbins, ntimes]))
+    tc=np.transpose(np.reshape(tc, [nbins, ntimes]))
     fc=np.transpose(np.reshape(fc, [nbins, ntimes]))
-    for kt in np.arange(ntimes-1):
-        t2[kt,:]=tun[kt]-(tun[kt+1]-tun[kt])/2.
+    for kt in np.arange(ntimes+1):
+        if(kt<ntimes):
+            t2[kt,:-1]= tun[kt] #tun[kt]-(tun[kt+1]-tun[kt])/2.
+        else:
+            t2[kt,:-1] = tar2.max()
         binfreq2[kt,:-1]=fun[:]
+    t2[:-1,-1]=tun[:] ; t2[-1,-1]=tar2.max()
     f2ma=ma.masked_invalid(f2)
-    f2tot=f2ma.sum(axis=1)
-#    for kt in np.arange(ntimes):
-#        f2ma[kt,:]/=f2tot[kt]
-    t2[ntimes-1,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])/2.
-    t2[ntimes,:]=tun[ntimes-1]+(tun[ntimes-1]-tun[ntimes-2])*3./2.
-    binfreq2[ntimes-1,:-1]=fun[:] ;   binfreq2[ntimes,:-1]=fun[:]
+    if(binnorm):
+        f2tot=f2ma.sum(axis=1)
+        for kt in np.arange(ntimes):
+            f2ma[kt,:]/=f2tot[kt]
+    binfreq2[ntimes-1,:-1]=fun[:] ;  binfreq2[ntimes,:-1]=fun[:]
     binfreq2[:,-1]=freq2.max()
     w=np.isfinite(df2)&(df2>0.)
+    p = np.log10(f2ma*fc**2)
     pmin=(f2ma*fc**2).min() ; pmax=(f2ma*fc**2).max()
-    print(binfreq2.min(),binfreq2.max())
+    #    print(binfreq2.min(),binfreq2.max())
+    print("T = "+str(t2.min())+" "+str(t2.max()))
+    #    ii=input('T')
+    #    print(f2)
     plt.clf()
     fig=plt.figure()
-    # plt.pcolormesh(tc, fc, f2, cmap='hot')
-    plt.pcolor(t2, binfreq2, np.log10(f2ma*fc**2), cmap='hot') #, vmin=np.log(pmin), vmax=np.log(pmax)) # tcenter2, binfreq2 should be corners
+    #    plt.contourf(tc, fc, f2, cmap='hot', nlevels=100)
+    plt.pcolormesh(t2, binfreq2, p, cmap='hot') 
+    # plt.pcolor(t2, binfreq2, p) #, vmin=np.log(pmin), vmax=np.log(pmax)) # t2, binfreq2 should be corners
     # plt.contourf(tc, fc, np.log(f2), cmap='hot')
     #    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
@@ -572,6 +580,7 @@ def dynsplot(infile="out/pds_diss", omega=None):
                plt.plot([t2.min(), t2.max()],[omega[ko]/2./np.pi,omega[ko]/2./np.pi], 'w')
         #  plt.plot([t2.min(), t2.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'w',linestyle='dotted')
     plt.ylim(freq2.min(), freq2.max()/2.)
+    plt.xlim(t2.min(), t2.max())
     plt.yscale('log')
     plt.ylabel('$f$, Hz', fontsize=20)
     plt.xlabel('$t$, s', fontsize=20)
@@ -629,7 +638,13 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
         plt.savefig(prefix+'_tphi.eps')
         plt.savefig(prefix+'_tphi.png')
         plt.close()
-    
+    # extreme values:
+    nt = np.size(tar)
+    fext = open(prefix+"_tthmm.dat", 'w')
+    for kt in np.arange(nt):
+        fext.write(str(tar[kt])+" "+str(qth[:,kt].min())+" "+str(qth[:,kt].max())+"\n")
+    fext.close()
+        
 # a wrapper for timangle
 def plot_timangle(prefix='out/', trange = None, nolon = False):
     '''
@@ -708,7 +723,7 @@ def multiplot_saved(prefix, skip=0, step=1):
     flist2 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9].dat"))
     flist3 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9].dat"))
     flist4 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9][0-9].dat"))
-    flist=np.concatenate((flist0, flist1, flist2, flist3, flist4))
+    flist = np.concatenate((flist0, flist1, flist2, flist3, flist4))
     #    print(flist)
     #    ff=input('f')
     nlist = np.size(flist)
@@ -734,6 +749,6 @@ def plot_meanmap(infile = "out/meanmap_phavg"):
     ug = lines[:,3] ; vg = lines[:,4] ;  csq = lines[:,5]
     cuv = lines[:,6]; dcuv = lines[:,7]; aniso = lines[:,8]
     
-    someplot(90.-lats*180./np.pi, [cuv, -cuv, ug*vg, -ug*vg,  csq, abs(cuv+dcuv), abs(cuv-dcuv)], xname=r'latitude, deg', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:', 'k:', 'k:'], ylog=True, latmode=True)
+    someplot(90.-lats*180./np.pi, [cuv, -cuv, ug*vg, -ug*vg,  csq, abs(cuv)+dcuv, abs(cuv)-dcuv], xname=r'latitude, deg', yname=r'$\langle\Delta u \Delta v\rangle$', prefix=infile, title='', postfix='plot', fmt=['k-', 'k--', 'b-', 'b--', 'r:', 'k:', 'k:'], ylog=True, latmode=True)
 
     
