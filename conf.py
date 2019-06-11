@@ -78,7 +78,7 @@ ktrunc = 40. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-of
 ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
 ndiss = 2.    # order for hyperdiffusion (2 is normal diffusion)
 ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
-jitterskip = 10000
+jitterskip = 0
 decosine = True # special trick avoiding smoothing out the rigid-body rotation component
 ##################################################
 #perturbation parameters

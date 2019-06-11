@@ -172,7 +172,7 @@ lapmax=np.abs(x.lap[np.abs(x.lap.real)>0.]).max()
 poslap = (abs(x.lap)>=0.)
 hyperdiff_expanded = -np.minimum(((x.lap-x.lap[poslap].max())/(lapmax*ktrunc**2))**(ndiss/2), 0.)
 if(decosine):
-    hyperdiff_expanded = np.abs(x.lap * (x.lap + 1./rsphere**2) / (lapmax*ktrunc**2))**(ndiss/2)
+    hyperdiff_expanded = np.abs(x.lap * (x.lap + 1./rsphere**2) / (lapmax*ktrunc**2))**(2.)
 # hyperdiff_expanded = hyperdiff_expanded - hyperdiff_expanded[hyperdiff_expanded>0.].min()
 # hyperdiff_expanded[0] = 0. # care for the overall rotation trend 
 hyperdiff_fact = np.exp(-hyperdiff_expanded*dt) # dt will change in the main loop
@@ -323,11 +323,11 @@ while(t<(tmax+t0)):
 
     # shock watch !!!
     divmachsq = divg**2 * (dx**2 + dy**2) / (pressg/sig) # Mach^2 for divergence ; divmachsq \gtrsim 1 means a shock wave
-    if(divmachsq.max()>1.):
-        print("divmachsqmax = "+str(divmachsq.max()))
-        print("estimated machsq = "+str((omega*rsphere)**2/csqinit)+" for the whole star,\n")
-        print("... and "+str((omega*rsphere/np.double(x.nlats))**2/csqinit))
-        input("mach")
+#    if(divmachsq.max()>100.):
+#        print("divmachsqmax = "+str(divmachsq.max()))
+#        print("estimated machsq = "+str((omega*rsphere)**2/csqinit)+" for the whole star,\n")
+#        print("... and "+str((omega*rsphere/np.double(x.nlats))**2/csqinit))
+#        input("mach")
     #        divg *= divg / np.sqrt(divmachsq + 1.)
     #    divSpec = x.grid2sph(divg/ np.sqrt(divmachsq + 1.)) # could be optimized
     
