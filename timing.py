@@ -157,10 +157,10 @@ def lightcurves(filename, lat0, lon0):
     print("M = "+str(meanmass)+"+/-"+str(stdmass)+" X 10^{20} g")
     angmoz_new *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
     angmoz_old *= rsphere**3*mass1**3* 0.9655 * (sigmascale/1e8) # X 10^{26} erg * s
-    flux *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s apparent luminosity
-    lumtot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total luminosity
-    heattot *= 0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total heating
-    qnstot = 0.3979*rsphere**2*mass1*sigmascale * 4.*np.pi * (csqmin/cssqscale)**4  # heating from the NS surface
+    flux *= 4.*0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s apparent luminosity
+    lumtot *= 4.*0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total luminosity
+    heattot *= 4.*0.3979*rsphere**2*mass1*sigmascale  # 10^37 erg/s total heating
+    qnstot = 4.*0.3979*rsphere**2*mass1*sigmascale * 4.*np.pi * (csqmin/cssqscale)**4  # heating from the NS surface
     kenergy *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_u *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
     kenergy_v *= rsphere**2*mass1**2*19.6002e3*(sigmascale/1e8) # 10^{35} erg
