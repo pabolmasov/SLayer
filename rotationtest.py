@@ -41,7 +41,7 @@ def comparetwoshots(run1, n1, run2, n2):
     sdrel=((sig1-sig2)/(sig1+sig2)).mean()
     return drel, sdrel
     
-def comparot(infile):
+def comparot(infile, nmax = None):
     '''
     compares all the snapshots of a single output file assuming rigid-body rotation 
     '''
@@ -62,17 +62,21 @@ def comparot(infile):
     keys=list(f.keys())
     nsize=np.size(keys)-1 # last key contains parameters
     print(str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2]))
+    if(nmax is not None):
+        nsize = np.minimum(nsize, nmax)
 
     # first snapshot:
     data=f[keys[0]]
     sig0=data["sig"][:]
     err=np.zeros(nsize, dtype=np.double)
     serr=np.zeros(nsize, dtype=np.double)
+    merr=np.zeros(nsize, dtype=np.double)
     tar=np.zeros(nsize, dtype=np.double)
     sig1=np.zeros(np.shape(sig0), dtype=np.double)
     t0=data.attrs["t"] ; tar[0]=t0
-    sigfun=interp1d(lons1d, sig0, axis=1, bounds_error=False, kind='nearest',fill_value='extrapolate')
+    sigfun=interp1d(lons1d, sig0, axis=1, bounds_error=False, kind='linear',fill_value='extrapolate')
     fout=open(outdir+"/rtest.dat", "w")
+    fout.write("#  time(s) -- std -- systematic error -- maximal relative error")
     # all the others
     for k in np.arange(nsize-1)+1:
         data=f[keys[k]]
@@ -82,19 +86,22 @@ def comparot(infile):
         print("rotation in "+str(rotang)+"rad")
         #        print(np.shape(sig))
         #        print(np.shape(lons1d))
-#        print((lons1d+rotang) % (2.*np.pi))
+        #        print((lons1d+rotang) % (2.*np.pi))
         sig1[:]=sigfun((lons1d-rotang) % (2.*np.pi))
         wfin=np.isfinite(sig1)
+        merr[k]=abs(sig/sig1-1.)[wfin].max()
         err[k]=(sig/sig1-1.)[wfin].std()
         serr[k]=(sig/sig1-1.)[wfin].mean() # systematic error
-        fout.write(str((t-t0)*tscale)+" "+str(err[k])+" "+str(serr[k])+"\n")
+        fout.write(str((t-t0)*tscale)+" "+str(err[k])+" "+str(serr[k])+" "+str(merr[k])+"\n")
+        print(str(k)+"/"+str(nsize))
         print("error +-"+str(err[k]))
         print("systematic +-"+str(serr[k]))
+        print("maximal +-"+str(merr[k]))
         if(ifplot):
             plots.somemap(lons, lats, sig-sig1, outdir+"/err_sigma.png")
         print("entry "+str(keys[k])+" finished")
     if(ifplot):
-        plots.sometimes(tar*1e3*tscale, [err, serr], fmt=['r-', 'k-'] , prefix=outdir+'/err')
+        plots.sometimes(tar*tscale*1e3, [err, merr], fmt=['r-', 'k-'] , prefix=outdir+'/err', yname = '$\Delta \Sigma / \Sigma$')
     fout.close()
     f.close()
 # comparot('out/run.hdf5')

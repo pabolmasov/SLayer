@@ -450,17 +450,18 @@ def someplot(x, qlist, xname='', yname='', prefix='out/', title='', postfix='plo
     print(prefix+postfix)
     
 # general 1D-plot of several quantities as functions of time
-def sometimes(tar, qlist, fmt=None, prefix='out/', title='', ylog=True):
-    someplot(tar, qlist, xname='$t$, ms', prefix=prefix, title=title, postfix='curves', fmt=fmt, ylog=ylog)
+def sometimes(tar, qlist, fmt=None, prefix='out/', title='', ylog=True, yname = None):
+    someplot(tar, qlist, xname='$t$, ms', prefix=prefix, title=title, postfix='curves',
+             fmt=fmt, ylog=ylog, yname=yname)
 
-def plot_sometimes(infile="out/lcurve", ylog=True, tfilter = None):
+def plot_sometimes(infile="out/lcurve", ylog=True, tfilter = None, yname = None):
     lines = np.loadtxt(infile+".dat", comments="#", delimiter=" ", unpack=False)
     tar = lines[:,0] ; f = lines[:,1]
     if(tfilter == None):
-        someplot(tar, [f], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog)
+        someplot(tar, [f], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog, yname = yname)
     else:
         wfil = (tar<tfilter[1]) & (tar > tfilter[0])
-        someplot(tar[wfil], [f[wfil]], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog, fmt = ['k-'])
+        someplot(tar[wfil], [f[wfil]], xname='$t$, ms', prefix=infile, postfix='_c', ylog=ylog, fmt = ['k-'], yname = yname)
     
 ########################################################################
 # post-processing of remotely produced light curves and spectra
