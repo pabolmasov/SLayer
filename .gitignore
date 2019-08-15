@@ -12,3 +12,4 @@ timing_batch.py
 plot_batch.py
 paperplots.py
 *.sh
+*~
