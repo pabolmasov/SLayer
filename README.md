@@ -7,29 +7,7 @@ Based on https://github.com/natj/swm, but the variables are normalized to the na
 
 ## Basic equations:
 
-Mass conservation equation (for surface density &Sigma;):
-
-<img alt="mass conservation"
-src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CSigma%7D%7B%5Cpartial%20t%7D%20%3D%20-%20%5Cnabla%20%5Ccdot%20%28%5CSigma%20%5Cmathbf%7Bv%7D%29%20&plus;%20S%5E&plus;%20-%20S%5E-%2C">
-
-where the right-hand side also contains source and sink terms. 
-
-Euler equations re-written in terms of divergence &delta; and vorticity &omega; :
-
-<img alt="\frac{\partial \delta}{\partial t} = \nabla \cdot [\mathbf{v} \times
-\omega \mathbf{e}^r] - \nabla^2 \left(\frac{v^2}{2}\right) + \nabla \cdot
-\left( \frac{1}{\Sigma} \nabla \Pi \right) + D\delta,"
-src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5Cdelta%7D%7B%5Cpartial%20t%7D%20%3D%20%5Cnabla%20%5Ccdot%20%5B%5Cmathbf%7Bv%7D%20%5Ctimes%20%5Comega%20%5Cmathbf%7Be%7D%5Er%5D%20-%20%5Cnabla%5E2%20%5Cleft%28%5Cfrac%7Bv%5E2%7D%7B2%7D%5Cright%29%20&amp;plus;%20%5Cnabla%20%5Ccdot%20%5Cleft%28%20%5Cfrac%7B1%7D%7B%5CSigma%7D%20%5Cnabla%20%5CPi%20%5Cright%29%20&amp;plus;%20D%5Cdelta%2C">,
-
-<img alt="\frac{\partial \omega}{\partial t} = -\nabla \cdot (\omega \mathbf{v}) + \frac{7}{8}\left[\nabla \Pi \times \nabla \Sigma \right]_r + \frac{S^+}{\Sigma} \omega_{\rm d} + D\omega," src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5Comega%7D%7B%5Cpartial%20t%7D%20%3D%20-%5Cnabla%20%5Ccdot%20%28%5Comega%20%5Cmathbf%7Bv%7D%29%20&amp;plus;%20%5Cfrac%7B7%7D%7B8%7D%5Cleft%5B%5Cnabla%20%5CPi%20%5Ctimes%20%5Cnabla%20%5CSigma%20%5Cright%5D_r%20&amp;plus;%20%5Cfrac%7BS%5E&amp;plus;%7D%7B%5CSigma%7D%20%5Comega_%7B%5Crm%20d%7D%20&amp;plus;%20D%5Comega%2C">
-
-So far, there is no friction term, and the accreted matter retains the mean angular momentum of the source.
-
-Finally, energy equation re-formulated as an equation for vertically integrated pressure &Pi; :
-
-<img alt="\frac{\partial \Pi}{\partial t} + \nabla \cdot \left( \Pi\mathbf{v}\right) = \frac{1}{3\left(1-\frac{\beta}{2}\right)} \delta \Pi + Q^+ - Q^- + Q_{\rm NS}," src="https://latex.codecogs.com/gif.latex?%5Cfrac%7B%5Cpartial%20%5CPi%7D%7B%5Cpartial%20t%7D%20&amp;plus;%20%5Cnabla%20%5Ccdot%20%5Cleft%28%20%5CPi%20%5Cmathbf%7Bv%7D%5Cright%29%20%3D%20%5Cfrac%7B1%7D%7B3%5Cleft%281-%5Cfrac%7B%5Cbeta%7D%7B2%7D%5Cright%29%7D%20%5Cdelta%20%5CPi%20&amp;plus;%20Q%5E&amp;plus;%20-%20Q%5E-%20&amp;plus;%20Q_%7B%5Crm%20NS%7D%2C">
-
-Here, &beta; is the gas to total pressure ratio, Q-terms in the right-hand side are sources and sinks of heat. 
+See out paper (coming soon!)
 
 ## Installation
 
@@ -51,12 +29,24 @@ Usually it is enough to use pip with
 ```
 pip2 install h5py
 ```
+(or pip3, if you use python3)
+
+### future
+
+To be used equally well with both python2 and python3, the code makes use of the rutines of python-future routines. Probably, you will need to install it with pip
+```
+pip2 install future
+```
 
 ## Code
 
 All the parameters of the problem are listed in the configuration file [conf.c](https://github.com/pabolmasov/swarm/blob/master/conf.py). The code may be simply run from python as
 ```
 %run swarm
+```
+alternatively, you can use your own configuration file (where all the parameters should be set, there are no default values), and run the code as
+```
+%run swarm <your_conf>
 ```
 
 To restart an interrupted simulation, change the `ifrestart`, `nrest`, and `restartfile` parameters in [conf.c](https://github.com/pabolmasov/swarm/blob/master/conf.py), and make sure the restart file name corresponds to the hdf5 output you are going to read from (probably, you will need to rename your `out/run.hdf5` to `out/runOLD.hdf5`).
