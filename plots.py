@@ -20,9 +20,12 @@ rc('mathtext',rm='stix')
 rc('text', usetex=True)
 # #add amsmath to the preamble
 matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
-from matplotlib import interactive
+from matplotlib import interactive, use
 
 import glob
+
+plt.ioff()
+use('Agg')
 
 ##################################################
 
@@ -337,7 +340,7 @@ def somemap(lons, lats, q, outname, latrange = None):
     plt.ioff()
     plt.clf()
     fig=plt.figure()
-    plt.pcolormesh(lons*180./np.pi, lats*180./np.pi, q, cmap='hot') #,levels=levs)
+    plt.pcolormesh(lons*180./np.pi, -lats*180./np.pi, q, cmap='hot') #,levels=levs)
     plt.colorbar()
     if(latrange is not None):
         plt.ylim(latrange[0],latrange[1])
@@ -371,7 +374,7 @@ def somepoles(lons, lats, q, outname, t = None):
         plt.title('North pole', loc='left')
     plt.tight_layout(pad=3)
     fig.set_size_inches(5, 4)
-    plt.savefig(outname+'_north.eps')
+#    plt.savefig(outname+'_north.eps')
     plt.savefig(outname+'_north.png')
     plt.close()
     plt.clf()
@@ -390,7 +393,7 @@ def somepoles(lons, lats, q, outname, t = None):
     plt.tight_layout(pad=3)
     fig.set_size_inches(5, 4)
     fig.tight_layout()
-    plt.savefig(outname+'_south.eps')
+    #    plt.savefig(outname+'_south.eps')
     plt.savefig(outname+'_south.png')
     plt.close()
     print(outname+'_north.png ; '+outname+'_south.png')
@@ -680,10 +683,11 @@ def FFplot(prefix='out/'):
     '''
     makes a flux-frequency correlation plot 
     '''
-    lines_freq = np.loadtxt(prefix+"freqmax.dat", comments="#", delimiter=" ", unpack=False)
-    time=lines_freq[:,0] ;  freq=lines_freq[:,1] ;  dfreq=lines_freq[:,2]
-    lines_flux = np.loadtxt(prefix+"binflux.dat", comments="#", delimiter=" ", unpack=False)
-    flux=lines_flux[:,1] ;  dflux=lines_flux[:,2]
+    lines_freq = np.loadtxt(prefix+"_ffreq.dat", comments="#", delimiter=" ", unpack=False)
+    time=lines_freq[:,0] ; flux = lines_freq[:,1] ; dflux = lines_freq[:,2]
+    freq=lines_freq[:,3] ;  dfreq=lines_freq[:,4]
+    #     lines_flux = np.loadtxt(prefix+"binflux.dat", comments="#", delimiter=" ", unpack=False)
+    #    flux=lines_flux[:,1] ;  dflux=lines_flux[:,2]
 
     plt.clf()
     plt.errorbar(flux, freq, xerr=dflux, yerr=dfreq, fmt='.k')
@@ -711,6 +715,10 @@ def plot_saved(infile, latrange = None):
     qminus=np.reshape(qminus, [np.size(ulats), np.size(ulons)])
     vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
 
+    # somwhow the plot gets overturned
+    lats = -lats
+
+    # sigma is initially in sigmascales
     somemap(lons, lats, sig, infile+"_sig.png", latrange = latrange)
     somemap(lons, lats, qminus, infile+"_qminus.png", latrange = latrange)
     somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange)
@@ -725,7 +733,7 @@ def multiplot_saved(prefix, skip=0, step=1):
     flist3 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9].dat"))
     flist4 = np.sort(glob.glob(prefix+"[0-9][0-9][0-9][0-9][0-9].dat"))
     flist = np.concatenate((flist0, flist1, flist2, flist3, flist4))
-    #    print(flist)
+    print(flist)
     #    ff=input('f')
     nlist = np.size(flist)
     outdir=os.path.dirname(prefix)

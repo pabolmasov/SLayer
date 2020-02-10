@@ -16,8 +16,8 @@ ifplot = True
 ##########################
 # a switch for restart
 ifrestart = False
-nrest=2582 # number of output entry for restart
-restartfile='out/runOLD.hdf5' 
+nrest=630 # number of output entry for restart
+restartfile='out/run2.hdf5' 
 if(not(ifrestart)):
     nrest=0
 ##################################################
@@ -30,7 +30,8 @@ nlats  = int(nlons/2) # for gaussian grid #
 logSE = False # if we work with logarithms of Sigma and E instead of the quantities themselves
 # (logarithmic treatment does not conserve mass and energy; linear produces strong Gibbs waves)
 
-tscale = 6.89631e-06 # time units are GM/c**3, for M=1.4Msun
+mass1=1.4 # accretor mass
+tscale = 6.89631e-06 * (mass1/1.4) # time units are GM/c**3, for M=1.4Msun
 # itmax  = 10000000    # number of iterations
 outskip= 1000 # how often do we make a simple log output
 
@@ -45,7 +46,6 @@ sigmascale = 1.e8 # all the sigmas are normalized to sigmascale, all the energy 
 
 kappa = 0.35*sigmascale # opacity, inverse sigmascale
 mu=0.6 # mean molecular weight
-mass1=1.4 # accretor mass
 cssqscale = 2.89591e-06 * sigmascale**0.25 / mu * mass1**0.25 # = (4/5) (k/m_p c^2) (0.75 c^5/sigma_B /GM)^{1/4} # cssqscale * (-geff)**0.25 = csq corresponds roughly to an Eddington limit
 # if csqmin>cssqscale, we are inevitably super-Eddington
 betamin=1e-10 # beta is solved for in the range betamin .. 1-betamin
@@ -58,7 +58,7 @@ dt_out_factor = 0.25 # output step, in dynamical times
 ifscaledt = True # if we change the value of the time step (including thermal-timescale processes etc. )
 ifscalediff = False # change dissipation with dt
 tmax=200.*pspin/tscale # we are going to run the simulation for some multiple of spin periods
-csqmin=3e-6 # minimal speed of sound squared
+csqmin=1e-6 # minimal speed of sound squared
 # 1e-6 is about 1keV...
 csqinit=csqmin*(sig0*kappa)**0.25 # initial speed of sound squared
 
@@ -73,9 +73,9 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 40. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc = 20. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
 # ktrunc >~ Nx/|\ln e_M|**(1./Ndiss) (see Parfrey et al. 2012, formula 32 and after) -- condition for preserving the overall solution
-ktrunc_diss = 1. # smoothing the dissipation term when used as a heat source
+ktrunc_diss = 0.5 * np.double(nlons)/256.  # smoothing the dissipation term when used as a heat source
 ndiss = 2.    # order for hyperdiffusion (2 is normal diffusion)
 ddivfac = 1. # 0.5*ktrunc**2 # smoothing enhancement for divergence
 jitterskip = 0
@@ -90,14 +90,14 @@ bump_dlat  = old_div(np.pi,15.) # size of the perturbed region (latitude)
 
 ##################################################
 # source term
-mdotfinal = 0. # Msun/yr, intended mass accretion rate
+mdotfinal = 1e-3 # Msun/yr, intended mass accretion rate
 # sigplus   = 100. # mass accretion rate is sigplus * 4. * pi * latspread * rsphere**2
 latspread = 0.2   # spread in radians
 sigplus   = 142.374 * (1e8/sigmascale) * mdotfinal / (2.*np.pi*rsphere**2) / mass1 / np.sqrt(4.*np.pi)/np.sin(latspread) # dependence on latspread is approximate and has an accuracy of the order latspread**2
 # 6.30322e8*tscale*mdotfinal*(1e8/sigmascale)/np.sqrt(4.*np.pi)/np.sin(latspread)
 # (the sqrt(4\pi) factor comes from the Gaussian shape of the source)
 print("conf: sigplus = "+str(sigplus))
-incle     = latspread*0.25 # inclination of initial rotation, radians
+incle     = np.pi/6.# latspread*0.25 # inclination of initial rotation, radians
 slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 eqrot = False # if true, sets a rapidly rotating belt in the IC
@@ -110,8 +110,8 @@ satsink = False # saturation sink (depletion grows non-linearly with Sigma)
 tturnon=10.*pspin/tscale
 
 # turning off physics:
-nocool = True # no radiative cooling
-noheat = True # no dissipation heating
+nocool = False # no radiative cooling
+noheat = False # no dissipation heating
 fixedEOS = False # fixed EOS
 gammaEOS = 4./3.
 

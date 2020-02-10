@@ -37,7 +37,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
     outdir=os.path.dirname(filename)
     f = h5py.File(filename,'r', libver='latest')
     params=f["params"]
-    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; tscale=params.attrs["tscale"]
+    nlons=params.attrs["nlons"] ; nlats=params.attrs["nlats"] ; omega=params.attrs["omega"] ; tscale=params.attrs["tscale"] ; sigmascale = params.attrs["sigmascale"]
     x = Spharmt(int(nlons),int(nlats),int(np.double(nlons)/3.),rsphere,gridtype='gaussian')
     lons1d = x.lons # (2.*np.pi/np.double(nlons))*np.arange(nlons)
     clats1d = np.sin(x.lats) # 2.*np.arange(nlats)/np.double(nlats)-1.
@@ -59,13 +59,22 @@ def plotnth(filename, nstep, derot = False, step = 1):
         for kth in np.arange(nth):
             lons[kth, :] = lons[kth, lonsort]
             sig[kth, :] = sig[kth, lonsort]
-            ug[kth, :] = ug[kth, lonsort] ;            vg[kth, :] = vg[kth, lonsort]
+            ug[kth, :] = ug[kth, lonsort] ;    vg[kth, :] = vg[kth, lonsort]
             divg[kth, :] = divg[kth, lonsort] ; vortg[kth, :] = vortg[kth, lonsort]
             energy[kth, :] = energy[kth, lonsort] ; qminus[kth, :] = qminus[kth, lonsort]
             accflag[kth, :] = accflag[kth, lonsort]
     lonsDeg=lons*180./np.pi ; latsDeg=lats*180./np.pi
     f.close()
     press=energy* 3. * (1.-beta/2.)
+    # conversion to physical units:
+    vortg /= tscale # now in Hz
+    divg /= tscale
+    sig *= sigmascale
+    energy *= sigmascale * 8.98755 # in 1e20 erg/cm^2
+    kappa = 0.35 * sigmascale
+    qminus *= kappa/grav  # makes a dimensionless Eddington-ratio Q^- * varkappa / g
+    # sigmascale * 8.98755 / tscale # in 1e20 erg / cm^2 / s
+    
     # ascii output:
     fmap=open(filename+'_map'+str(nstep)+'.dat', 'w')
     fmap.write("# map with step = "+str(step)+"\n")

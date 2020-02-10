@@ -71,6 +71,8 @@ def lightcurves(filename, lat0, lon0):
     for k in np.arange(nsize):
         data=f[keys[k]]
         sig=data["sig"][:] ; diss=data["diss"][:] ; accflag=data["accflag"][:]
+        sig_phiav = sig.mean(axis=1)
+        sig_thetav = trapz(sig, x=-clats1d, axis=0)*dlons/2.
         ug=data["ug"][:] ;  vg=data["vg"][:]
         energy=data["energy"][:] ; beta=data["beta"][:]
         qplus=data["qplus"][:] ;  qminus=data["qminus"][:]
@@ -104,9 +106,10 @@ def lightcurves(filename, lat0, lon0):
         flux[k]=trapz((qminus*cosa1).sum(axis=1), x=-clats1d1)*dlons1
         lumtot[k]=data.attrs['lumtot']
         heattot[k]=data.attrs['heattot']
-        mass_total[k]=trapz(sig.sum(axis=1), x=-clats1d)*dlons
+        mass_total[k]=trapz(sig_phiav, x=-clats1d)*dlons
         newmass_total[k]=trapz((sig*accflag).sum(axis=1), x=-clats1d)*dlons
         mass[k]=trapz((sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
+        sigmean = mass_total[k]/4./np.pi # mean surface density
         newmass[k]=trapz((accflag*sig*cosa1).sum(axis=1), x=-clats1d1)*dlons1
         kenergy[k]=trapz(((ug**2+vg**2)*sig).sum(axis=1), x=-clats1d1)*dlons1/2.
         kenergy_u[k]=trapz(((ug**2)*sig).sum(axis=1), x=-clats1d1)*dlons1/2.
@@ -123,26 +126,28 @@ def lightcurves(filename, lat0, lon0):
         maxdiss[k]=diss.max() ;     mindiss[k]=diss.min()
         # for tth/tphi plots:
         if(dimsequal):
-            tbaver[:,k] = (tbottom*sig).mean(axis=1)/sig.mean(axis=1) # Sigma-weighed
-            rxyaver[:,k] = (uvcorr*sig).mean(axis=1)/sig.mean(axis=1)
-            sigmaver[:,k]=(sig).mean(axis=1)/sig.mean()
-            omeaver[:,k]=(sig*ug/np.sin(lats1)).mean(axis=1)/sig.mean(axis=1) /rsphere
+            tbaver[:,k] = (tbottom*sig).mean(axis=1)/sig_phiav # Sigma-weighed
+            rxyaver[:,k] = (uvcorr*sig).mean(axis=1)/sig_phiav
+            sigmaver[:,k]=(sig).mean(axis=1)/sigmean
+            omeaver[:,k]=(sig*ug/np.sin(lats1)).mean(axis=1)/sig_phiav /rsphere
             omeaver_lon[:,k]=(sig*ug/np.sin(lats1)).mean(axis=0)/sig.mean(axis=0) /rsphere
-            sigmaver_lon[:,k]=(sig).mean(axis=0)/sig.mean()
+            sigmaver_lon[:,k]=sig_thetav/sigmean
+            # trapz(sig, x=-clats1d, axis=0)/2.
+            # (sig).mean(axis=0)/sigmean
         else:
             # if dimensions are not equal, and we need to interpolate
             #            print("size (lats1) = "+str(np.size(lats1)))
-            averfun = interp1d(lats1d1, (tbottom*sig).mean(axis=1)/sig.mean(axis=1), kind='linear')
+            averfun = interp1d(lats1d1, (tbottom*sig).mean(axis=1)/sig_phiav, kind='linear')
             tbaver[:,k] = averfun(lats1d)
-            averfun = interp1d(lats1d1, (uvcorr*sig).mean(axis=1)/sig.mean(), kind='linear')
+            averfun = interp1d(lats1d1, (uvcorr*sig).mean(axis=1)/sig_phiav, kind='linear')
             rxyaver[:,k] = averfun(lats1d)
-            averfun = interp1d(lats1d1, (sig).mean(axis=1)/sig.mean(), kind='linear')
+            averfun = interp1d(lats1d1, (sig).mean(axis=1)/sig_phiav, kind='linear')
             sigmaver[:,k] = averfun(lats1d)
-            averfun = interp1d(lats1d1, (sig*ug/np.sin(lats1)).mean(axis=1)/sig.mean(axis=1) /rsphere, kind='linear')
+            averfun = interp1d(lats1d1, (sig*ug/np.sin(lats1)).mean(axis=1)/sig_phiav /rsphere, kind='linear')
             omeaver[:,k] = averfun(lats1d)
-            averfun = interp1d(lons1d1, (sig).mean(axis=0)/sig.mean(), kind='linear')
+            averfun = interp1d(lons1d1, sig_thetav/sigmean, kind='linear')
             sigmaver_lon[:,k] = averfun(lons1d)
-            averfun = interp1d(lons1d1, (sig*ug/np.sin(lats1)).mean(axis=0)/sig.mean(axis=0) /rsphere, kind='linear')
+            averfun = interp1d(lons1d1, trapz(sig*ug/np.sin(lats1), x=-clats1d,axis=0)/sig_thetav /rsphere, kind='linear')
             omeaver_lon[:,k] = averfun(lons1d)
         omegamean[k]=trapz((ug/np.sin(lats1)*sig).sum(axis=1), x=-clats1d1)*dlons1 / mass_total[k] /rsphere
     f.close() 
@@ -359,6 +364,7 @@ def dynspec_maker(infile='out/lcurve', ntimes = 30, nbins = 150, logbinning = Fa
         xmeans = np.zeros(ntimes) ; dxmeans = np.zeros(ntimes)
         fmaxs = np.zeros(ntimes) ; dfmaxs = np.zeros(ntimes)
         fout=open(infile+'_ffreq.dat', 'w')
+        fout.write("# t -- F -- rms(F) -- freq -- dfreq")
         for k in np.arange(ntimes):
             binfreqc=(binfreq[1:]+binfreq[:-1])/2.
             binfreqs=(binfreq[1:]-binfreq[:-1])/2.
@@ -370,10 +376,18 @@ def dynspec_maker(infile='out/lcurve', ntimes = 30, nbins = 150, logbinning = Fa
             fmaxs[k] = binfreqc[wmax] ;    dfmaxs[k] = binfreqs[wmax]
         fout.flush()
         fout.close()
+        # PL fit:
+        wfit = (fmaxs >400.)
+        pfit = np.polyfit(np.log(xmeans[wfit]), np.log(fmaxs[wfit]), 1)
+        print("PL fit: ln freq = a ln F + b")
+        print("a = "+str(pfit[0]))
+        print("b = "+str(pfit[1]))
+        #        ii=input("!")
         if(ifplot):
             plots.crosses(xmeans, dxmeans*10., fmaxs, dfmaxs,
                           xlabel=r'$L_{\rm obs}$, ${\rm erg\,s^{-1}}$',
                           ylabel=r'$f_{\rm peak}$, Hz', outfilename = infile + '_ffreq')
+            
         #
         
 ####################################################################################################

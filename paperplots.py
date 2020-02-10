@@ -34,8 +34,8 @@ def twotwists():
     '''
     picture for the split-sphere test
     '''
-    file1 = "titania/out_stwistLR/ecurve1.57079632679.dat"
-    file2 = "titania/out_stwistHR/ecurve1.57079632679.dat"
+    file1 = "titania/out_twistLR/ecurve1.57079632679.dat"
+    file2 = "titania/out_twistHR/ecurve1.57079632679.dat"
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
     lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
 
@@ -57,15 +57,15 @@ def twotwists():
     plt.plot(tar2, eu2, 'r')
     plt.plot(tar1, np.exp(0.67*(tar1-0.025)*dvdr), 'b--')
     plt.yscale('log')
-    plt.xlabel('$t$, s', fontsize=18)
+    plt.xlabel('$t$, s', fontsize=16)
     plt.ylim(ev1[ev1>0.].min()+ev2[ev2>0.].min(), (eth1).max()+eth2.max())
     plt.ylabel('$E$, $10^{35}$erg', fontsize=18)
-    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
-    plt.tick_params(labelsize=16, length=6, width=2., which='major')
+    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=14, length=6, width=2., which='major')
     fig.set_size_inches(5, 4)
     fig.tight_layout()
-    plt.savefig('forpaper/twostwists.png')
-    plt.savefig('forpaper/twostwists.eps')
+    plt.savefig('forpaper/twotwists.png')
+    plt.savefig('forpaper/twotwists.eps')
     plt.close()
     
 def twoND():
@@ -77,29 +77,33 @@ def twoND():
     lines1 = np.loadtxt(file1, comments="#", delimiter=" ", unpack=False)
     lines2 = np.loadtxt(file2, comments="#", delimiter=" ", unpack=False)
     
-    tar1=lines1[:,0] ; err1=lines1[:,1] ; serr1=lines1[:,2]
-    tar2=lines2[:,0] ; err2=lines2[:,1] ; serr2=lines2[:,2]
+    tar1=lines1[:,0] ; err1=lines1[:,1] ; merr1=lines1[:,3]
+    tar2=lines2[:,0] ; err2=lines2[:,1] ; merr2=lines2[:,3]
 
     plt.clf()
     fig=plt.figure()
-    plt.subplot(121)
-    plt.plot(tar1, err1, 'k')
-    plt.plot(tar2, err2, 'r')
+#    plt.subplot(121)
+#    plt.plot(tar1*1e3, err1, 'k')
+#    plt.plot(tar2*1e3, err2, 'r')
+#    plt.plot(tar1*1e3, tar1*0.+0.05, 'g:')
+#    plt.yscale('log')
+#    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+#    plt.tick_params(labelsize=14, length=6, width=2., which='major')
+#    plt.xlim(0.,100.)
+#    plt.ylabel('random error, $\Delta \Sigma/\Sigma$', fontsize=18)
+#    plt.xlabel('$t$, ms', fontsize=16)
+#    plt.subplot(122)
+    plt.plot(tar1*1e3, merr1, 'k')
+    plt.plot(tar2*1e3, merr2, 'r')
+    plt.plot([tar1[0]*1e3+20.,tar1[0]*1e3+23.], [1e-4, 1e-4], 'b', linewidth=3)
+    plt.plot(tar1*1e3, tar1*0.+0.05, 'g:')
     plt.yscale('log')
-    plt.tick_params(labelsize=16, length=3, width=1., which='minor')
-    plt.tick_params(labelsize=16, length=6, width=2., which='major')
-    plt.ylabel('random error, $\Delta \Sigma/\Sigma$', fontsize=18)
-    plt.xlabel('$t$, s', fontsize=18)
-    plt.subplot(122)
-    plt.plot(tar1, abs(serr1), 'k')
-    plt.plot(tar2, abs(serr2), 'r')
-    plt.plot([tar1[0]+0.1,tar1[0]+0.13], [1e-8, 1e-8], 'b')
-    plt.yscale('log')
-    plt.ylabel('systematic error, $\Delta \Sigma/\Sigma$', fontsize=16)
-    plt.xlabel('$t$, s', fontsize=16)
+    plt.ylabel('maximal relative error, $\Delta \Sigma/\Sigma$', fontsize=16)
+    plt.xlim(0.,100.)
+    plt.xlabel('$t$, ms', fontsize=16)
     plt.tick_params(labelsize=14, length=3, width=1., which='minor')
     plt.tick_params(labelsize=14, length=6, width=2., which='major')
-    fig.set_size_inches(5, 8)
+    fig.set_size_inches(10, 5)
     plt.tight_layout()
     plt.savefig('rtests.eps')
     plt.savefig('rtests.png')
@@ -122,12 +126,12 @@ def threecurves(outdir = "titania/out_3LR/"):
 
     plt.clf()
     fig = plt.figure()
-    plt.plot(t1, l1, 'k-')
-    plt.plot(t2, l2, 'g--')
-    plt.plot(t3, l3, 'b:')    
+    plt.plot(t1, l1/10., 'k-')
+    plt.plot(t2, l2/10., 'g--')
+    plt.plot(t3, l3/10., 'b:')    
     #    plt.yscale('log')
     plt.xlim(t1.min(), t1.max())
-    plt.ylabel(r'$L_{\rm obs}$, $10^{37}{\rm \, erg \, s^{-1}}$', fontsize=20)
+    plt.ylabel(r'$L_{\rm obs}$, $10^{38}{\rm \, erg \, s^{-1}}$', fontsize=20)
     plt.xlabel('$t$, s', fontsize=20)
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
@@ -160,7 +164,7 @@ def ekappa():
     plt.plot(latDeg, oloc*0.+omega/2./np.pi, 'g--')
     plt.plot(latDeg, oloc*0.+2.*omega/2./np.pi, 'g--')
     plt.xlabel(r'latitude, deg', fontsize=16)
-    plt.ylabel(r'$\varkappa_{\rm e}/2\pi$, Hz', fontsize=16)
+    plt.ylabel(r'$\Omega_{\rm e}/2\pi$, Hz', fontsize=16)
     plt.tick_params(labelsize=14, length=3, width=1., which='minor')
     plt.tick_params(labelsize=14, length=6, width=2., which='major')
     fig.set_size_inches(6, 5)
@@ -264,17 +268,17 @@ def threecrosses(outdir = '/home/pasha/SLayer/titania/out_3LR/'):
     lines3 = np.loadtxt(infile3, unpack=True)
     flux3 = lines3[1, :] ; dflux3 = lines3[2, :] ; freq3 = lines3[3,:]; dfreq3 = lines3[4,:]
 
-    xlabel=r'$L_{\rm obs}$, $10^{37}{\rm erg\,s^{-1}}$' ;   ylabel=r'$f_{\rm peak}$, Hz'
+    xlabel=r'$L_{\rm obs}$, $10^{38}{\rm erg\,s^{-1}}$' ;   ylabel=r'$f_{\rm peak}$, Hz'
     plt.clf()
     fig=plt.figure()
-    plt.plot([flux1.min(), flux1.max()], [1./0.003, 1./0.003], 'g:')
-    plt.errorbar(flux1, freq1, xerr=dflux1, yerr=dfreq1, fmt='ko')
-    plt.errorbar(flux2, freq2, xerr=dflux2, yerr=dfreq2, fmt='rd')
-    plt.errorbar(flux3, freq3, xerr=dflux3, yerr=dfreq3, fmt='b^')
+    plt.plot([0., (flux1+dflux1).max()/10.], [1./0.003, 1./0.003], 'g:')
+    plt.errorbar(flux1/10., freq1, xerr=dflux1/10., yerr=dfreq1, fmt='ko')
+    plt.errorbar(flux2/10., freq2, xerr=dflux2/10., yerr=dfreq2, fmt='rd')
+    plt.errorbar(flux3/10., freq3, xerr=dflux3/10., yerr=dfreq3, fmt='b^')
     plt.xlabel(xlabel, fontsize=20) ; plt.ylabel(ylabel, fontsize=20)
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
-    plt.ylim(0.,1000.) ;    plt.xlim(0.,4.)
+    plt.ylim(0.,1100.)  ;    plt.xlim(0.,(flux1.max()+dflux1.max())/10.)
     fig.set_size_inches(6, 5)
     fig.tight_layout()
     plt.savefig(outdir+'ffreq3.png')
