@@ -136,7 +136,7 @@ def threecurves(outdir = "titania/out_3LR/"):
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
     #    plt.yscale('log')
-    fig.set_size_inches(12, 4)
+    fig.set_size_inches(9, 4)
     fig.tight_layout()
     plt.savefig(outdir+'forpaper_3lc.png')
     plt.savefig(outdir+'forpaper_3lc.eps')
@@ -339,3 +339,5 @@ def teffsigma():
     plt.savefig('limits.png')
     plt.close()
 
+# plot_saved('./reseffect/reseffectL.dat')
+# plot_saved('./reseffect/reseffectH.dat')

@@ -21,6 +21,7 @@ rc('text', usetex=True)
 # #add amsmath to the preamble
 matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"] 
 from matplotlib import interactive, use
+from matplotlib.colors import BoundaryNorm
 
 import glob
 
@@ -331,16 +332,19 @@ def snapplot(lons, lats, sig, accflag, tb, vx, vy, sks, outdir='out'
 # post-factum visualizations from the ascii output of snapplot:
 #    
 # general framework for a post-processed map of some quantity q
-def somemap(lons, lats, q, outname, latrange = None):
+def somemap(lons, lats, q, outname, latrange = None, title = None):
     wnan=np.where(np.isnan(q))
     nnan=np.size(wnan)
     nlevs=30
-    levs=np.linspace(q.min(), q.max(), nlevs)
+    dl = int(np.ceil(np.log10(abs(q).max())))
+    levs=np.round(np.linspace(q.min(), q.max(), nlevs), 2-dl)
+    cmap = plt.get_cmap('hot')
+    norm = BoundaryNorm(levs, ncolors=cmap.N, clip=True)
     print(outname+" somemap: "+str(nnan)+"NaN points out of "+str(np.size(q)))
-    plt.ioff()
+    #    plt.ioff()
     plt.clf()
     fig=plt.figure()
-    plt.pcolormesh(lons*180./np.pi, -lats*180./np.pi, q, cmap='hot') #,levels=levs)
+    plt.pcolormesh(lons*180./np.pi, -lats*180./np.pi, q, cmap=cmap, norm=norm)
     plt.colorbar()
     if(latrange is not None):
         plt.ylim(latrange[0],latrange[1])
@@ -348,9 +352,11 @@ def somemap(lons, lats, q, outname, latrange = None):
     plt.tick_params(labelsize=14, length=6, width=2., which='major')    
     plt.xlabel('longitude, deg',fontsize=16)
     plt.ylabel('latitude, deg', fontsize=16)
-    fig.set_size_inches(5, 3)
+    if title is not None:
+        plt.title(title)
+    fig.set_size_inches(5, 4)
     fig.tight_layout()
-    plt.savefig(outname)
+    plt.savefig(outname, dpi = 100)
     plt.close()
     #
 def somepoles(lons, lats, q, outname, t = None):
@@ -566,13 +572,18 @@ def dynsplot(infile="out/pds_diss", omega=None, binnorm=True):
     print("T = "+str(t2.min())+" "+str(t2.max()))
     #    ii=input('T')
     #    print(f2)
+    cmap = plt.get_cmap('hot')
+    nlevs = 20
+    levs = np.round(np.linspace(p.min(), p.max(), nlevs), 2)
+    norm = BoundaryNorm(levs, ncolors=cmap.N, clip=True)
+    
     plt.clf()
     fig=plt.figure()
     #    plt.contourf(tc, fc, f2, cmap='hot', nlevels=100)
-    plt.pcolormesh(t2, binfreq2, p, cmap='hot') 
+    plt.pcolormesh(t2, binfreq2, p, cmap='hot', norm=norm) 
     # plt.pcolor(t2, binfreq2, p) #, vmin=np.log(pmin), vmax=np.log(pmax)) # t2, binfreq2 should be corners
     # plt.contourf(tc, fc, np.log(f2), cmap='hot')
-    #    plt.colorbar()
+    plt.colorbar()
     #    plt.plot([t.min(), t.min()],[omega/2./np.pi,omega/2./np.pi], 'r')
     #    plt.plot([t.min(), t.max()],[2.*omega/2./np.pi,2.*omega/2./np.pi], 'r')
     if(omega is not None):
@@ -590,7 +601,7 @@ def dynsplot(infile="out/pds_diss", omega=None, binnorm=True):
     plt.xlabel('$t$, s', fontsize=20)
     plt.tick_params(labelsize=18, length=3, width=1., which='minor')
     plt.tick_params(labelsize=18, length=6, width=2., which='major')
-    fig.set_size_inches(12, 4)
+    fig.set_size_inches(9, 4)
     fig.tight_layout()
     plt.savefig(infile+'.png')
     plt.savefig(infile+'.eps')
@@ -617,7 +628,7 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
     plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=np.linspace(qth.min(), qth.max(), 30), cmap='hot')
     plt.colorbar()
     plt.xlabel('$t$, ms')
-    plt.ylabel('latitude')
+    plt.ylabel('latitude, deg')
     fig.set_size_inches(8, 4)
     fig.tight_layout()
     plt.savefig(prefix+'_tth.eps')
@@ -634,7 +645,7 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
         #    plt.colorbar()
         plt.ylim(0.,360.)
         plt.xlabel('$t$, ms', fontsize=20)
-        plt.ylabel('longitude', fontsize=20)
+        plt.ylabel('longitude, deg', fontsize=20)
         plt.tick_params(labelsize=18, length=3, width=1., which='minor')
         plt.tick_params(labelsize=18, length=6, width=2., which='major')
         fig.set_size_inches(8, 4)
@@ -711,17 +722,22 @@ def plot_saved(infile, latrange = None):
     ulons=np.unique(lons) ; ulats=np.unique(lats)
     lons=np.reshape(lons, [np.size(ulats), np.size(ulons)])
     lats=np.reshape(lats, [np.size(ulats), np.size(ulons)])
+    vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
     sig=np.reshape(sig, [np.size(ulats), np.size(ulons)])
     qminus=np.reshape(qminus, [np.size(ulats), np.size(ulons)])
-    vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
 
     # somwhow the plot gets overturned
     lats = -lats
 
+    print(np.shape(vortg))
+    print(np.shape(sig))
     # sigma is initially in sigmascales
-    somemap(lons, lats, sig, infile+"_sig.png", latrange = latrange)
-    somemap(lons, lats, qminus, infile+"_qminus.png", latrange = latrange)
-    somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange)
+    somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange,
+            title = r'$\omega$, ${\rm s}^{-1}$')
+    somemap(lons, lats, qminus, infile+"_qminus.png", latrange = latrange,
+            title = r'$\varkappa Q^{-} / cg$')
+    somemap(lons, lats, sig, infile+"_sig.png", latrange = latrange,
+            title = r'$\Sigma$, g\,cm$^{-2}$')
     if(qminus.max()>qminus.min()):
         somepoles(lons, lats, qminus, infile)
     
