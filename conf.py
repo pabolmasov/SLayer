@@ -73,7 +73,7 @@ print("speed of sound / Keplerian = "+str(np.sqrt(csqmin) / omega / rsphere))
 
 # Hyperdiffusion
 ##################################################
-ktrunc = 20. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
+ktrunc = 40. * np.double(nlons)/256. # wavenumber multiplier for spectral cut-off (1 for kmax)
 # ktrunc >~ Nx/|\ln e_M|**(1./Ndiss) (see Parfrey et al. 2012, formula 32 and after) -- condition for preserving the overall solution
 ktrunc_diss = 0.5 * np.double(nlons)/256.  # smoothing the dissipation term when used as a heat source
 ndiss = 2.    # order for hyperdiffusion (2 is normal diffusion)
@@ -102,9 +102,9 @@ slon0     = 0.1  # longitudinal shift of the source, radians
 overkepler = 0.9     # source term rotation with respect to Kepler
 eqrot = False # if true, sets a rapidly rotating belt in the IC
 # friction time scale with the neutron star:
-tfric=0.*pspin/tscale
+tfric=10.*pspin/tscale
 # depletion of the atmosphere:
-tdepl = 0.*pspin/tscale
+tdepl = 10.*pspin/tscale
 satsink = False # saturation sink (depletion grows non-linearly with Sigma)
 # turning on the source smoothly
 tturnon=10.*pspin/tscale

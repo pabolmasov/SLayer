@@ -109,7 +109,7 @@ def plotnth(filename, nstep, derot = False, step = 1):
         teff=(qminus*sigmascale/mass1)**0.25*3.64 # effective temperature in keV
         # vortg-2.*omegaNS*np.sin(lats)
         #        print(teff.min(), teff.max())
-        plots.snapplot(lonsDeg, latsDeg, sig, accflag, teff, xx, yy, [skx,sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
+        plots.snapplot(lonsDeg, latsDeg, sig, accflag, teff, xx, yy, [skx, sky], outdir=outdir, t=t*tscale*1e3) # geographic maps
         # plots.snapplot(lonsDeg, latsDeg, sig, accflag, qminus, xx, yy, [skx,sky], outdir=outdir) # geographic maps
         gamma=4./3.
         j=ug*rsphere*np.cos(lats)

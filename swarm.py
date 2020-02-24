@@ -150,7 +150,7 @@ energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)
 # initial velocity field  (pure rotation)
 ug = omega*np.cos(lats)*rsphere
 if(eqrot):
-    ug = ( overkepler / rsphere**0.5 * np.exp(-(sina/latspread)**2)+omega*(1.-np.exp(-(sina/latspread)**2))) * np.cos(lats)
+    ug = ud # ( overkepler / rsphere**0.5 * np.exp(-(sina/latspread)**2)+omega*(1.-np.exp(-(sina/latspread)**2))) * np.cos(lats)
 vg = 0.00*omega*np.sin(lats)*np.cos(lons)
 if(iftwist):
     ug *= (lats/twistscale) / np.sqrt(1.+(lats/twistscale)**2) # twisted sphere test

@@ -8,6 +8,7 @@ import scipy.ndimage as spin
 import matplotlib.pyplot as plt
 import numpy.ma as ma
 from scipy.integrate import trapz
+from scipy.interpolate import interp2d
 import os.path
 
 # font adjustment:
@@ -23,10 +24,23 @@ matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amssymb,amsmath}"]
 from matplotlib import interactive, use
 from matplotlib.colors import BoundaryNorm
 
+import re
 import glob
 
 plt.ioff()
 use('Agg')
+
+# extracts time stamp from a txt-map
+def timextract(infile):
+    instream = open(infile, 'r')
+    s1 = instream.readline()
+    f=re.findall("t=\d+\.\d+", s1) # t=0.0174614302364
+
+    while(f == []):
+        s1 = instream.readline()
+        f=re.findall("t=\d+\.\d+e*-*\d*", s1) # 
+    f = f[-1]
+    return np.double(f[2:])
 
 ##################################################
 
@@ -344,7 +358,7 @@ def somemap(lons, lats, q, outname, latrange = None, title = None):
     #    plt.ioff()
     plt.clf()
     fig=plt.figure()
-    plt.pcolormesh(lons*180./np.pi, -lats*180./np.pi, q, cmap=cmap, norm=norm)
+    plt.pcolormesh(lons*180./np.pi, lats*180./np.pi, q, cmap=cmap, norm=norm)
     plt.colorbar()
     if(latrange is not None):
         plt.ylim(latrange[0],latrange[1])
@@ -709,6 +723,58 @@ def FFplot(prefix='out/'):
     plt.savefig(prefix+'FFplot.png')
     plt.close()
 
+def postquiver(lons, lats, q, accflag, ug, vg, sk, outfile='out', latrange = None, title = None):
+    skx, sky = sk
+    print(skx)
+    wnan=np.where(np.isnan(q+accflag))
+    nnan=np.size(wnan)
+    nlevs=30
+    dl = int(np.ceil(np.log10(abs(q).max())))
+    levs=np.round(np.linspace(q.min(), q.max(), nlevs), 2-dl)
+    cmap = plt.get_cmap('hot')
+    norm = BoundaryNorm(levs, ncolors=cmap.N, clip=True)
+    print(outfile+".png somemap: "+str(nnan)+"NaN points out of "+str(np.size(q)))
+    #    vx = ug/np.sqrt(ug**2+vg**2).max() ; vy = vg/np.sqrt(ug**2+vg**2).max()
+    #    vx *= 100. ; vy *= 100.
+    plt.clf()
+    fig=plt.figure()
+    plt.pcolormesh(lons*180./np.pi, lats*180./np.pi, q, cmap=cmap, norm=norm)
+    plt.colorbar()
+    plt.contour(lons*180./np.pi, lats*180./np.pi, accflag, levels = [0.5], colors='k')
+    #    plt.quiver(lons[::skx, ::sky]*180./np.pi, lats[::skx, ::sky]*180./np.pi,
+    #               vx[::skx, ::sky], vy[::skx, ::sky], pivot='mid', units='x', linewidth=1.0,
+    #               color='w', scale=20.0)
+
+    # preparing streamplot
+    ny,nx = np.shape(lons)
+    ulons = np.unique(lons) ;   ulats = np.unique(lats)
+    print(nx)
+    print(ny)
+    lonsdeg = (np.arange(nx)+0.5)/np.double(nx)*(lons.max()-lons.min())+lons.min()
+    latsdeg = (np.arange(ny)+0.5)/np.double(ny)*(lats.max()-lats.min())+lats.min()
+    lonsdeg *= 180./np.pi ; latsdeg *= 180./np.pi
+    latsdeggrid, lonsdeggrid = np.meshgrid(latsdeg, lonsdeg)
+    ugfun = interp2d(ulons*180./np.pi, ulats*180./np.pi, ug)
+    vgfun = interp2d(ulons*180./np.pi, ulats*180./np.pi, vg)
+    ugint = ugfun(lonsdeg, latsdeg)
+    vgint = vgfun(lonsdeg, latsdeg)
+    
+    plt.streamplot(lonsdeg, latsdeg, ugint, vgint, color='w', density = (0.5,0.5))
+    plt.tick_params(labelsize=14, length=3, width=1., which='minor')
+    plt.tick_params(labelsize=14, length=6, width=2., which='major')    
+    plt.xlabel('longitude, deg',fontsize=16)
+    plt.ylabel('latitude, deg', fontsize=16)
+    plt.ylim(-90., 90.) ; plt.xlim(0.,350.)
+    if(latrange is not None):
+        plt.ylim(latrange[0],latrange[1])
+    if title is not None:
+        plt.title(title)
+    fig.set_size_inches(6, 4)
+    fig.tight_layout()
+    plt.savefig(outfile+".png", dpi = 100)
+    plt.savefig(outfile+".eps", dpi = 100)
+    
+    
 # plot of a saved ascii map produced by plotnth
 def plot_saved(infile, latrange = None):
     '''
@@ -716,30 +782,39 @@ def plot_saved(infile, latrange = None):
     '''
     
     lines = np.loadtxt(infile, comments="#", delimiter=" ", unpack=False)
+    t = timextract(infile)
     lats = lines[:,0] ; lons = lines[:,1] ; sig = lines[:,2]; qminus = lines[:,8]
-    divg = lines[:,3] ; vortg = lines[:,4]
-    
+    divg = lines[:,3] ; vortg = lines[:,4] ; ug = lines[:,5] ; vg = lines[:,6]    
     ulons=np.unique(lons) ; ulats=np.unique(lats)
+    accflag = lines[:,9]
     lons=np.reshape(lons, [np.size(ulats), np.size(ulons)])
     lats=np.reshape(lats, [np.size(ulats), np.size(ulons)])
     vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
     sig=np.reshape(sig, [np.size(ulats), np.size(ulons)])
     qminus=np.reshape(qminus, [np.size(ulats), np.size(ulons)])
+    ug=np.reshape(ug, [np.size(ulats), np.size(ulons)])
+    vg=np.reshape(vg, [np.size(ulats), np.size(ulons)])
+    accflag=np.reshape(accflag, [np.size(ulats), np.size(ulons)])
 
     # somwhow the plot gets overturned
-    lats = -lats
+    #    lats = -lats
 
     print(np.shape(vortg))
     print(np.shape(sig))
+    postquiver(lons, lats, qminus, accflag, ug, vg, (32, 32), outfile = infile+"_quiver",
+               latrange = latrange, title = r'$ t = '+str(round(t*1e3))+'$ms')
+               # r'$\varkappa Q^{-} / cg$')
     # sigma is initially in sigmascales
-    somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange,
-            title = r'$\omega$, ${\rm s}^{-1}$')
-    somemap(lons, lats, qminus, infile+"_qminus.png", latrange = latrange,
-            title = r'$\varkappa Q^{-} / cg$')
+    #    somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange,
+    #            title = r'$\omega$, ${\rm s}^{-1}$')
+    #    somemap(lons, lats, qminus, infile+"_qminus.png", latrange = latrange,
+    #            title = r'$\varkappa Q^{-} / cg$')
     somemap(lons, lats, sig, infile+"_sig.png", latrange = latrange,
             title = r'$\Sigma$, g\,cm$^{-2}$')
     if(qminus.max()>qminus.min()):
         somepoles(lons, lats, qminus, infile)
+    plt.close('all')
+    # longitudes, latitudes, density field, accretion flag, some additional quantity (vorticity difference), velocity fields, alias for velocity output
     
 def multiplot_saved(prefix, skip=0, step=1):
 
@@ -753,15 +828,18 @@ def multiplot_saved(prefix, skip=0, step=1):
     #    ff=input('f')
     nlist = np.size(flist)
     outdir=os.path.dirname(prefix)
+    #    ii=input('F')
     
     for k in np.arange(skip, nlist, step):
-        plot_saved(flist[k])
+        plot_saved(flist[k], latrange = [-80, 80])
         print(outdir+'/sig{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_sig.png"+" "+outdir+'/sig{:05d}'.format(k)+".png")
-        os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
-        os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
+        #        os.system("mv "+flist[k]+"_qminus.png"+" "+outdir+'/q{:05d}'.format(k)+".png")
+        #        os.system("mv "+flist[k]+"_vort.png"+" "+outdir+'/v{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_north.png"+" "+outdir+'/n{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_south.png"+" "+outdir+'/s{:05d}'.format(k)+".png")
+        os.system("mv "+flist[k]+"_quiver.png"+" "+outdir+'/qv{:05d}'.format(k)+".png")
+        os.system("mv "+flist[k]+"_quiver.eps"+" "+outdir+'/qv{:05d}'.format(k)+".eps")
 
 #
 def plot_meanmap(infile = "out/meanmap_phavg"):
