@@ -26,6 +26,8 @@ from matplotlib.colors import BoundaryNorm
 
 import re
 import glob
+import conf as cf
+import beta as b
 
 plt.ioff()
 use('Agg')
@@ -622,7 +624,8 @@ def dynsplot(infile="out/pds_diss", omega=None, binnorm=True):
     plt.close()
 
 # makes the t-phi and t-th plots for a selected pair of quantities
-def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
+def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False,
+             title=None):
     '''
     plots time+theta and time+phi 2D maps for quantity qth,qphi (first is a function of theta, second depends on phi)
     '''
@@ -639,14 +642,32 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
         lonsmean=lons
     plt.clf()
     fig=plt.figure()
-    plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=np.linspace(qth.min(), qth.max(), 30), cmap='hot')
+    levs =np.round(np.linspace(qth.min(), qth.max(), 30))
+    if omega:
+        pspin = 0.003 ; tscale = 6.89631e-06 ; rsphere  = 6.0460
+        # temporary: we need to communicate the proper values somehow!
+        levs *= rsphere**1.5*tscale
+        levs = np.round(np.linspace((qth*rsphere**1.5*tscale).min()*0.9, (qth*rsphere**1.5*tscale).max()*1.2, 20),2)
+        #   levs = np.round(np.linspace(0.0, 1.0, 20),2)
+        # =np.round(np.linspace(1./pspin, np.minimum(1./tscale/rsphere**1.5, qth.max()/2./np.pi), 30))
+        plt.contourf(tar, latsmean*180./np.pi-90., qth*rsphere**1.5*tscale, levels=levs, cmap='hot')
+    else:
+        plt.contourf(tar, latsmean*180./np.pi-90., qth, levels=levs, cmap='hot')
     plt.colorbar()
+    if title is not None:
+        plt.title(title)
+    else:
+        if omega:
+            plt.title(r"$\Omega/\Omega_{\rm K}$")
+            #     plt.contour(tar, latsmean*180./np.pi-90., qth*rsphere**1.5*tscale, levels = [2.*np.pi*rsphere**1.5*tscale/pspin], colors='w')
+            print(2.*np.pi*rsphere**1.5*tscale/pspin)
     plt.xlabel('$t$, ms')
     plt.ylabel('latitude, deg')
-    fig.set_size_inches(8, 4)
+    fig.set_size_inches(8, 3)
     fig.tight_layout()
     plt.savefig(prefix+'_tth.eps')
     plt.savefig(prefix+'_tth.png')
+    print(prefix+'_tth.png')
     plt.close()
     if not(nolon):
         plt.clf()
@@ -675,7 +696,7 @@ def timangle(tar, lats, lons, qth, qphi, prefix='out/',omega=None, nolon=False):
     fext.close()
         
 # a wrapper for timangle
-def plot_timangle(prefix='out/', trange = None, nolon = False):
+def plot_timangle(prefix='out/', trange = None, nolon = False, omega=False):
     '''
     plot for a timangle output
     '''
@@ -701,7 +722,7 @@ def plot_timangle(prefix='out/', trange = None, nolon = False):
     else:
         ulons = ulats ; flons = flats
     #    print(lons[:,0])
-    timangle(t*1e3, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots', nolon=nolon)
+    timangle(t*1e3, ulats, ulons, np.transpose(flats), np.transpose(flons), prefix=prefix+'plots', nolon=nolon, omega = omega)
 
 # vdKlis's plot: frequency as a function of flux
 def FFplot(prefix='out/'):
@@ -768,11 +789,11 @@ def postquiver(lons, lats, q, accflag, ug, vg, sk, outfile='out', latrange = Non
     if(latrange is not None):
         plt.ylim(latrange[0],latrange[1])
     if title is not None:
-        plt.title(title)
-    fig.set_size_inches(6, 4)
+        plt.title(title, fontsize=16)
+    fig.set_size_inches(5, 4)
     fig.tight_layout()
     plt.savefig(outfile+".png", dpi = 100)
-    plt.savefig(outfile+".eps", dpi = 100)
+    plt.savefig(outfile+".eps")
     
     
 # plot of a saved ascii map produced by plotnth
@@ -783,7 +804,8 @@ def plot_saved(infile, latrange = None):
     
     lines = np.loadtxt(infile, comments="#", delimiter=" ", unpack=False)
     t = timextract(infile)
-    lats = lines[:,0] ; lons = lines[:,1] ; sig = lines[:,2]; qminus = lines[:,8]
+    lats = lines[:,0] ; lons = lines[:,1] ; sig = lines[:,2]
+    energy = lines[:,7]; qminus = lines[:,8]
     divg = lines[:,3] ; vortg = lines[:,4] ; ug = lines[:,5] ; vg = lines[:,6]    
     ulons=np.unique(lons) ; ulats=np.unique(lats)
     accflag = lines[:,9]
@@ -791,6 +813,7 @@ def plot_saved(infile, latrange = None):
     lats=np.reshape(lats, [np.size(ulats), np.size(ulons)])
     vortg=np.reshape(vortg, [np.size(ulats), np.size(ulons)])
     sig=np.reshape(sig, [np.size(ulats), np.size(ulons)])
+    energy=np.reshape(energy, [np.size(ulats), np.size(ulons)])
     qminus=np.reshape(qminus, [np.size(ulats), np.size(ulons)])
     ug=np.reshape(ug, [np.size(ulats), np.size(ulons)])
     vg=np.reshape(vg, [np.size(ulats), np.size(ulons)])
@@ -801,8 +824,6 @@ def plot_saved(infile, latrange = None):
 
     print(np.shape(vortg))
     print(np.shape(sig))
-    postquiver(lons, lats, qminus, accflag, ug, vg, (32, 32), outfile = infile+"_quiver",
-               latrange = latrange, title = r'$ t = '+str(round(t*1e3))+'$ms')
                # r'$\varkappa Q^{-} / cg$')
     # sigma is initially in sigmascales
     #    somemap(lons, lats, vortg, infile+"_vort.png", latrange = latrange,
@@ -813,6 +834,15 @@ def plot_saved(infile, latrange = None):
             title = r'$\Sigma$, g\,cm$^{-2}$')
     if(qminus.max()>qminus.min()):
         somepoles(lons, lats, qminus, infile)
+    # let us plot beta:
+    ug0 = cf.omega*np.cos(lats)*cf.rsphere
+    geff = -cf.grav+(ug**2+vg**2-ug0**2)/cf.rsphere
+    beta = b.betasolve_e(cf.cssqscale*sig/energy*np.sqrt(np.sqrt(-geff*sig)))
+    print("beta = "+str(beta.mean())+"+/-"+str(beta.std()))
+    postquiver(lons, lats, beta, accflag, ug, vg, (32, 32), outfile = infile+"_quiver",
+               latrange = latrange, title = r'$ t = '+str(round(t*1e3))+'$ms')
+    somemap(lons, lats, beta, infile+"_beta.png", latrange = latrange,
+            title = r'$\beta$')
     plt.close('all')
     # longitudes, latitudes, density field, accretion flag, some additional quantity (vorticity difference), velocity fields, alias for velocity output
     
@@ -840,6 +870,7 @@ def multiplot_saved(prefix, skip=0, step=1):
         os.system("mv "+flist[k]+"_south.png"+" "+outdir+'/s{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_quiver.png"+" "+outdir+'/qv{:05d}'.format(k)+".png")
         os.system("mv "+flist[k]+"_quiver.eps"+" "+outdir+'/qv{:05d}'.format(k)+".eps")
+        os.system("mv "+flist[k]+"_beta.eps"+" "+outdir+'/b{:05d}'.format(k)+".eps")
 
 #
 def plot_meanmap(infile = "out/meanmap_phavg"):

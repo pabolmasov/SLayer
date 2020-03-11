@@ -31,6 +31,9 @@ from spharmt import Spharmt
 import f5io as f5io #module for file I/O
 import conf as conf #importing simulation setup module
 
+from jitter import jitternod, jitterturn
+from beta import betasolve_p, betasolve_e
+
 from timer import Timer
 
 ####################################
@@ -80,23 +83,6 @@ from conf import nocool, noheat, fixedEOS, gammaEOS
 
 if(ifplot):
     from plots import visualize
-
-from jitter import jitternod, jitterturn
-    
-############################
-# beta calibration
-bmin=betamin ; bmax=1.-betamin ; nb=10000
-# hard limits for stability; bmin\sim 1e-7 approximately corresponds to Coulomb coupling G\sim 1,
-# hence there is even certain physical meaning in bmin
-# "beta" part of the main loop is little-time-consuming independently of nb
-b = (bmax-bmin)*((np.arange(nb)+0.5)/np.double(nb))+bmin
-bx = b/(1.-b)**0.25
-b[0]=0. ; bx[0]=0.0  # ; b[nb-1]=1e3 ; bx[nb-1]=1.
-betasolve_p=si.interp1d(bx, b, kind='linear', bounds_error=False, fill_value=1.)
-# as a function of pressure
-betasolve_e=si.interp1d(bx/(1.-b/2.)/3., b, kind='linear', bounds_error=False,fill_value=1.)
-# as a function of energy
-######################################
 
 #############################################################
 # fixed EOS:

@@ -17,7 +17,7 @@ if(ifplot):
     
 # calculates the light curve and the power density spectrum
 # it's much cheaper to read the datafile once and compute multiple data points
-def lightcurves(filename, lat0, lon0, iftth = True):
+def lightcurves(filename, lat0, lon0, iftth = True, nmax = None):
     """
     lightcurves(<file name>, <viewpoint latitude, rad>, <viewpoint longitude, rad>)
     TODO: variables from conf.py and stored in the hdf5 file blend together; ideally, we should get without refences to conf.py 
@@ -50,6 +50,8 @@ def lightcurves(filename, lat0, lon0, iftth = True):
     keys=list(f.keys())
 
     nsize=np.size(keys)-1 # last key contains parameters
+    if nmax is not None:
+        nsize = np.minimum(nsize, nmax+1)
     print(str(nsize)+" points from "+str(keys[0])+" to "+str(keys[-2]))
     #    ipoints = input("keys")
     mass_total=np.zeros(nsize) ; energy_total=np.zeros(nsize)
@@ -232,15 +234,16 @@ def lightcurves(filename, lat0, lon0, iftth = True):
         ftth_sigma.close() ; ftth_omega.close() ; frey.close() ; ftphi_sigma.close() ; ftphi_omega.close() ; ftb.close()
     
     # plots:
-    if(ifplot): 
-        plots.timangle(tar*1e3, lats, lons, np.log(sigmaver),
-                       np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega/1e3/tscale)
-        plots.timangle(tar*1e3, lats, lons, omeaver,
-                       np.log(omeaver_lon), prefix=outdir+'/ome')
-        plots.timangle(tar*1e3, lats, lons, rxyaver,
-                       np.log(omeaver_lon), prefix=outdir+'/rxy', nolon=True)
-        plots.timangle(tar*1e3, lats, lons, tbaver,
-                       np.log(omeaver_lon), prefix=outdir+'/tb', nolon=True)
+    if(ifplot):
+        if iftth:
+            plots.timangle(tar*1e3, lats, lons, np.log(sigmaver),
+                           np.log(sigmaver_lon), prefix=outdir+'/sig', omega=omega/1e3/tscale)
+            plots.timangle(tar*1e3, lats, lons, omeaver,
+                           np.log(omeaver_lon), prefix=outdir+'/ome')
+            plots.timangle(tar*1e3, lats, lons, rxyaver,
+                           np.log(omeaver_lon), prefix=outdir+'/rxy', nolon=True)
+            plots.timangle(tar*1e3, lats, lons, tbaver,
+                           np.log(omeaver_lon), prefix=outdir+'/tb', nolon=True)
         plots.sometimes(tar*1e3, [mdot, mdot*0.+mdotfinal], fmt=['k.', 'r-']
                         , prefix=outdir+'/mdot', title='mass accretion rate')
         plots.sometimes(tar*1e3, [maxdiss, -mindiss], fmt=['k', 'r'],

@@ -105,8 +105,8 @@ def twoND():
     plt.tick_params(labelsize=14, length=6, width=2., which='major')
     fig.set_size_inches(10, 5)
     plt.tight_layout()
-    plt.savefig('rtests.eps')
-    plt.savefig('rtests.png')
+    plt.savefig('forpaper/rtests.pdf')
+    plt.savefig('forpaper/rtests.png')
     plt.close()
 #
 def threecurves(outdir = "titania/out_3LR/"):
@@ -290,8 +290,8 @@ def qpmplot(outdir = 'titania/out_3LR/'):
     lats, qmmean, qpmean, qmstd, qpstd = np.loadtxt(outdir+'meanmap_qphavg.dat', unpack=True)
     latsDeg = 180./np.pi * (np.pi/2.-lats)
     
-    plots.someplot(latsDeg, [qmmean/qmmean.max(), qmstd/qmmean.max()], xname=r'latitude, deg', yname="$Q^{-}$", prefix=outdir+'qminus', fmt = ['k-', 'r:'], ylog=False)
-    plots.someplot(latsDeg, [qpmean/qpmean.max(), qpstd/qpmean.max()], xname=r'latitude, deg', yname="$Q^{+}$", prefix=outdir+'qplus', fmt = ['k-', 'r:'], ylog=False)
+    plots.someplot(latsDeg, [qmmean/qmmean.max(), qmstd/qmmean.max()], xname=r'latitude, deg', yname=r"$Q^{-}/Q^{-}_{\rm max}$", prefix=outdir+'qminus', fmt = ['k-', 'r:'], ylog=False)
+    plots.someplot(latsDeg, [qpmean/qpmean.max(), qpstd/qpmean.max()], xname=r'latitude, deg', yname=r"$Q^{+}/Q^{+}_{\rm max}$", prefix=outdir+'qplus', fmt = ['k-', 'r:'], ylog=False)
     
 #############################################################
 def teffsigma():
