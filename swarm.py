@@ -72,7 +72,7 @@ from conf import csqmin, csqinit, cssqscale, kappa, mu, betamin, sigmafloor, ene
 # from conf import isothermal, gammainit, kinit # initial EOS
 from conf import outskip, tmax # frequency of diagnostic outputs, maximal time
 from conf import ifplot # if we make plots
-from conf import sigplus, latspread, incle, slon0, tturnon # source term
+from conf import sigplus, latspread, incle, slon0, tturnon, mdotrat # source term
 from conf import ifrestart, nrest, restartfile # restart setup
 # interaction with the NS surface: 
 from conf import tfric, tdepl, satsink # friction and depletion times, saturation sink flag
@@ -123,13 +123,18 @@ dt_out=dt_out_factor*rsphere**(1.5)/np.sqrt(mass1) # time step for output (we ne
 print("dt_out = "+str(dt_out)+"GM/c**3 = "+str(dt_out*tscale)+"s")
 # sources:
 sdotmax, sina = sdotsource(lats, lons, latspread) # surface density source and sine of the distance towards the rotation axis of the falling matter (normally, slightly offset to the rotation of the star)
+if mdotrat > 0.:
+    sdotmin = mdotrat * sdotmax
+else:
+    sdotmin = 0.
 vort_source = 2.*overkepler/rsphere**1.5 * sina
 # * np.exp(-(sina/latspread)**2)+vortgNS*(1.-np.exp(-(sina/latspread)**2))
 ud,vd = x.getuv(x.grid2sph(vort_source),x.grid2sph(vort_source)*0.) # velocity components of the source
 # beta_acc = 1. # gas-dominated matter
 beta_acc = 0. # radiation-dominated matter
 csqinit_acc = csqinit # (overkepler*latspread)**2 / rsphere
-energy_source_max = sdotmax*csqinit_acc* 3. * (1.-beta_acc/2.)
+energy_source_max = sdotmax * csqinit_acc* 3. * (1.-beta_acc/2.)
+energy_source_min = sdotmin * csqinit_acc* 3. * (1.-beta_acc/2.)
 
 #######################################################
 ## initial conditions: ###
@@ -390,8 +395,8 @@ while(t<(tmax+t0)):
     #    sdotminus=sdotsink(sig)
     #    sdotplus, sina = sdotsource(lats, lons, latspread, t)
     if(tturnon>0.):
-        sdotplus = sdotmax * (1.-np.exp(-t/tturnon)) 
-        energy_source = energy_source_max * (1.-np.exp(-t/tturnon))
+        sdotplus = sdotmax * (1.-np.exp(-t/tturnon)) + sdotmin * np.exp(-t/tturnon)
+        energy_source = energy_source_max * (1.-np.exp(-t/tturnon)) + energy_source_min
     else:
         sdotplus = sdotmax
         energy_source = energy_source_max 
